@@ -21,8 +21,8 @@ export default function GuidelinesPage() {
         </h2>
         <ul className="list-disc list-inside space-y-2 text-sm md:text-base">
           <li>Submit announcements 2–3 weeks in advance for best placement.</li>
-          <li>Maximum 3 consecutive weeks for any announcement in Bulletin/Email.</li>
-          <li>Church Screens limited to 6 rotating announcements each week.</li>
+          <li>Maximum 3-4 consecutive weeks for any announcement in Bulletin/Email/Screens.</li>
+          <li>Church Screens limited to 6-8 rotating announcements each week.</li>
           <li>High-demand periods (Sept, Dec, Jan, Holy Week) may reduce coverage time.</li>
           <li>All flyers should align with Saint Helen branding and be copyright-free.</li>
           <li>Priority given to events with broad relevance and those happening soonest.</li>
@@ -69,8 +69,8 @@ export default function GuidelinesPage() {
             Quick Tip
           </h3>
           <p className="text-sm">
-            If you need more than 3 weeks of promotion, consider rotating
-            announcements or focusing on different channels in subsequent weeks.
+            If you need more than 3-4 weeks of promotion, consider rotating
+            announcements or focusing on different channels in subsequent weeks, or putting in a request for longer promotion.
           </p>
         </div>
       </div>
@@ -82,8 +82,8 @@ export default function GuidelinesPage() {
             2. Duration of Announcements
           </h2>
           <p className="leading-relaxed text-sm md:text-base mb-4">
-            Announcements may be displayed/printed for a maximum of three
-            consecutive weeks.
+            Announcements may be displayed/printed for a maximum of three to four
+            consecutive weeks. Some major parish events, or events that have been given prior approval may run longer.
           </p>
           <p className="leading-relaxed text-sm md:text-base mb-4">
             <strong>High-Demand Periods:</strong> During peak times (September,
@@ -103,7 +103,7 @@ export default function GuidelinesPage() {
           </h3>
           <p className="text-sm">
             Repetition is key—but too much repetition can lead to “announcement
-            fatigue.” Three weeks strikes a balance between visibility and
+            fatigue.” Three to four weeks strikes a balance between visibility and
             freshness.
           </p>
         </div>

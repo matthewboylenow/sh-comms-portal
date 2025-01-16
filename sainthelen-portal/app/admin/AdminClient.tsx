@@ -1,8 +1,10 @@
+// app/admin/AdminClient.tsx
 'use client';
 
 import { useSession, signIn, signOut } from 'next-auth/react';
 import { useEffect, useState } from 'react';
 
+// For easier reference
 type TableName = 'announcements' | 'websiteUpdates' | 'smsRequests';
 
 type AdminRecord = {
@@ -53,7 +55,7 @@ export default function AdminClient() {
     recordId: string,
     currentValue: boolean
   ) {
-    // 1) Update local for immediate feedback
+    // 1) Immediate local update
     if (tableName === 'announcements') {
       setAnnouncements((prev) =>
         prev.map((r) =>
@@ -80,7 +82,7 @@ export default function AdminClient() {
       );
     }
 
-    // 2) Send request to the server to update Airtable
+    // 2) Send request to update Airtable
     try {
       const res = await fetch('/api/admin/markCompleted', {
         method: 'POST',
@@ -98,17 +100,15 @@ export default function AdminClient() {
     }
   }
 
-  // Example override status
+  // Example override status (only for announcements)
   async function handleOverrideStatus(
     tableName: TableName,
     recordId: string,
     newStatus: string
   ) {
     try {
-      // Currently only Announcements uses overrideStatus
-      if (tableName !== 'announcements') {
-        return; // skip
-      }
+      // If not announcements, skip
+      if (tableName !== 'announcements') return;
       const res = await fetch('/api/admin/updateOverrideStatus', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -118,6 +118,18 @@ export default function AdminClient() {
       fetchAllRequests();
     } catch (err: any) {
       setErrorMessage(err.message);
+    }
+  }
+
+  // Manual Trigger for Weekly Summary
+  async function handleManualSummary() {
+    try {
+      const res = await fetch('/api/generateSummary', { method: 'POST' });
+      if (!res.ok) throw new Error('Failed to generate summary');
+      alert('Weekly summary triggered successfully!');
+    } catch (err: any) {
+      console.error(err);
+      alert(`Error triggering summary: ${err.message}`);
     }
   }
 
@@ -143,15 +155,24 @@ export default function AdminClient() {
   }
 
   return (
-    <div className="p-4 text-white">
+    // Use text-gray-900 in light mode and text-gray-200 (or white) in dark mode
+    <div className="p-4 text-gray-900 dark:text-gray-200">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold">Admin Dashboard</h2>
-        <button
-          className="bg-blue-500 text-white px-4 py-2 rounded"
-          onClick={doSignOut}
-        >
-          Sign Out
-        </button>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={handleManualSummary}
+            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors"
+          >
+            Manually Run Weekly Summary
+          </button>
+          <button
+            className="bg-blue-500 text-white px-4 py-2 rounded"
+            onClick={doSignOut}
+          >
+            Sign Out
+          </button>
+        </div>
       </div>
 
       {errorMessage && (
@@ -160,6 +181,7 @@ export default function AdminClient() {
         </div>
       )}
 
+      {/* Hide Completed Toggle */}
       <div className="mb-6 flex items-center gap-2">
         <input
           type="checkbox"
@@ -186,7 +208,7 @@ export default function AdminClient() {
               hideCompleted={hideCompleted}
               onToggleCompleted={handleCompleted}
               onOverrideStatus={handleOverrideStatus}
-              showOverride={true} // for announcements only
+              showOverride={true}
             />
           </section>
 
@@ -198,7 +220,6 @@ export default function AdminClient() {
               records={websiteUpdates}
               hideCompleted={hideCompleted}
               onToggleCompleted={handleCompleted}
-              // no override for website updates if you want
               onOverrideStatus={handleOverrideStatus}
               showOverride={false}
             />
@@ -212,8 +233,8 @@ export default function AdminClient() {
               records={smsRequests}
               hideCompleted={hideCompleted}
               onToggleCompleted={handleCompleted}
-              showOverride={false}
               onOverrideStatus={handleOverrideStatus}
+              showOverride={false}
             />
           </section>
         </>
@@ -223,10 +244,8 @@ export default function AdminClient() {
 }
 
 /** 
- * A reusable table for any request type, showing a Completed? checkbox
- * and optionally an Override dropdown for announcements only.
+ * Reusable table for any request type, ensuring the text is visible in light mode.
  */
-
 type RequestTableProps = {
   tableName: TableName;
   records: AdminRecord[];
@@ -259,6 +278,7 @@ function RequestTable({
   return (
     <table className="w-full border-collapse text-sm">
       <thead>
+        {/* Make the header row easily readable in light mode */}
         <tr className="bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100">
           <th className="border border-gray-300 dark:border-gray-600 p-2">Name</th>
           <th className="border border-gray-300 dark:border-gray-600 p-2">Email</th>
@@ -269,31 +289,32 @@ function RequestTable({
               Override
             </th>
           )}
-          <th className="border border-gray-300 dark:border-gray-600 p-2">Completed?</th>
+          <th className="border border-gray-300 dark:border-gray-600 p-2">
+            Completed?
+          </th>
         </tr>
       </thead>
       <tbody>
         {displayed.map((rec) => {
           const f = rec.fields;
           return (
-            <tr
-              key={rec.id}
-              className="border border-gray-400 dark:border-gray-600"
-            >
-              <td className="border border-gray-300 dark:border-gray-600 p-2">
+            <tr key={rec.id}>
+              {/* We'll set a border & text color for each cell 
+                  so it's readable in light mode */}
+              <td className="border border-gray-300 dark:border-gray-600 p-2 text-black dark:text-gray-100">
                 {f.Name || ''}
               </td>
-              <td className="border border-gray-300 dark:border-gray-600 p-2">
+              <td className="border border-gray-300 dark:border-gray-600 p-2 text-black dark:text-gray-100">
                 {f.Email || ''}
               </td>
-              <td className="border border-gray-300 dark:border-gray-600 p-2">
+              <td className="border border-gray-300 dark:border-gray-600 p-2 text-black dark:text-gray-100">
                 {f.Ministry || ''}
               </td>
-              <td className="border border-gray-300 dark:border-gray-600 p-2">
+              <td className="border border-gray-300 dark:border-gray-600 p-2 text-black dark:text-gray-100">
                 {f['Date of Event'] || ''} {f['Time of Event'] || ''}
               </td>
               {showOverride && (
-                <td className="border border-gray-300 dark:border-gray-600 p-2">
+                <td className="border border-gray-300 dark:border-gray-600 p-2 text-black dark:text-gray-100">
                   <select
                     className="border rounded p-1 bg-white dark:bg-gray-800 text-black dark:text-gray-200"
                     value={f.overrideStatus || 'none'}
@@ -308,7 +329,7 @@ function RequestTable({
                   </select>
                 </td>
               )}
-              <td className="border border-gray-300 dark:border-gray-600 p-2 text-center">
+              <td className="border border-gray-300 dark:border-gray-600 p-2 text-center text-black dark:text-gray-100">
                 <input
                   type="checkbox"
                   checked={f.Completed || false}

@@ -177,7 +177,7 @@ export default function HomePage() {
               <p className="text-sm">
                 Nope. The forms are public for easy submission. Our Admin
                 Dashboard does require a Microsoft 365 sign-in, but that’s only
-                for staff managing requests.
+                for communications staff managing requests.
               </p>
             </div>
             {/* Q3 */}
