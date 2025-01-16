@@ -1,6 +1,10 @@
 // app/api/admin/markCompleted/route.ts
+
 import { NextRequest, NextResponse } from 'next/server';
 import Airtable from 'airtable';
+
+// Force dynamic so Next.js doesn’t attempt static generation
+export const dynamic = 'force-dynamic';
 
 /**
  * ENV variables for your three tables:
@@ -25,11 +29,19 @@ const base = new Airtable({ apiKey: AIRTABLE_PERSONAL_TOKEN }).base(AIRTABLE_BAS
  * }
  */
 
+// OPTIONAL: If you want to handle GET or other methods gracefully, you can do so:
+export async function GET() {
+  return NextResponse.json(
+    { error: 'Method Not Allowed' },
+    { status: 405 }
+  );
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { table, recordId, completed } = await request.json();
 
-    let tableName = ANNOUNCEMENTS_TABLE; // default
+    let tableName: string;
     if (table === 'announcements') {
       tableName = ANNOUNCEMENTS_TABLE;
     } else if (table === 'websiteUpdates') {
