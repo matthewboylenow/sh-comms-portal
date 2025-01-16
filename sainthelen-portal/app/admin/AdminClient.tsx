@@ -4,26 +4,24 @@
 import { useSession, signIn, signOut } from 'next-auth/react';
 import { useEffect, useState } from 'react';
 
-// For easier reference
 type TableName = 'announcements' | 'websiteUpdates' | 'smsRequests';
-
-type AdminRecord = {
-  id: string;
-  fields: Record<string, any>;
-};
+type AdminRecord = { id: string; fields: Record<string, any> };
 
 export default function AdminClient() {
   const { data: session, status } = useSession();
 
-  // store the data for all 3 tables
+  // Table states
   const [announcements, setAnnouncements] = useState<AdminRecord[]>([]);
   const [websiteUpdates, setWebsiteUpdates] = useState<AdminRecord[]>([]);
   const [smsRequests, setSmsRequests] = useState<AdminRecord[]>([]);
+
+  // UI states
   const [errorMessage, setErrorMessage] = useState('');
   const [loadingData, setLoadingData] = useState(false);
-
-  // optionally a hideCompleted toggle
   const [hideCompleted, setHideCompleted] = useState(false);
+
+  // *** New: we store the summary text returned from generateSummary
+  const [summary, setSummary] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -49,40 +47,18 @@ export default function AdminClient() {
     }
   }
 
-  // Toggle "Completed" in Airtable + local state
-  async function handleCompleted(
-    tableName: TableName,
-    recordId: string,
-    currentValue: boolean
-  ) {
-    // 1) Immediate local update
+  // Completed logic
+  async function handleCompleted(tableName: TableName, recordId: string, currentValue: boolean) {
+    // remove row from local UI
     if (tableName === 'announcements') {
-      setAnnouncements((prev) =>
-        prev.map((r) =>
-          r.id === recordId
-            ? { ...r, fields: { ...r.fields, Completed: !currentValue } }
-            : r
-        )
-      );
+      setAnnouncements((prev) => prev.filter((r) => r.id !== recordId));
     } else if (tableName === 'websiteUpdates') {
-      setWebsiteUpdates((prev) =>
-        prev.map((r) =>
-          r.id === recordId
-            ? { ...r, fields: { ...r.fields, Completed: !currentValue } }
-            : r
-        )
-      );
-    } else if (tableName === 'smsRequests') {
-      setSmsRequests((prev) =>
-        prev.map((r) =>
-          r.id === recordId
-            ? { ...r, fields: { ...r.fields, Completed: !currentValue } }
-            : r
-        )
-      );
+      setWebsiteUpdates((prev) => prev.filter((r) => r.id !== recordId));
+    } else {
+      setSmsRequests((prev) => prev.filter((r) => r.id !== recordId));
     }
 
-    // 2) Send request to update Airtable
+    // patch Airtable
     try {
       const res = await fetch('/api/admin/markCompleted', {
         method: 'POST',
@@ -100,15 +76,10 @@ export default function AdminClient() {
     }
   }
 
-  // Example override status (only for announcements)
-  async function handleOverrideStatus(
-    tableName: TableName,
-    recordId: string,
-    newStatus: string
-  ) {
+  // Override logic
+  async function handleOverrideStatus(tableName: TableName, recordId: string, newStatus: string) {
+    if (tableName !== 'announcements') return;
     try {
-      // If not announcements, skip
-      if (tableName !== 'announcements') return;
       const res = await fetch('/api/admin/updateOverrideStatus', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -121,12 +92,17 @@ export default function AdminClient() {
     }
   }
 
-  // Manual Trigger for Weekly Summary
+  // *** New: We store summary from route
   async function handleManualSummary() {
     try {
       const res = await fetch('/api/generateSummary', { method: 'POST' });
-      if (!res.ok) throw new Error('Failed to generate summary');
-      alert('Weekly summary triggered successfully!');
+      if (!res.ok) {
+        throw new Error('Failed to generate summary');
+      }
+      const data = await res.json();
+      // Display the summary text in the UI
+      setSummary(data.summaryText || 'No summary returned.');
+      alert('Weekly summary triggered successfully! (Check your email too)');
     } catch (err: any) {
       console.error(err);
       alert(`Error triggering summary: ${err.message}`);
@@ -155,7 +131,6 @@ export default function AdminClient() {
   }
 
   return (
-    // Use text-gray-900 in light mode and text-gray-200 (or white) in dark mode
     <div className="p-4 text-gray-900 dark:text-gray-200">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold">Admin Dashboard</h2>
@@ -181,7 +156,18 @@ export default function AdminClient() {
         </div>
       )}
 
-      {/* Hide Completed Toggle */}
+      {/* If we have a summary from Claude, display it below */}
+      {summary && (
+        <div className="mb-6 p-4 rounded bg-gray-50 dark:bg-gray-800">
+          <h3 className="text-lg font-semibold mb-2 text-black dark:text-white">
+            Claude Summary
+          </h3>
+          <pre className="whitespace-pre-wrap text-black dark:text-gray-100">
+            {summary}
+          </pre>
+        </div>
+      )}
+
       <div className="mb-6 flex items-center gap-2">
         <input
           type="checkbox"
@@ -243,18 +229,11 @@ export default function AdminClient() {
   );
 }
 
-/** 
- * Reusable table for any request type, ensuring the text is visible in light mode.
- */
 type RequestTableProps = {
   tableName: TableName;
   records: AdminRecord[];
   hideCompleted: boolean;
-  onToggleCompleted: (
-    tableName: TableName,
-    recordId: string,
-    currentValue: boolean
-  ) => void;
+  onToggleCompleted: (tableName: TableName, recordId: string, currentValue: boolean) => void;
   onOverrideStatus: (tableName: TableName, recordId: string, newStatus: string) => void;
   showOverride: boolean;
 };
@@ -278,20 +257,15 @@ function RequestTable({
   return (
     <table className="w-full border-collapse text-sm">
       <thead>
-        {/* Make the header row easily readable in light mode */}
         <tr className="bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100">
           <th className="border border-gray-300 dark:border-gray-600 p-2">Name</th>
           <th className="border border-gray-300 dark:border-gray-600 p-2">Email</th>
           <th className="border border-gray-300 dark:border-gray-600 p-2">Ministry</th>
           <th className="border border-gray-300 dark:border-gray-600 p-2">Date/Time</th>
           {showOverride && (
-            <th className="border border-gray-300 dark:border-gray-600 p-2">
-              Override
-            </th>
+            <th className="border border-gray-300 dark:border-gray-600 p-2">Override</th>
           )}
-          <th className="border border-gray-300 dark:border-gray-600 p-2">
-            Completed?
-          </th>
+          <th className="border border-gray-300 dark:border-gray-600 p-2">Completed?</th>
         </tr>
       </thead>
       <tbody>
@@ -299,8 +273,6 @@ function RequestTable({
           const f = rec.fields;
           return (
             <tr key={rec.id}>
-              {/* We'll set a border & text color for each cell 
-                  so it's readable in light mode */}
               <td className="border border-gray-300 dark:border-gray-600 p-2 text-black dark:text-gray-100">
                 {f.Name || ''}
               </td>
@@ -318,9 +290,7 @@ function RequestTable({
                   <select
                     className="border rounded p-1 bg-white dark:bg-gray-800 text-black dark:text-gray-200"
                     value={f.overrideStatus || 'none'}
-                    onChange={(e) =>
-                      onOverrideStatus(tableName, rec.id, e.target.value)
-                    }
+                    onChange={(e) => onOverrideStatus(tableName, rec.id, e.target.value)}
                   >
                     <option value="none">none</option>
                     <option value="forceExclude">forceExclude</option>
@@ -332,10 +302,8 @@ function RequestTable({
               <td className="border border-gray-300 dark:border-gray-600 p-2 text-center text-black dark:text-gray-100">
                 <input
                   type="checkbox"
-                  checked={f.Completed || false}
-                  onChange={() =>
-                    onToggleCompleted(tableName, rec.id, f.Completed || false)
-                  }
+                  checked={!!f.Completed}
+                  onChange={() => onToggleCompleted(tableName, rec.id, !!f.Completed)}
                 />
               </td>
             </tr>
