@@ -1,47 +1,51 @@
-// app/api/generateSummary/route.ts
-
 import { NextRequest, NextResponse } from 'next/server';
+import Airtable from 'airtable';
+
 import Anthropic from '@anthropic-ai/sdk';
+import { Client } from '@microsoft/microsoft-graph-client';
+import { TokenCredentialAuthenticationProvider } from '@microsoft/microsoft-graph-client/authProviders/azureTokenCredentials';
+import { ClientSecretCredential } from '@azure/identity';
 
-// Example: If you also use Airtable or Microsoft Graph, import them here:
-// import Airtable from 'airtable';
-// import { Client } from '@microsoft/microsoft-graph-client';
-// etc.
+//
+// 1) Configure Airtable
+//
+const AIRTABLE_PERSONAL_TOKEN = process.env.AIRTABLE_PERSONAL_TOKEN || '';
+const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID || '';
+const ANNOUNCEMENTS_TABLE_NAME = process.env.ANNOUNCEMENTS_TABLE_NAME || 'Announcements';
 
-export async function POST(request: NextRequest) {
-  try {
-    // 1) Parse the request body to get any announcements data
-    //    (You might fetch them from Airtable, or pass them in the body.)
-    const { announcements } = await request.json(); 
-    // Or if you need to fetch from Airtable, do so here.
+const base = new Airtable({ apiKey: AIRTABLE_PERSONAL_TOKEN }).base(AIRTABLE_BASE_ID);
 
-    // 2) Construct a user message summarizing the announcements
-    //    For example, you might create a short JSON or bullet list:
-    let announcementsText = `Here are the announcements:\n\n`;
-    if (announcements && announcements.length) {
-      announcements.forEach((ann: any, idx: number) => {
-        announcementsText += `Announcement #${idx + 1}:\n`;
-        announcementsText += `Ministry: ${ann.ministry}\n`;
-        announcementsText += `Event Date: ${ann.eventDate}\n`;
-        announcementsText += `Event Time: ${ann.eventTime}\n`;
-        announcementsText += `Body: ${ann.announcementBody}\n`;
-        announcementsText += `---\n`;
-      });
-    } else {
-      announcementsText += `No announcements found.\n`;
-    }
+//
+// 2) Configure MS Graph
+//
+function getGraphClient() {
+  const tenantId = process.env.AZURE_AD_TENANT_ID || '';
+  const clientId = process.env.AZURE_AD_CLIENT_ID || '';
+  const clientSecret = process.env.AZURE_AD_CLIENT_SECRET || '';
 
-    // 3) Here’s the pre-prompt to guide Claude
-    const prePrompt = `
-You are a communications assistant for Saint Helen Parish, a modern Catholic church known for its warm, inclusive, authentic, and uplifting brand style. Here’s how you must craft announcements:
+  const credential = new ClientSecretCredential(tenantId, clientId, clientSecret);
+  const authProvider = new TokenCredentialAuthenticationProvider(credential, {
+    scopes: ['https://graph.microsoft.com/.default'],
+  });
 
-1. Brand Tone & Style:
-   - Warm, inviting, and inclusive
+  return Client.initWithMiddleware({ authProvider });
+}
+
+//
+// 3) The brand pre-prompt (will be merged into one 'user' message for the chat API).
+//
+const brandPrePrompt = `
+You are a communications assistant for Saint Helen Parish, a modern Catholic church known for its warm, inclusive, authentic, and uplifting brand style.
+
+Here’s how you must craft announcements:
+
+1) Brand Tone & Style:
+   - Warm, inviting, inclusive
    - Authentic and human
    - Encouraging, uplifting
    - Clear and detailed
 
-2. Output Requirements:
+2) Output Requirements:
    For each announcement, provide this structure exactly:
 
    [Ministry]
@@ -51,60 +55,103 @@ You are a communications assistant for Saint Helen Parish, a modern Catholic chu
    Screens Copy:
    [Attached Files]
 
-   - Email Blast Copy (max ~65-70 words):
-       Include event date, time, venue, CTA link if available.
-   - Bulletin Copy (max ~50 words):
-       Same essential info, more concise.
-   - Screens Copy (very concise ~12-14s on screen):
-       Minimal text, date/time, short CTA or link.
+   - Email Blast (max ~65-70 words): date/time/venue + CTA link if any
+   - Bulletin Copy (max ~50 words): same essential info, more concise
+   - Screens Copy (very concise): 12-14s on screen, minimal text
+   - If attached files exist, list them under [Attached Files]
 
-3. Additional Notes:
-   - If attached files exist, put them under [Attached Files].
+3) Additional:
    - Do not exceed word limits.
-   - Stay consistent, warm, inclusive, encouraging.
-   - Skip extraneous text or disclaimers.
+   - Skip extraneous disclaimers or text.
+   - Always maintain warm, inclusive, encouraging tone.
+`.trim();
 
-When you receive announcements data, transform each into the format above.
-    `.trim();
+export async function POST(request: NextRequest) {
+  try {
+    // (A) Fetch Announcements from Airtable
+    const records = await base(ANNOUNCEMENTS_TABLE_NAME)
+      .select({ maxRecords: 10 })  // example limit
+      .all();
 
-    // 4) Initialize the Anthropic client
+    if (!records.length) {
+      return NextResponse.json({ success: true, message: 'No announcements found' });
+    }
+
+    // Build the announcements text
+    let announcementsText = `\nHere are the announcements:\n\n`;
+    records.forEach((r, idx) => {
+      const fields = r.fields as Record<string, any>;
+      announcementsText += `Announcement #${idx + 1}:\n`;
+      announcementsText += `Ministry: ${fields.Ministry || 'N/A'}\n`;
+      announcementsText += `Date: ${fields['Date of Event'] || 'N/A'}\n`;
+      announcementsText += `Time: ${fields['Time of Event'] || 'N/A'}\n`;
+      announcementsText += `Announcement Body: ${fields['Announcement Body'] || ''}\n`;
+      announcementsText += `Files: ${fields['File Links'] || 'none'}\n`;
+      announcementsText += `---\n`;
+    });
+
+    // Combine brand pre-prompt + announcements text
+    const combinedUserPrompt = `
+${brandPrePrompt}
+
+Now, please transform these announcements into the required format:
+
+${announcementsText}
+`.trim();
+
+    // (B) Call Anthropic's Claude 3.5 Sonnet
     const anthropic = new Anthropic({
       apiKey: process.env.ANTHROPIC_API_KEY || '',
     });
 
-    // 5) Call Claude with a "system" (prePrompt) + "user" (announcementsText)
-    //    NOTE: The user snippet uses anthropic.messages.create(...)
-    //    We must specify 'model', 'max_tokens_to_sample', 'messages'.
-    //    For Claude 3.5 Sonnet, do: model: "claude-3-5-sonnet-v2@20241022"
+    // Use messages.create with "max_tokens" (NOT max_tokens_to_sample)
     const response = await anthropic.messages.create({
       model: 'claude-3-5-sonnet-v2@20241022',
-      max_tokens_to_sample: 1024,
+      // We use max_tokens, which the chat-based messages API expects
+      max_tokens: 1024,
+      // We'll do a single "user" role message that includes both your pre-prompt
+      // instructions and the announcements data
       messages: [
         {
-          role: 'system',
-          content: prePrompt,
-        },
-        {
           role: 'user',
-          content: announcementsText,
+          content: combinedUserPrompt,
         },
       ],
     });
 
-    // "response" is an object with a "completion" property 
-    // that holds Claude's generated text.
-    // If you want only the text, do something like:
-    const summaryText = response.completion;
+    // The result is in 'response.content'
+    const summaryText = response.content;
 
-    // 6) (Optional) Send this summary via Microsoft Graph to your inbox
-    //    Or do whatever post-processing you want:
-    // e.g. emailSummary(summaryText);
+    // (C) Send an email via Microsoft Graph
+    const client = getGraphClient();
+    const fromAddress = process.env.MAILBOX_TO_SEND_FROM || '';
+    const toAddress = 'mboyle@sainthelen.org'; // or from an env var
 
-    // 7) Return the generated summary back to the client
+    const subject = 'Weekly Saint Helen Announcements Summary';
+    const htmlContent = `
+      <p>Hello,</p>
+      <p>Here is the weekly summary from Claude:</p>
+      <div style="white-space:pre-wrap; font-family:Arial, sans-serif;">
+        ${summaryText}
+      </div>
+      <p>Thank you!</p>
+    `;
+
+    await client.api(`/users/${fromAddress}/sendMail`).post({
+      message: {
+        subject,
+        body: { contentType: 'html', content: htmlContent },
+        from: { emailAddress: { address: fromAddress } },
+        toRecipients: [{ emailAddress: { address: toAddress } }],
+      },
+      saveToSentItems: true,
+    });
+
+    // Return success
     return NextResponse.json({
       success: true,
-      modelUsed: 'claude-3-5-sonnet-v2@20241022',
       summaryText,
+      message: 'Email sent with Claude summary!',
     });
   } catch (error: any) {
     console.error('Error in generateSummary route:', error);
