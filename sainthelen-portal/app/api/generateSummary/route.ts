@@ -106,7 +106,7 @@ ${announcementsText}
 
     // Use messages.create with "max_tokens" (NOT max_tokens_to_sample)
     const response = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-v2@20241022',
+      model: 'claude-3-5-sonnet-20241022',
       // We use max_tokens, which the chat-based messages API expects
       max_tokens: 1024,
       // We'll do a single "user" role message that includes both your pre-prompt
