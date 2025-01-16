@@ -37,10 +37,23 @@ export default function Header() {
 
   return (
     <header className="w-full flex items-center justify-between bg-sh-primary px-4 py-3">
-      <Link href="/" className="text-white text-lg font-semibold">
-        Saint Helen Portal
-      </Link>
+      {/* Logo + Text */}
+      <div className="flex items-center space-x-3">
+        {/* Logo */}
+        <Link href="/">
+          <img
+            src="/images/Saint-Helen-Logo-White.png"
+            alt="Saint Helen Logo"
+            className="h-10 object-contain" 
+          />
+        </Link>
+        {/* Text */}
+        <Link href="/" className="text-white text-xl font-semibold">
+          Communications Portal
+        </Link>
+      </div>
 
+      {/* Dark Mode Toggle Button */}
       <button
         onClick={handleToggleTheme}
         className="text-white rounded-md p-2 hover:bg-sh-secondary transition-colors"

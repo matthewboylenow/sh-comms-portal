@@ -18,8 +18,10 @@ export async function POST(request: NextRequest) {
   try {
     const { fileName, fileType } = await request.json();
 
-    // Optional: You could sanitize or transform fileName here
-    const key = `uploads/${Date.now()}-${fileName}`;
+    // Replace spaces with underscores to avoid issues
+    const safeFileName = fileName.replace(/\s+/g, '_');
+
+    const key = `uploads/${Date.now()}-${safeFileName}`;
 
     const command = new PutObjectCommand({
       Bucket: process.env.AWS_S3_BUCKET,
@@ -27,9 +29,8 @@ export async function POST(request: NextRequest) {
       ContentType: fileType,
     });
 
-    // Generate a signed URL valid for e.g. 5 minutes
     const signedUrl = await getSignedUrl(s3Client, command, {
-      expiresIn: 300,
+      expiresIn: 300, // 5 minutes
     });
 
     return NextResponse.json({
