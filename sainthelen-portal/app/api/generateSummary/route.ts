@@ -1,3 +1,5 @@
+// app/api/generateSummary/route.ts
+
 import { NextRequest, NextResponse } from 'next/server';
 import Airtable from 'airtable';
 
@@ -5,6 +7,8 @@ import Anthropic from '@anthropic-ai/sdk';
 import { Client } from '@microsoft/microsoft-graph-client';
 import { TokenCredentialAuthenticationProvider } from '@microsoft/microsoft-graph-client/authProviders/azureTokenCredentials';
 import { ClientSecretCredential } from '@azure/identity';
+
+export const dynamic = 'force-dynamic'; // ensures no static generation
 
 //
 // 1) Environment Variables
@@ -26,6 +30,8 @@ function getGraphClient() {
   const clientId = process.env.AZURE_AD_CLIENT_ID || '';
   const clientSecret = process.env.AZURE_AD_CLIENT_SECRET || '';
 
+  console.log('Graph Credentials:', { tenantId, clientId, clientSecretExists: !!clientSecret });
+
   const credential = new ClientSecretCredential(tenantId, clientId, clientSecret);
   const authProvider = new TokenCredentialAuthenticationProvider(credential, {
     scopes: ['https://graph.microsoft.com/.default'],
@@ -35,8 +41,7 @@ function getGraphClient() {
 }
 
 //
-// 4) Configure Anthropic WITHOUT 'version' in constructor
-//    We'll pass the 'anthropic-version' header in each request instead.
+// 4) Configure Anthropic
 //
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || '',
@@ -46,50 +51,29 @@ const anthropic = new Anthropic({
 // 5) The brand pre-prompt
 //
 const brandPrePrompt = `
-You are a communications assistant for Saint Helen Parish, a modern Catholic church known for its warm, inclusive, authentic, and uplifting brand style.
-
-Here’s how you must craft announcements:
-
-1. Brand Tone & Style:
-   - Warm, inviting, inclusive
-   - Authentic and human
-   - Encouraging, uplifting
-   - Clear and detailed
-
-2. Output Requirements:
-   For each announcement, provide this structure exactly:
-
-   [Ministry]
-   [Date] [Time]
-   Email Blast Copy:
-   Bulletin Copy:
-   Screens Copy:
-   [Attached Files]
-
-   - Email Blast (max ~65-70 words): date/time/venue + CTA link if any
-   - Bulletin Copy (max ~50 words): same essential info, more concise
-   - Screens Copy (very concise): 12-14s on screen, minimal text
-   - If attached files exist, list them under [Attached Files]
-
-3. Additional:
-   - Do not exceed word limits.
-   - Skip extraneous disclaimers or text.
-   - Always maintain a warm, inclusive, encouraging tone.
+You are a communications assistant for Saint Helen Parish...
+[Etc. your brand instructions here.]
 `.trim();
 
 //
 // 6) Helper to parse "MM/DD/YY"
 //
 function parseMmDdYy(dateStr: string): Date | null {
-  if (!dateStr) return null;
+  if (!dateStr) {
+    return null;
+  }
   const parts = dateStr.split('/');
-  if (parts.length !== 3) return null;
+  if (parts.length !== 3) {
+    return null;
+  }
+
   const [mm, dd, yy] = parts.map((p) => p.trim());
   let fullYear = parseInt(yy, 10);
   if (fullYear < 100) {
+    // If only two digits, assume 20xx
     fullYear = 2000 + fullYear;
   }
-  const month = parseInt(mm, 10) - 1; 
+  const month = parseInt(mm, 10) - 1;
   const day = parseInt(dd, 10);
 
   const dateObj = new Date(fullYear, month, day);
@@ -117,10 +101,8 @@ function getThisTuesdayAndSunday(): { tuesday: Date; sunday: Date } {
   tuesday.setHours(0, 0, 0, 0);
 
   // find upcoming Sunday
-  // if day=2 => Sunday is 5 days away, etc.
   let nextSundayOffset = 0;
   if (day === 0) {
-    // if it's Sunday, next Sunday is +7
     nextSundayOffset = 7;
   } else {
     nextSundayOffset = 7 - day;
@@ -132,36 +114,45 @@ function getThisTuesdayAndSunday(): { tuesday: Date; sunday: Date } {
 }
 
 export async function POST(request: NextRequest) {
+  console.log('>>> generateSummary: POST route called');
+
   try {
     //
-    // A) Fetch Announcements from Airtable
+    // A) Fetch Announcements
     //
+    console.log('Fetching all records from table:', ANNOUNCEMENTS_TABLE);
     const records = await base(ANNOUNCEMENTS_TABLE).select().all();
+    console.log('Found total records:', records.length);
+
     if (!records.length) {
+      console.log('No announcements found in Airtable');
       return NextResponse.json({
         success: true,
         message: 'No announcements found in Airtable',
       });
     }
 
-    // Filter by "Promotion Start Date" in [Tuesday, Sunday]
     const { tuesday, sunday } = getThisTuesdayAndSunday();
+    console.log('Filtering by Promotion Start Date between', tuesday, 'and', sunday);
+
+    // Filter records
     const relevantRecords = records.filter((r) => {
       const f = r.fields as Record<string, any>;
       const dateStr = f['Promotion Start Date'] || '';
       const parsed = parseMmDdYy(dateStr);
-      if (!parsed) return false;
-      return parsed >= tuesday && parsed <= sunday;
+      return parsed && parsed >= tuesday && parsed <= sunday;
     });
+    console.log('Announcements matching date filter:', relevantRecords.length);
 
     if (!relevantRecords.length) {
+      console.log('No announcements matched the date filter');
       return NextResponse.json({
         success: true,
         message: 'No announcements matched the date filter',
       });
     }
 
-    // Build announcements text
+    // Build text
     let announcementsText = `\nHere are the announcements:\n\n`;
     relevantRecords.forEach((r, idx) => {
       const f = r.fields;
@@ -174,7 +165,6 @@ export async function POST(request: NextRequest) {
       announcementsText += `---\n`;
     });
 
-    // Combine brand pre-prompt + user data
     const combinedUserPrompt = `
 ${brandPrePrompt}
 
@@ -184,9 +174,9 @@ ${announcementsText}
 `.trim();
 
     //
-    // B) Call Anthropic Claude
-    //    We'll pass the anthopic-version in request options
+    // B) Call Anthropic
     //
+    console.log('Sending request to Anthropic...');
     const response = await anthropic.messages.create(
       {
         model: 'claude-3-5-sonnet-20241022',
@@ -200,10 +190,11 @@ ${announcementsText}
       },
       {
         headers: {
-          'anthropic-version': '2023-10-01', // ensures we use the newest stable version
+          'anthropic-version': '2023-10-01',
         },
       }
     );
+    console.log('Anthropic response object keys:', Object.keys(response));
 
     let summaryText: string;
     if (typeof response.content === 'string') {
@@ -211,10 +202,12 @@ ${announcementsText}
     } else {
       summaryText = JSON.stringify(response.content, null, 2);
     }
+    console.log('Claude summary text (first 200 chars):', summaryText.slice(0, 200));
 
     //
     // C) Send Email via Microsoft Graph
     //
+    console.log('Initializing MS Graph client...');
     const client = getGraphClient();
     const fromAddress = process.env.MAILBOX_TO_SEND_FROM || '';
     const toAddress = 'mboyle@sainthelen.org'; // or from env
@@ -229,7 +222,8 @@ ${announcementsText}
       <p>Thank you!</p>
     `;
 
-    await client.api(`/users/${fromAddress}/sendMail`).post({
+    console.log('Attempting to send email FROM:', fromAddress, 'TO:', toAddress);
+    const sendMailResponse = await client.api(`/users/${fromAddress}/sendMail`).post({
       message: {
         subject,
         body: { contentType: 'html', content: htmlContent },
@@ -238,6 +232,8 @@ ${announcementsText}
       },
       saveToSentItems: true,
     });
+
+    console.log('Microsoft Graph sendMail response:', JSON.stringify(sendMailResponse, null, 2));
 
     return NextResponse.json({
       success: true,
