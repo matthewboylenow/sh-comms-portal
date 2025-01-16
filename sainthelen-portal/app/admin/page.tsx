@@ -1,6 +1,8 @@
 // app/admin/page.tsx
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useSession, signIn, signOut } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 
