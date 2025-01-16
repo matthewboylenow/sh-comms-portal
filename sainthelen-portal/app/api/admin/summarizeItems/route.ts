@@ -1,18 +1,16 @@
 // app/api/admin/summarizeItems/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import Airtable from 'airtable';
-
 import Anthropic from '@anthropic-ai/sdk';
 import { Client } from '@microsoft/microsoft-graph-client';
 import { TokenCredentialAuthenticationProvider } from '@microsoft/microsoft-graph-client/authProviders/azureTokenCredentials';
 import { ClientSecretCredential } from '@azure/identity';
 
-/**
- * We assume all items are in the same table "Announcements" or maybe we fetch from 3 tables?
- * For simplicity, let's assume they're all in "Announcements" for now.
- * If you want to handle 3 different tables, you'd need logic to see which table each ID belongs to
- * or store table info in local state.
- */
+/*
+  We assume these items live in the Announcements table only.
+  If you want multiple tables, you must store table info or have logic 
+  to fetch from the correct table. 
+*/
 const AIRTABLE_PERSONAL_TOKEN = process.env.AIRTABLE_PERSONAL_TOKEN || '';
 const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID || '';
 const ANNOUNCEMENTS_TABLE = process.env.ANNOUNCEMENTS_TABLE_NAME || 'Announcements';
@@ -23,6 +21,12 @@ function getGraphClient() {
   const tenantId = process.env.AZURE_AD_TENANT_ID || '';
   const clientId = process.env.AZURE_AD_CLIENT_ID || '';
   const clientSecret = process.env.AZURE_AD_CLIENT_SECRET || '';
+
+  console.log('>>> SummarizeItems Graph Creds:', {
+    tenantId,
+    clientId,
+    hasClientSecret: !!clientSecret,
+  });
 
   const credential = new ClientSecretCredential(tenantId, clientId, clientSecret);
   const authProvider = new TokenCredentialAuthenticationProvider(credential, {
@@ -36,39 +40,52 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || '',
 });
 
-// Your brand pre-prompt
+// Your brand pre-prompt or instructions
 const brandPrePrompt = `
 You are a communications assistant for Saint Helen Parish...
-[Etc.]
+[Your brand instructions here]
 `.trim();
 
 export async function POST(request: NextRequest) {
+  console.log('>>> summarizeItems: POST route called');
   try {
-    const { recordIds } = await request.json();
+    // 1) Parse the body
+    const body = await request.json();
+    const recordIds = body.recordIds as string[];
+    console.log('Received recordIds:', recordIds);
+
     if (!Array.isArray(recordIds) || !recordIds.length) {
-      return NextResponse.json({ success: false, error: 'No recordIds provided' }, { status: 400 });
+      console.log('No recordIds provided in request body');
+      return NextResponse.json(
+        { success: false, error: 'No recordIds provided' },
+        { status: 400 }
+      );
     }
 
-    // 1) Fetch each record from Airtable (Announcements table).
-    //    If you need to handle multiple tables, you'd store tableName in the body or do advanced logic.
+    // 2) For each recordId, fetch from Announcements table
     const fetchedRecords = [];
     for (const id of recordIds) {
       try {
+        console.log('Fetching record from Airtable ID:', id);
         const rec = await base(ANNOUNCEMENTS_TABLE).find(id);
+        console.log('Found record with fields:', rec.fields);
         fetchedRecords.push(rec);
-      } catch (err) {
-        console.error('Error fetching record with id:', id, err);
+      } catch (err: any) {
+        console.error('Error fetching record', id, err);
       }
     }
 
+    console.log('Total valid records fetched:', fetchedRecords.length);
+
     if (!fetchedRecords.length) {
+      console.log('No valid records found in Airtable for those IDs');
       return NextResponse.json({
         success: true,
         message: 'No valid records found in Airtable for those IDs',
       });
     }
 
-    // 2) Build the text to send to Claude
+    // 3) Build text for Claude
     let announcementsText = `\nHere are the user-selected announcements:\n\n`;
     fetchedRecords.forEach((r, idx) => {
       const f = r.fields as Record<string, any>;
@@ -89,7 +106,8 @@ Now, please transform these announcements into the required format:
 ${announcementsText}
 `.trim();
 
-    // 3) Call Anthropic
+    // 4) Call Anthropic
+    console.log('Sending request to Anthropic with model=claude-3-5-sonnet-20241022...');
     const response = await anthropic.messages.create(
       {
         model: 'claude-3-5-sonnet-20241022',
@@ -107,6 +125,7 @@ ${announcementsText}
         },
       }
     );
+    console.log('Anthropic response object keys:', Object.keys(response));
 
     let summaryText: string;
     if (typeof response.content === 'string') {
@@ -114,12 +133,15 @@ ${announcementsText}
     } else {
       summaryText = JSON.stringify(response.content, null, 2);
     }
+    console.log('Claude summary (first 200 chars):', summaryText.slice(0, 200));
 
-    // 4) Email via Microsoft Graph
+    // 5) Send Email via MS Graph
+    console.log('Initializing MS Graph client...');
     const client = getGraphClient();
     const fromAddress = process.env.MAILBOX_TO_SEND_FROM || '';
-    const toAddress = 'mboyle@sainthelen.org'; // or from env
+    const toAddress = 'mboyle@sainthelen.org';
 
+    console.log('Sending email from:', fromAddress, 'to:', toAddress);
     const subject = 'Manual Summarize - Selected Items';
     const htmlContent = `
       <p>Hello,</p>
@@ -130,7 +152,7 @@ ${announcementsText}
       <p>Thank you!</p>
     `;
 
-    await client.api(`/users/${fromAddress}/sendMail`).post({
+    const sendMailResponse = await client.api(`/users/${fromAddress}/sendMail`).post({
       message: {
         subject,
         body: { contentType: 'html', content: htmlContent },
@@ -139,6 +161,7 @@ ${announcementsText}
       },
       saveToSentItems: true,
     });
+    console.log('Graph sendMail response:', JSON.stringify(sendMailResponse, null, 2));
 
     return NextResponse.json({
       success: true,
