@@ -1,4 +1,3 @@
-// app/api/admin/summarizeItems/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import Airtable from 'airtable';
 import Anthropic from '@anthropic-ai/sdk';
@@ -6,11 +5,6 @@ import { Client } from '@microsoft/microsoft-graph-client';
 import { TokenCredentialAuthenticationProvider } from '@microsoft/microsoft-graph-client/authProviders/azureTokenCredentials';
 import { ClientSecretCredential } from '@azure/identity';
 
-/*
-  We assume these items live in the Announcements table only.
-  If you want multiple tables, you must store table info or have logic 
-  to fetch from the correct table. 
-*/
 const AIRTABLE_PERSONAL_TOKEN = process.env.AIRTABLE_PERSONAL_TOKEN || '';
 const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID || '';
 const ANNOUNCEMENTS_TABLE = process.env.ANNOUNCEMENTS_TABLE_NAME || 'Announcements';
@@ -36,15 +30,44 @@ function getGraphClient() {
   return Client.initWithMiddleware({ authProvider });
 }
 
-// Use the Anthropic client normally
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || '',
 });
 
-// Your brand pre-prompt or instructions
+/**
+ * This brand pre-prompt explicitly demands the short copy structure:
+ *
+ * [Ministry]
+ * [Date] [Time]
+ * Email Blast Copy:
+ * Bulletin Copy:
+ * Screens Copy:
+ * [Attached Files]
+ */
 const brandPrePrompt = `
-You are a communications assistant for Saint Helen Parish...
-[Your brand instructions here]
+You are a communications assistant for Saint Helen Parish, a modern Catholic church known for its warm, inclusive, authentic, and uplifting brand style.
+
+**Required Format** for each announcement:
+[Ministry]
+[Date] [Time]
+Email Blast Copy:
+Bulletin Copy:
+Screens Copy:
+[Attached Files]
+
+**Tone & Style**:
+- Warm, inviting, inclusive
+- Authentic, encouraging, uplifting
+- Clear and detailed
+- DO NOT produce arrays or JSON objects—just plain text.
+
+**Word Limits**:
+- Email Blast: ~65-70 words, must include event date/time, venue, CTA link if any
+- Bulletin Copy: ~50 words, same essential info but shorter
+- Screens Copy: extremely concise (~12-14 seconds), minimal text, short CTA or link
+- If attached files exist, list them under [Attached Files]
+
+For each selected announcement, transform it into that exact format. If any required fields (Ministry, Date, Time) are missing, gracefully show "N/A".
 `.trim();
 
 export async function POST(request: NextRequest) {
@@ -99,15 +122,18 @@ export async function POST(request: NextRequest) {
       announcementsText += `---\n`;
     });
 
+    // combine brand instructions with announcements data
     const combinedUserPrompt = `
 ${brandPrePrompt}
 
-Now, please transform these announcements into the required format:
+Now, here are the selected announcements:
 
 ${announcementsText}
+
+Please output each announcement in the required format. Avoid arrays or JSON—just plain text.
 `.trim();
 
-    // 4) Call Anthropic with version=2023-06-01
+    // 4) Call Anthropic with version=2023-06-01 (since 2023-10-01 is invalid)
     console.log('Sending request to Anthropic with model=claude-3-5-sonnet-20241022...');
     const response = await anthropic.messages.create(
       {
@@ -122,16 +148,21 @@ ${announcementsText}
       },
       {
         headers: {
-          // The version recommended by Anthropic if 2023-10-01 is invalid
-          'anthropic-version': '2023-06-01',
+          'anthropic-version': '2023-06-01', // from your logs
         },
       }
     );
     console.log('Anthropic response object keys:', Object.keys(response));
 
+    // If Claude returns an array or object, flatten it:
     let summaryText: string;
     if (typeof response.content === 'string') {
       summaryText = response.content;
+    } else if (Array.isArray(response.content)) {
+      // flatten
+      summaryText = response.content
+        .map((item: any) => (item?.text ? item.text : JSON.stringify(item)))
+        .join('\n');
     } else {
       summaryText = JSON.stringify(response.content, null, 2);
     }
@@ -147,7 +178,7 @@ ${announcementsText}
     const subject = 'Manual Summarize - Selected Items';
     const htmlContent = `
       <p>Hello,</p>
-      <p>Here is your manual summary from Claude:</p>
+      <p>Here is your manual summary from Claude (structured with brand instructions):</p>
       <div style="white-space:pre-wrap; font-family:Arial, sans-serif;">
         ${summaryText}
       </div>
@@ -168,7 +199,7 @@ ${announcementsText}
     return NextResponse.json({
       success: true,
       summaryText,
-      message: 'Manual Summarize Completed',
+      message: 'Manual Summarize Completed (with brand instructions).',
     });
   } catch (error: any) {
     console.error('Error in summarizeItems route:', error);
