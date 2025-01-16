@@ -52,25 +52,20 @@ const anthropic = new Anthropic({
 //
 const brandPrePrompt = `
 You are a communications assistant for Saint Helen Parish...
-[Etc. your brand instructions here.]
+[Your brand instructions, as before]
 `.trim();
 
 //
-// 6) Helper to parse "MM/DD/YY"
+// 6) parseMmDdYy("MM/DD/YY") => Date
 //
 function parseMmDdYy(dateStr: string): Date | null {
-  if (!dateStr) {
-    return null;
-  }
+  if (!dateStr) return null;
   const parts = dateStr.split('/');
-  if (parts.length !== 3) {
-    return null;
-  }
+  if (parts.length !== 3) return null;
 
   const [mm, dd, yy] = parts.map((p) => p.trim());
   let fullYear = parseInt(yy, 10);
   if (fullYear < 100) {
-    // If only two digits, assume 20xx
     fullYear = 2000 + fullYear;
   }
   const month = parseInt(mm, 10) - 1;
@@ -83,43 +78,40 @@ function parseMmDdYy(dateStr: string): Date | null {
   return dateObj;
 }
 
-//
-// 7) Determine this week's Tuesday + Sunday
-//
-function getThisTuesdayAndSunday(): { tuesday: Date; sunday: Date } {
+/**
+ * getThisWeeksTuesdayAndSunday():
+ *  - Finds "Sunday of the current week" (0=Sunday) and sets hours 0:00
+ *  - Tuesday = Sunday + 2 days
+ *  - The Sunday we want ends the same week => SundayOfWeek + 7
+ */
+function getThisWeeksTuesdayAndSunday(): { tuesday: Date; sunday: Date } {
   const now = new Date();
-  let day = now.getDay(); // 0=Sun,1=Mon,2=Tue,...
 
-  // find next Tuesday
-  let nextTuesdayOffset = 0;
-  if (day < 2) {
-    nextTuesdayOffset = 2 - day;
-  } else if (day > 2) {
-    nextTuesdayOffset = 7 - day + 2;
-  }
-  const tuesday = new Date(now.getTime() + nextTuesdayOffset * 86400000);
+  // Step 1: find the Sunday that starts this current calendar week
+  // e.g. if day=3 (Wed), we go back 3 days to get that Sunday
+  const sundayOfWeek = new Date(now);
+  const day = sundayOfWeek.getDay(); // 0=Sun
+  sundayOfWeek.setDate(sundayOfWeek.getDate() - day);
+  sundayOfWeek.setHours(0, 0, 0, 0);
+
+  // Step 2: The Tuesday => SundayOfWeek + 2 days
+  const tuesday = new Date(sundayOfWeek);
+  tuesday.setDate(tuesday.getDate() + 2);
   tuesday.setHours(0, 0, 0, 0);
 
-  // find upcoming Sunday
-  let nextSundayOffset = 0;
-  if (day === 0) {
-    nextSundayOffset = 7;
-  } else {
-    nextSundayOffset = 7 - day;
-  }
-  const sunday = new Date(now.getTime() + nextSundayOffset * 86400000);
-  sunday.setHours(23, 59, 59, 999);
+  // Step 3: The Sunday => SundayOfWeek + 7 days, 23:59
+  const endSunday = new Date(sundayOfWeek);
+  endSunday.setDate(endSunday.getDate() + 7);
+  endSunday.setHours(23, 59, 59, 999);
 
-  return { tuesday, sunday };
+  return { tuesday, sunday: endSunday };
 }
 
 export async function POST(request: NextRequest) {
   console.log('>>> generateSummary: POST route called');
 
   try {
-    //
     // A) Fetch Announcements
-    //
     console.log('Fetching all records from table:', ANNOUNCEMENTS_TABLE);
     const records = await base(ANNOUNCEMENTS_TABLE).select().all();
     console.log('Found total records:', records.length);
@@ -132,8 +124,8 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const { tuesday, sunday } = getThisTuesdayAndSunday();
-    console.log('Filtering by Promotion Start Date between', tuesday, 'and', sunday);
+    const { tuesday, sunday } = getThisWeeksTuesdayAndSunday();
+    console.log('Filtering by Promotion Start Date between', tuesday.toDateString(), 'and', sunday.toDateString());
 
     // Filter records
     const relevantRecords = records.filter((r) => {
@@ -173,9 +165,7 @@ Now, please transform these announcements into the required format:
 ${announcementsText}
 `.trim();
 
-    //
     // B) Call Anthropic
-    //
     console.log('Sending request to Anthropic...');
     const response = await anthropic.messages.create(
       {
@@ -204,13 +194,11 @@ ${announcementsText}
     }
     console.log('Claude summary text (first 200 chars):', summaryText.slice(0, 200));
 
-    //
     // C) Send Email via Microsoft Graph
-    //
     console.log('Initializing MS Graph client...');
     const client = getGraphClient();
     const fromAddress = process.env.MAILBOX_TO_SEND_FROM || '';
-    const toAddress = 'mboyle@sainthelen.org'; // or from env
+    const toAddress = 'mboyle@sainthelen.org';
 
     const subject = 'Weekly Saint Helen Announcements Summary';
     const htmlContent = `
@@ -243,10 +231,7 @@ ${announcementsText}
   } catch (error: any) {
     console.error('Error in generateSummary route:', error);
     return new NextResponse(
-      JSON.stringify({
-        success: false,
-        error: error.message || 'Failed to generate summary',
-      }),
+      JSON.stringify({ success: false, error: error.message || 'Failed to generate summary' }),
       { status: 500 }
     );
   }
