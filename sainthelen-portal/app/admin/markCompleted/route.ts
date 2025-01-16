@@ -2,6 +2,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Airtable from 'airtable';
 
+/**
+ * ENV variables for your three tables:
+ *   ANNOUNCEMENTS_TABLE_NAME
+ *   WEBSITE_UPDATES_TABLE_NAME
+ *   SMS_REQUESTS_TABLE_NAME
+ */
 const AIRTABLE_PERSONAL_TOKEN = process.env.AIRTABLE_PERSONAL_TOKEN || '';
 const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID || '';
 const ANNOUNCEMENTS_TABLE = process.env.ANNOUNCEMENTS_TABLE_NAME || 'Announcements';
@@ -11,13 +17,14 @@ const SMS_REQUESTS_TABLE = process.env.SMS_REQUESTS_TABLE_NAME || 'SMS Requests'
 const base = new Airtable({ apiKey: AIRTABLE_PERSONAL_TOKEN }).base(AIRTABLE_BASE_ID);
 
 /**
- * The request body should have:
+ * Request body shape:
  * {
  *   "table": "announcements" | "websiteUpdates" | "smsRequests",
  *   "recordId": string,
  *   "completed": boolean
  * }
  */
+
 export async function POST(request: NextRequest) {
   try {
     const { table, recordId, completed } = await request.json();
@@ -33,6 +40,7 @@ export async function POST(request: NextRequest) {
       throw new Error(`Unknown table type: ${table}`);
     }
 
+    // Update "Completed" in Airtable
     await base(tableName).update([
       {
         id: recordId,
