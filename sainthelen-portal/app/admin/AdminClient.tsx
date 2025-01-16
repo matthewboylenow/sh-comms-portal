@@ -17,11 +17,15 @@ export default function AdminClient() {
   const [websiteUpdates, setWebsiteUpdates] = useState<AdminRecord[]>([]);
   const [smsRequests, setSmsRequests] = useState<AdminRecord[]>([]);
 
+  // store which items are “summarize: true”
+  // Key: recordId, Value: boolean
+  const [summarizeMap, setSummarizeMap] = useState<Record<string, boolean>>({});
+
   const [errorMessage, setErrorMessage] = useState('');
   const [loadingData, setLoadingData] = useState(false);
   const [hideCompleted, setHideCompleted] = useState(false);
 
-  // For showing the weekly summary text
+  // Show the Claude summary after we get it
   const [summary, setSummary] = useState<string | null>(null);
 
   useEffect(() => {
@@ -48,9 +52,9 @@ export default function AdminClient() {
     }
   }
 
-  // Mark row as completed => remove from UI + call markCompleted
+  // Completed logic - same as before
   async function handleCompleted(tableName: TableName, recordId: string, currentValue: boolean) {
-    // remove row from local UI
+    // remove row from UI
     if (tableName === 'announcements') {
       setAnnouncements((prev) => prev.filter((r) => r.id !== recordId));
     } else if (tableName === 'websiteUpdates') {
@@ -77,7 +81,7 @@ export default function AdminClient() {
     }
   }
 
-  // overrideStatus only relevant for announcements
+  // Announcements override status
   async function handleOverrideStatus(recordId: string, newStatus: string) {
     try {
       const res = await fetch('/api/admin/updateOverrideStatus', {
@@ -92,6 +96,46 @@ export default function AdminClient() {
     }
   }
 
+  // When user toggles "Summarize?" box
+  function handleToggleSummarize(recordId: string, isChecked: boolean) {
+    setSummarizeMap((prev) => ({
+      ...prev,
+      [recordId]: isChecked,
+    }));
+  }
+
+  // Summarize Selected => call our new route
+  async function handleSummarizeSelected() {
+    // collect all record IDs that have summarizeMap[id] = true
+    const selectedIds: string[] = [];
+    [...announcements, ...websiteUpdates, ...smsRequests].forEach((r) => {
+      if (summarizeMap[r.id]) {
+        selectedIds.push(r.id);
+      }
+    });
+
+    if (!selectedIds.length) {
+      alert('No items selected for summarization!');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/admin/summarizeItems', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recordIds: selectedIds }),
+      });
+      if (!res.ok) throw new Error('Failed to summarize items');
+      const data = await res.json();
+      setSummary(data.summaryText || 'No summary returned.');
+      alert('Successfully summarized selected items! (Check your email too)');
+    } catch (err: any) {
+      console.error(err);
+      alert('Error summarizing items: ' + (err as Error).message);
+    }
+  }
+
+  // For Weekly Summary (if you keep it or remove it)
   async function handleManualSummary() {
     try {
       const res = await fetch('/api/generateSummary', { method: 'POST' });
@@ -116,10 +160,7 @@ export default function AdminClient() {
     return (
       <div className="p-4">
         <p>You must be signed in to view admin dashboard.</p>
-        <button
-          className="mt-2 bg-blue-500 text-white px-4 py-2 rounded"
-          onClick={() => signIn('azure-ad')}
-        >
+        <button className="mt-2 bg-blue-500 text-white px-4 py-2 rounded" onClick={() => signIn('azure-ad')}>
           Sign In
         </button>
       </div>
@@ -131,12 +172,30 @@ export default function AdminClient() {
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold">Admin Dashboard</h2>
         <div className="flex items-center gap-4">
+          {/* If you keep the old manual summary approach */}
           <button
             onClick={handleManualSummary}
             className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors"
           >
-            Manually Run Weekly Summary
+            Manually Run Weekly Summary (Old)
           </button>
+
+          {/* New approach: Summarize the user-selected items */}
+          <button
+            onClick={handleSummarizeSelected}
+            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors"
+          >
+            Summarize Selected
+          </button>
+
+          {/* Link to Completed */}
+          <a
+            href="/admin/completed"
+            className="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500 transition-colors"
+          >
+            View Completed Items
+          </a>
+
           <button className="bg-blue-500 text-white px-4 py-2 rounded" onClick={doSignOut}>
             Sign Out
           </button>
@@ -147,7 +206,6 @@ export default function AdminClient() {
         <div className="p-2 mb-4 text-red-800 bg-red-200 rounded">{errorMessage}</div>
       )}
 
-      {/* If we have a summary from Claude, display it. */}
       {summary && (
         <div className="mb-6 p-4 rounded bg-gray-50 dark:bg-gray-800">
           <h3 className="text-lg font-semibold mb-2 text-black dark:text-white">Claude Summary</h3>
@@ -175,17 +233,23 @@ export default function AdminClient() {
           <AnnouncementsTable
             records={announcements}
             hideCompleted={hideCompleted}
+            summarizeMap={summarizeMap}
+            setSummarizeMap={setSummarizeMap}
             onOverrideStatus={handleOverrideStatus}
             onToggleCompleted={handleCompleted}
           />
           <WebsiteUpdatesTable
             records={websiteUpdates}
             hideCompleted={hideCompleted}
+            summarizeMap={summarizeMap}
+            setSummarizeMap={setSummarizeMap}
             onToggleCompleted={handleCompleted}
           />
-          <SmsRequestsTable
+          <SMSRequestsTable
             records={smsRequests}
             hideCompleted={hideCompleted}
+            summarizeMap={summarizeMap}
+            setSummarizeMap={setSummarizeMap}
             onToggleCompleted={handleCompleted}
           />
         </>
@@ -194,29 +258,30 @@ export default function AdminClient() {
   );
 }
 
-/* -----------------------------------------------------------------------
-   Announcements Table
-   Columns:
-   - Name
-   - Ministry
-   - Date/Time of Event (Time in 12h AM/PM)
-   - Promotion Start Date
-   - Platforms
-   - Announcement Body
-   - File Links
-   - Completed?
-   - overrideStatus (select)
------------------------------------------------------------------------- */
+/* 3 Tables with a “Summarize?” checkbox at the beginning. 
+   For each row, we do an <input type=checkbox> that calls handleToggleSummarize. 
+   We also maintain the Completed logic as before.
+*/
+
+// ANNOUNCEMENTS
 function AnnouncementsTable({
   records,
   hideCompleted,
+  summarizeMap,
+  setSummarizeMap,
   onOverrideStatus,
   onToggleCompleted,
 }: {
   records: AdminRecord[];
   hideCompleted: boolean;
+  summarizeMap: Record<string, boolean>;
+  setSummarizeMap: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
   onOverrideStatus: (recordId: string, newStatus: string) => void;
-  onToggleCompleted: (tableName: 'announcements', recordId: string, currentValue: boolean) => void;
+  onToggleCompleted: (
+    tableName: 'announcements',
+    recordId: string,
+    currentValue: boolean
+  ) => void;
 }) {
   const displayed = hideCompleted ? records.filter((r) => !r.fields.Completed) : records;
   if (!displayed.length) return <></>;
@@ -227,53 +292,58 @@ function AnnouncementsTable({
       <table className="w-full border-collapse text-sm">
         <thead>
           <tr className="bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-            <th className="border border-gray-300 dark:border-gray-600 p-2">Name</th>
-            <th className="border border-gray-300 dark:border-gray-600 p-2">Ministry</th>
-            <th className="border border-gray-300 dark:border-gray-600 p-2">Date/Time</th>
-            <th className="border border-gray-300 dark:border-gray-600 p-2">
-              Promotion Start
-            </th>
-            <th className="border border-gray-300 dark:border-gray-600 p-2">Platforms</th>
-            <th className="border border-gray-300 dark:border-gray-600 p-2">Body</th>
-            <th className="border border-gray-300 dark:border-gray-600 p-2">Files</th>
-            <th className="border border-gray-300 dark:border-gray-600 p-2">Override</th>
-            <th className="border border-gray-300 dark:border-gray-600 p-2">Completed?</th>
+            <th className="border p-2">Summarize?</th>
+            <th className="border p-2">Name</th>
+            <th className="border p-2">Ministry</th>
+            <th className="border p-2">Date/Time</th>
+            <th className="border p-2">Promotion Start</th>
+            <th className="border p-2">Platforms</th>
+            <th className="border p-2">Announcement Body</th>
+            <th className="border p-2">File Links</th>
+            <th className="border p-2">Override</th>
+            <th className="border p-2">Completed?</th>
           </tr>
         </thead>
         <tbody>
-          {displayed.map((rec) => {
-            const f = rec.fields;
-            const dateStr = f['Date of Event'] || '';
-            const timeStr = convertTo12Hour(f['Time of Event'] || '');
-            const promoDate = f['Promotion Start Date'] || '';
+          {displayed.map((r) => {
+            const f = r.fields;
+            const isSummarize = summarizeMap[r.id] || false;
             return (
-              <tr key={rec.id}>
-                <td className="border border-gray-300 dark:border-gray-600 p-2 text-black dark:text-gray-100">
-                  {f.Name || ''}
+              <tr key={r.id}>
+                {/* Summarize? */}
+                <td className="border p-2 text-center">
+                  <input
+                    type="checkbox"
+                    checked={isSummarize}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setSummarizeMap((prev) => ({
+                        ...prev,
+                        [r.id]: checked,
+                      }));
+                    }}
+                  />
                 </td>
-                <td className="border border-gray-300 dark:border-gray-600 p-2 text-black dark:text-gray-100">
-                  {f.Ministry || ''}
+                <td className="border p-2 text-black dark:text-gray-100">{f.Name || ''}</td>
+                <td className="border p-2 text-black dark:text-gray-100">{f.Ministry || ''}</td>
+                <td className="border p-2 text-black dark:text-gray-100">
+                  {f['Date of Event'] || ''} {f['Time of Event'] || ''}
                 </td>
-                <td className="border border-gray-300 dark:border-gray-600 p-2 text-black dark:text-gray-100">
-                  {dateStr} {timeStr}
+                <td className="border p-2 text-black dark:text-gray-100">
+                  {f['Promotion Start Date'] || ''}
                 </td>
-                <td className="border border-gray-300 dark:border-gray-600 p-2 text-black dark:text-gray-100">
-                  {promoDate}
-                </td>
-                <td className="border border-gray-300 dark:border-gray-600 p-2 text-black dark:text-gray-100">
+                <td className="border p-2 text-black dark:text-gray-100">
                   {(f.Platforms || []).join(', ')}
                 </td>
-                <td className="border border-gray-300 dark:border-gray-600 p-2 text-black dark:text-gray-100 max-w-sm">
+                <td className="border p-2 text-black dark:text-gray-100 max-w-md">
                   {f['Announcement Body'] || ''}
                 </td>
-                <td className="border border-gray-300 dark:border-gray-600 p-2 text-black dark:text-gray-100">
-                  {f['File Links'] || ''}
-                </td>
-                <td className="border border-gray-300 dark:border-gray-600 p-2 text-black dark:text-gray-100">
+                <td className="border p-2 text-black dark:text-gray-100">{f['File Links'] || ''}</td>
+                <td className="border p-2 text-black dark:text-gray-100">
                   <select
                     className="border rounded p-1 bg-white dark:bg-gray-800 text-black dark:text-gray-200"
                     value={f.overrideStatus || 'none'}
-                    onChange={(e) => onOverrideStatus(rec.id, e.target.value)}
+                    onChange={(e) => onOverrideStatus(r.id, e.target.value)}
                   >
                     <option value="none">none</option>
                     <option value="forceExclude">forceExclude</option>
@@ -281,13 +351,11 @@ function AnnouncementsTable({
                     <option value="defer">defer</option>
                   </select>
                 </td>
-                <td className="border border-gray-300 dark:border-gray-600 p-2 text-center text-black dark:text-gray-100">
+                <td className="border p-2 text-center text-black dark:text-gray-100">
                   <input
                     type="checkbox"
                     checked={!!f.Completed}
-                    onChange={() =>
-                      onToggleCompleted('announcements', rec.id, !!f.Completed)
-                    }
+                    onChange={() => onToggleCompleted('announcements', r.id, !!f.Completed)}
                   />
                 </td>
               </tr>
@@ -299,23 +367,23 @@ function AnnouncementsTable({
   );
 }
 
-/* -----------------------------------------------------------------------
-   Website Updates Table
-   Columns:
-   - Page to Update
-   - Description
-   - Sign-Up URL
-   - File Links
-   - Completed?
------------------------------------------------------------------------- */
+// WEBSITE UPDATES
 function WebsiteUpdatesTable({
   records,
   hideCompleted,
+  summarizeMap,
+  setSummarizeMap,
   onToggleCompleted,
 }: {
   records: AdminRecord[];
   hideCompleted: boolean;
-  onToggleCompleted: (tableName: 'websiteUpdates', recordId: string, currentValue: boolean) => void;
+  summarizeMap: Record<string, boolean>;
+  setSummarizeMap: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+  onToggleCompleted: (
+    tableName: 'websiteUpdates',
+    recordId: string,
+    currentValue: boolean
+  ) => void;
 }) {
   const displayed = hideCompleted ? records.filter((r) => !r.fields.Completed) : records;
   if (!displayed.length) return <></>;
@@ -326,37 +394,44 @@ function WebsiteUpdatesTable({
       <table className="w-full border-collapse text-sm">
         <thead>
           <tr className="bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-            <th className="border border-gray-300 dark:border-gray-600 p-2">Page to Update</th>
-            <th className="border border-gray-300 dark:border-gray-600 p-2">Description</th>
-            <th className="border border-gray-300 dark:border-gray-600 p-2">Sign-Up URL</th>
-            <th className="border border-gray-300 dark:border-gray-600 p-2">Files</th>
-            <th className="border border-gray-300 dark:border-gray-600 p-2">Completed?</th>
+            <th className="border p-2">Summarize?</th>
+            <th className="border p-2">Page to Update</th>
+            <th className="border p-2">Description</th>
+            <th className="border p-2">Sign-Up URL</th>
+            <th className="border p-2">File Links</th>
+            <th className="border p-2">Completed?</th>
           </tr>
         </thead>
         <tbody>
-          {displayed.map((rec) => {
-            const f = rec.fields;
+          {displayed.map((r) => {
+            const f = r.fields;
+            const isSummarize = summarizeMap[r.id] || false;
             return (
-              <tr key={rec.id}>
-                <td className="border border-gray-300 dark:border-gray-600 p-2 text-black dark:text-gray-100">
-                  {f['Page to Update'] || ''}
+              <tr key={r.id}>
+                <td className="border p-2 text-center">
+                  <input
+                    type="checkbox"
+                    checked={isSummarize}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setSummarizeMap((prev) => ({
+                        ...prev,
+                        [r.id]: checked,
+                      }));
+                    }}
+                  />
                 </td>
-                <td className="border border-gray-300 dark:border-gray-600 p-2 text-black dark:text-gray-100 max-w-sm">
-                  {f.Description || ''}
-                </td>
-                <td className="border border-gray-300 dark:border-gray-600 p-2 text-blue-600 dark:text-blue-300 underline">
+                <td className="border p-2 text-black dark:text-gray-100">{f['Page to Update'] || ''}</td>
+                <td className="border p-2 text-black dark:text-gray-100 max-w-md">{f.Description || ''}</td>
+                <td className="border p-2 text-blue-600 dark:text-blue-300 underline">
                   {f['Sign-Up URL'] || ''}
                 </td>
-                <td className="border border-gray-300 dark:border-gray-600 p-2 text-black dark:text-gray-100">
-                  {f['File Links'] || ''}
-                </td>
-                <td className="border border-gray-300 dark:border-gray-600 p-2 text-center text-black dark:text-gray-100">
+                <td className="border p-2 text-black dark:text-gray-100">{f['File Links'] || ''}</td>
+                <td className="border p-2 text-center text-black dark:text-gray-100">
                   <input
                     type="checkbox"
                     checked={!!f.Completed}
-                    onChange={() =>
-                      onToggleCompleted('websiteUpdates', rec.id, !!f.Completed)
-                    }
+                    onChange={() => onToggleCompleted('websiteUpdates', r.id, !!f.Completed)}
                   />
                 </td>
               </tr>
@@ -368,24 +443,23 @@ function WebsiteUpdatesTable({
   );
 }
 
-/* -----------------------------------------------------------------------
-   SMS Requests Table
-   Columns:
-   - Name
-   - Ministry
-   - Requested Date
-   - SMS Message
-   - Additional Info
-   - Completed?
------------------------------------------------------------------------- */
-function SmsRequestsTable({
+// SMS REQUESTS
+function SMSRequestsTable({
   records,
   hideCompleted,
+  summarizeMap,
+  setSummarizeMap,
   onToggleCompleted,
 }: {
   records: AdminRecord[];
   hideCompleted: boolean;
-  onToggleCompleted: (tableName: 'smsRequests', recordId: string, currentValue: boolean) => void;
+  summarizeMap: Record<string, boolean>;
+  setSummarizeMap: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+  onToggleCompleted: (
+    tableName: 'smsRequests',
+    recordId: string,
+    currentValue: boolean
+  ) => void;
 }) {
   const displayed = hideCompleted ? records.filter((r) => !r.fields.Completed) : records;
   if (!displayed.length) return <></>;
@@ -396,39 +470,44 @@ function SmsRequestsTable({
       <table className="w-full border-collapse text-sm">
         <thead>
           <tr className="bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-            <th className="border border-gray-300 dark:border-gray-600 p-2">Name</th>
-            <th className="border border-gray-300 dark:border-gray-600 p-2">Ministry</th>
-            <th className="border border-gray-300 dark:border-gray-600 p-2">Requested Date</th>
-            <th className="border border-gray-300 dark:border-gray-600 p-2">SMS Message</th>
-            <th className="border border-gray-300 dark:border-gray-600 p-2">Additional Info</th>
-            <th className="border border-gray-300 dark:border-gray-600 p-2">Completed?</th>
+            <th className="border p-2">Summarize?</th>
+            <th className="border p-2">Name</th>
+            <th className="border p-2">Ministry</th>
+            <th className="border p-2">Requested Date</th>
+            <th className="border p-2">SMS Message</th>
+            <th className="border p-2">Additional Info</th>
+            <th className="border p-2">Completed?</th>
           </tr>
         </thead>
         <tbody>
-          {displayed.map((rec) => {
-            const f = rec.fields;
+          {displayed.map((r) => {
+            const f = r.fields;
+            const isSummarize = summarizeMap[r.id] || false;
             return (
-              <tr key={rec.id}>
-                <td className="border border-gray-300 dark:border-gray-600 p-2 text-black dark:text-gray-100">
-                  {f.Name || ''}
+              <tr key={r.id}>
+                <td className="border p-2 text-center">
+                  <input
+                    type="checkbox"
+                    checked={isSummarize}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setSummarizeMap((prev) => ({
+                        ...prev,
+                        [r.id]: checked,
+                      }));
+                    }}
+                  />
                 </td>
-                <td className="border border-gray-300 dark:border-gray-600 p-2 text-black dark:text-gray-100">
-                  {f.Ministry || ''}
-                </td>
-                <td className="border border-gray-300 dark:border-gray-600 p-2 text-black dark:text-gray-100">
-                  {f['Requested Date'] || ''}
-                </td>
-                <td className="border border-gray-300 dark:border-gray-600 p-2 text-black dark:text-gray-100 max-w-sm">
-                  {f['SMS Message'] || ''}
-                </td>
-                <td className="border border-gray-300 dark:border-gray-600 p-2 text-black dark:text-gray-100 max-w-sm">
-                  {f['Additional Info'] || ''}
-                </td>
-                <td className="border border-gray-300 dark:border-gray-600 p-2 text-center text-black dark:text-gray-100">
+                <td className="border p-2 text-black dark:text-gray-100">{f.Name || ''}</td>
+                <td className="border p-2 text-black dark:text-gray-100">{f.Ministry || ''}</td>
+                <td className="border p-2 text-black dark:text-gray-100">{f['Requested Date'] || ''}</td>
+                <td className="border p-2 text-black dark:text-gray-100 max-w-md">{f['SMS Message'] || ''}</td>
+                <td className="border p-2 text-black dark:text-gray-100 max-w-md">{f['Additional Info'] || ''}</td>
+                <td className="border p-2 text-center text-black dark:text-gray-100">
                   <input
                     type="checkbox"
                     checked={!!f.Completed}
-                    onChange={() => onToggleCompleted('smsRequests', rec.id, !!f.Completed)}
+                    onChange={() => onToggleCompleted('smsRequests', r.id, !!f.Completed)}
                   />
                 </td>
               </tr>
@@ -438,23 +517,4 @@ function SmsRequestsTable({
       </table>
     </section>
   );
-}
-
-/**
- * A quick helper to convert 24h strings to 12h AM/PM.
- * e.g. "14:30" => "2:30 PM".
- */
-function convertTo12Hour(timeStr: string): string {
-  if (!timeStr) return '';
-  const [hourStr, minuteStr] = timeStr.split(':');
-  let hour = parseInt(hourStr, 10);
-  const minute = parseInt(minuteStr || '0', 10);
-
-  const ampm = hour >= 12 ? 'PM' : 'AM';
-  if (hour === 0) {
-    hour = 12; // 00:xx => 12 AM
-  } else if (hour > 12) {
-    hour = hour - 12;
-  }
-  return `${hour}:${minute.toString().padStart(2, '0')} ${ampm}`;
 }
