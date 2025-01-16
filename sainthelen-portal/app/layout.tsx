@@ -2,6 +2,7 @@
 import './globals.css';
 import { Metadata } from 'next';
 import Header from './components/Header';
+import Providers from './providers';
 
 // 1) Import your Google Fonts from next/font/google
 import { Libre_Franklin, Libre_Baskerville } from 'next/font/google';
@@ -32,17 +33,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    // 3) Use the font variables on <html>
-    <html lang="en" className={`${franklin.variable} ${baskerville.variable}`}>
-      {/* 
-        4) Ensure the body is min-h-screen so dark mode covers entire viewport.
-        We apply dark mode background colors in globals.css or here via Tailwind.
-      */}
+    <html
+      lang="en"
+      className={`${franklin.variable} ${baskerville.variable}`}
+    >
       <body className="min-h-screen flex flex-col bg-white dark:bg-[#121212] transition-colors duration-300">
-        <Header />
-        <main className="flex-1">
-          {children}
-        </main>
+        {/* Wrap everything in the SessionProvider */}
+        <Providers>
+          <Header />
+          <main className="flex-1">{children}</main>
+        </Providers>
       </body>
     </html>
   );
