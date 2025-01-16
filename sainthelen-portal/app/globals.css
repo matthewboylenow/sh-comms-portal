@@ -1,0 +1,34 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 
+   1) The default font for the entire document uses Libre Franklin (var(--font-franklin)).
+   2) Headings use Libre Baskerville (var(--font-baskerville)).
+*/
+
+/* Basic resets */
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-franklin), sans-serif;
+  background-color: #ffffff;
+  color: #333333;
+}
+
+.dark body {
+  background-color: #121212;
+  color: #f2f2f2;
+}
+
+/* Use Baskerville for headings */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-baskerville), serif;
+}
+
+/* Smooth transitions for toggling dark mode */
+body,
+.dark body {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
