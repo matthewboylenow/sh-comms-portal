@@ -36,6 +36,7 @@ function getGraphClient() {
   return Client.initWithMiddleware({ authProvider });
 }
 
+// Use the Anthropic client normally
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || '',
 });
@@ -106,7 +107,7 @@ Now, please transform these announcements into the required format:
 ${announcementsText}
 `.trim();
 
-    // 4) Call Anthropic
+    // 4) Call Anthropic with version=2023-06-01
     console.log('Sending request to Anthropic with model=claude-3-5-sonnet-20241022...');
     const response = await anthropic.messages.create(
       {
@@ -121,7 +122,8 @@ ${announcementsText}
       },
       {
         headers: {
-          'anthropic-version': '2023-10-01',
+          // The version recommended by Anthropic if 2023-10-01 is invalid
+          'anthropic-version': '2023-06-01',
         },
       }
     );
@@ -135,7 +137,7 @@ ${announcementsText}
     }
     console.log('Claude summary (first 200 chars):', summaryText.slice(0, 200));
 
-    // 5) Send Email via MS Graph
+    // 5) Send Email via Microsoft Graph
     console.log('Initializing MS Graph client...');
     const client = getGraphClient();
     const fromAddress = process.env.MAILBOX_TO_SEND_FROM || '';
