@@ -26,16 +26,16 @@ export default function AdminClient() {
   const [loadingData, setLoadingData] = useState(false);
   const [hideCompleted, setHideCompleted] = useState(false);
 
-  // Optional: store a summary from Summarize route
+  // Optionally store the summary from Summarize route
   const [summary, setSummary] = useState<string | null>(null);
 
   useEffect(() => {
-    // Auto-fetch when user is authenticated
     if (status === 'authenticated') {
       fetchAllRequests();
     }
   }, [status]);
 
+  // 1) Fetch data from /api/admin/fetchRequests
   async function fetchAllRequests() {
     setLoadingData(true);
     setErrorMessage('');
@@ -54,13 +54,13 @@ export default function AdminClient() {
     }
   }
 
-  // Completed logic
+  // 2) Mark item as Completed
   async function handleCompleted(
     tableName: TableName,
     recordId: string,
     currentValue: boolean
   ) {
-    // Remove item from local array
+    // Immediately remove from local UI
     if (tableName === 'announcements') {
       setAnnouncements((prev) => prev.filter((r) => r.id !== recordId));
     } else if (tableName === 'websiteUpdates') {
@@ -69,7 +69,7 @@ export default function AdminClient() {
       setSmsRequests((prev) => prev.filter((r) => r.id !== recordId));
     }
 
-    // Update Airtable
+    // Patch in Airtable
     try {
       const res = await fetch('/api/admin/markCompleted', {
         method: 'POST',
@@ -87,7 +87,7 @@ export default function AdminClient() {
     }
   }
 
-  // Override status (Announcements only)
+  // 3) Override status (Announcements only)
   async function handleOverrideStatus(recordId: string, newStatus: string) {
     try {
       const res = await fetch('/api/admin/updateOverrideStatus', {
@@ -102,7 +102,7 @@ export default function AdminClient() {
     }
   }
 
-  // Summarize logic
+  // 4) Summarize logic
   function handleToggleSummarize(recordId: string, isChecked: boolean) {
     setSummarizeMap((prev) => ({
       ...prev,
@@ -168,9 +168,7 @@ export default function AdminClient() {
     <div className="p-4 text-gray-900 dark:text-gray-200 space-y-4">
       {/* Heading / Actions */}
       <div className="flex justify-between items-center border-b pb-2 mb-3">
-        <h2 className="text-2xl font-bold">
-          Saint Helen Admin Dashboard
-        </h2>
+        <h2 className="text-2xl font-bold">Saint Helen Admin Dashboard</h2>
         <div className="flex items-center gap-3">
           {/* Refresh */}
           <button
@@ -274,10 +272,15 @@ export default function AdminClient() {
   );
 }
 
-/**
- * Announcements Table
- * Using a “card” style container
- */
+/* ------------------------------------------------------------------------
+   Announcements Table with Show More / Show Less on the Body
+------------------------------------------------------------------------ */
+import { useState as useStateLocal } from 'react';
+
+// We rename it 'useStateLocal' if you prefer. 
+// Alternatively, just place this logic inline and remove the second import.
+// We do need a separate state inside the component to track expansion.
+
 function AnnouncementsTable({
   records,
   hideCompleted,
@@ -297,6 +300,24 @@ function AnnouncementsTable({
     currentValue: boolean
   ) => void;
 }) {
+  // Track expanded rows
+  const [expandedRows, setExpandedRows] = useStateLocal<Record<string, boolean>>({});
+
+  // truncate text
+  function truncateWords(text: string, wordLimit = 80) {
+    if (!text) return '';
+    const words = text.split(/\s+/);
+    if (words.length <= wordLimit) return text;
+    return words.slice(0, wordLimit).join(' ') + '...';
+  }
+
+  function toggleExpand(rowId: string) {
+    setExpandedRows((prev) => ({
+      ...prev,
+      [rowId]: !prev[rowId],
+    }));
+  }
+
   const displayed = hideCompleted ? records.filter((r) => !r.fields.Completed) : records;
   if (!displayed.length) return null;
 
@@ -315,8 +336,16 @@ function AnnouncementsTable({
               <th className="px-3 py-2 border">Date/Time</th>
               <th className="px-3 py-2 border">Promotion Start</th>
               <th className="px-3 py-2 border">Platforms</th>
-              <th className="px-3 py-2 border">Announcement Body</th>
-              <th className="px-3 py-2 border">File Links</th>
+
+              {/* Make the body column wider */}
+              <th className="px-3 py-2 border w-[400px]">
+                Announcement Body
+              </th>
+
+              {/* Shrink the file links column */}
+              <th className="px-3 py-2 border w-[150px]">
+                File Links
+              </th>
               <th className="px-3 py-2 border">Override</th>
               <th className="px-3 py-2 border">Completed?</th>
             </tr>
@@ -325,6 +354,13 @@ function AnnouncementsTable({
             {displayed.map((r) => {
               const f = r.fields;
               const isSummarize = summarizeMap[r.id] || false;
+
+              const isExpanded = !!expandedRows[r.id];
+              const fullText = f['Announcement Body'] || '';
+              const displayText = isExpanded
+                ? fullText
+                : truncateWords(fullText, 80);
+
               return (
                 <tr
                   key={r.id}
@@ -358,13 +394,25 @@ function AnnouncementsTable({
                   <td className="px-3 py-2 border text-black dark:text-gray-100">
                     {(f.Platforms || []).join(', ')}
                   </td>
-                  <td className="px-3 py-2 border text-black dark:text-gray-100 max-w-md">
-                    {f['Announcement Body'] || ''}
+                  <td className="px-3 py-2 border text-black dark:text-gray-100 align-top">
+                    {/* truncated or full text */}
+                    <div className="whitespace-pre-wrap">
+                      {displayText}
+                    </div>
+                    {/* show more/less if over 80 words */}
+                    {fullText.split(/\s+/).length > 80 && (
+                      <button
+                        onClick={() => toggleExpand(r.id)}
+                        className="text-blue-600 dark:text-blue-300 underline mt-1"
+                      >
+                        {isExpanded ? 'Show Less' : 'Show More'}
+                      </button>
+                    )}
                   </td>
-                  <td className="px-3 py-2 border text-black dark:text-gray-100">
+                  <td className="px-3 py-2 border text-black dark:text-gray-100 align-top">
                     {f['File Links'] || ''}
                   </td>
-                  <td className="px-3 py-2 border text-black dark:text-gray-100">
+                  <td className="px-3 py-2 border text-black dark:text-gray-100 align-top">
                     <select
                       className="border rounded p-1 bg-white dark:bg-gray-800 text-black dark:text-gray-200"
                       value={f.overrideStatus || 'none'}
@@ -376,7 +424,7 @@ function AnnouncementsTable({
                       <option value="defer">defer</option>
                     </select>
                   </td>
-                  <td className="px-3 py-2 border text-center text-black dark:text-gray-100">
+                  <td className="px-3 py-2 border text-center text-black dark:text-gray-100 align-top">
                     <input
                       type="checkbox"
                       checked={!!f.Completed}
@@ -395,9 +443,9 @@ function AnnouncementsTable({
   );
 }
 
-/**
- * WebsiteUpdatesTable
- */
+/* ------------------------------------------------------------------------
+   WebsiteUpdatesTable
+------------------------------------------------------------------------ */
 function WebsiteUpdatesTable({
   records,
   hideCompleted,
@@ -488,9 +536,9 @@ function WebsiteUpdatesTable({
   );
 }
 
-/**
- * SmsRequestsTable
- */
+/* ------------------------------------------------------------------------
+   SmsRequestsTable
+------------------------------------------------------------------------ */
 function SmsRequestsTable({
   records,
   hideCompleted,
