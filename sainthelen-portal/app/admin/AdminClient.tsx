@@ -1,9 +1,11 @@
 // app/admin/AdminClient.tsx
+
 'use client';
 
 import { useSession, signIn, signOut } from 'next-auth/react';
 import { useEffect, useState } from 'react';
 
+// Types for table name and records
 type TableName = 'announcements' | 'websiteUpdates' | 'smsRequests';
 
 type AdminRecord = {
@@ -19,48 +21,52 @@ export default function AdminClient() {
   const [websiteUpdates, setWebsiteUpdates] = useState<AdminRecord[]>([]);
   const [smsRequests, setSmsRequests] = useState<AdminRecord[]>([]);
 
-  // If you still want Summarize logic
+  // Summarize? checkboxes
   const [summarizeMap, setSummarizeMap] = useState<Record<string, boolean>>({});
 
+  // Generic UI states
   const [errorMessage, setErrorMessage] = useState('');
   const [loadingData, setLoadingData] = useState(false);
   const [hideCompleted, setHideCompleted] = useState(false);
 
-  // Optionally store the summary from Summarize route
+  // Optionally store the summary from a “Summarize Selected” operation
   const [summary, setSummary] = useState<string | null>(null);
 
+  // Fetch data once user is authenticated
   useEffect(() => {
     if (status === 'authenticated') {
       fetchAllRequests();
     }
   }, [status]);
 
-  // 1) Fetch data from /api/admin/fetchRequests
+  // Fetch all 3 categories (announcements, website updates, sms) from /api/admin/fetchRequests
   async function fetchAllRequests() {
     setLoadingData(true);
     setErrorMessage('');
     try {
-      const res = await fetch('/api/admin/fetchRequests');
-      if (!res.ok) throw new Error(`Error fetching data: ${res.status}`);
-      const data = await res.json();
+      const response = await fetch('/api/admin/fetchRequests');
+      if (!response.ok) {
+        throw new Error(`Error fetching data: ${response.status}`);
+      }
+      const data = await response.json();
       setAnnouncements(data.announcements || []);
       setWebsiteUpdates(data.websiteUpdates || []);
       setSmsRequests(data.smsRequests || []);
-    } catch (err: any) {
-      console.error(err);
-      setErrorMessage(err.message);
+    } catch (error: any) {
+      console.error(error);
+      setErrorMessage(error.message);
     } finally {
       setLoadingData(false);
     }
   }
 
-  // 2) Mark item as Completed
+  // Mark item as completed => remove from UI + call /api/admin/markCompleted
   async function handleCompleted(
     tableName: TableName,
     recordId: string,
     currentValue: boolean
   ) {
-    // Immediately remove from local UI
+    // Remove from local UI
     if (tableName === 'announcements') {
       setAnnouncements((prev) => prev.filter((r) => r.id !== recordId));
     } else if (tableName === 'websiteUpdates') {
@@ -80,14 +86,16 @@ export default function AdminClient() {
           completed: !currentValue,
         }),
       });
-      if (!res.ok) throw new Error('Failed to update Completed status.');
-    } catch (err: any) {
-      console.error(err);
-      setErrorMessage(err.message);
+      if (!res.ok) {
+        throw new Error('Failed to update Completed status.');
+      }
+    } catch (error: any) {
+      console.error(error);
+      setErrorMessage(error.message);
     }
   }
 
-  // 3) Override status (Announcements only)
+  // Override status (only for Announcements)
   async function handleOverrideStatus(recordId: string, newStatus: string) {
     try {
       const res = await fetch('/api/admin/updateOverrideStatus', {
@@ -95,14 +103,18 @@ export default function AdminClient() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ recordId, overrideStatus: newStatus }),
       });
-      if (!res.ok) throw new Error('Failed to update override status');
+      if (!res.ok) {
+        throw new Error('Failed to update override status');
+      }
+      // Optionally re-fetch the data after changing override
       fetchAllRequests();
-    } catch (err: any) {
-      setErrorMessage(err.message);
+    } catch (error: any) {
+      console.error(error);
+      setErrorMessage(error.message);
     }
   }
 
-  // 4) Summarize logic
+  // Summarize? checkboxes logic
   function handleToggleSummarize(recordId: string, isChecked: boolean) {
     setSummarizeMap((prev) => ({
       ...prev,
@@ -110,30 +122,36 @@ export default function AdminClient() {
     }));
   }
 
+  // Summarize Selected => call /api/admin/summarizeItems
   async function handleSummarizeSelected() {
     const selectedIds: string[] = [];
+    // Gather all records from announcements, website updates, sms
     [...announcements, ...websiteUpdates, ...smsRequests].forEach((r) => {
       if (summarizeMap[r.id]) {
         selectedIds.push(r.id);
       }
     });
+
     if (!selectedIds.length) {
       alert('No items selected for summarization!');
       return;
     }
+
     try {
       const res = await fetch('/api/admin/summarizeItems', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ recordIds: selectedIds }),
       });
-      if (!res.ok) throw new Error('Failed to summarize items');
+      if (!res.ok) {
+        throw new Error('Failed to summarize items');
+      }
       const data = await res.json();
       setSummary(data.summaryText || 'No summary returned.');
       alert('Successfully summarized selected items!');
-    } catch (err: any) {
-      console.error(err);
-      alert('Error summarizing items: ' + (err as Error).message);
+    } catch (error: any) {
+      console.error(error);
+      alert('Error summarizing items: ' + (error as Error).message);
     }
   }
 
@@ -163,14 +181,13 @@ export default function AdminClient() {
     );
   }
 
-  // Main Admin Dashboard UI
+  // Main Admin Dashboard
   return (
     <div className="p-4 text-gray-900 dark:text-gray-200 space-y-4">
-      {/* Heading / Actions */}
       <div className="flex justify-between items-center border-b pb-2 mb-3">
         <h2 className="text-2xl font-bold">Saint Helen Admin Dashboard</h2>
         <div className="flex items-center gap-3">
-          {/* Refresh */}
+          {/* Refresh Data */}
           <button
             onClick={fetchAllRequests}
             className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition-colors"
@@ -178,7 +195,7 @@ export default function AdminClient() {
             Refresh Data
           </button>
 
-          {/* Summarize Selected */}
+          {/* Summarize selected items */}
           <button
             onClick={handleSummarizeSelected}
             className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors"
@@ -186,7 +203,7 @@ export default function AdminClient() {
             Summarize Selected
           </button>
 
-          {/* Completed Items Link */}
+          {/* Link to completed items */}
           <a
             href="/admin/completed"
             className="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500 transition-colors"
@@ -211,7 +228,7 @@ export default function AdminClient() {
         </div>
       )}
 
-      {/* Summary display */}
+      {/* If we have a summary from Summarize Items */}
       {summary && (
         <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
           <h3 className="text-lg font-semibold mb-2 text-black dark:text-white">
@@ -237,7 +254,6 @@ export default function AdminClient() {
         </label>
       </div>
 
-      {/* If data is loading */}
       {loadingData ? (
         <div className="text-gray-800 dark:text-gray-100">
           Loading data...
@@ -272,14 +288,11 @@ export default function AdminClient() {
   );
 }
 
-/* ------------------------------------------------------------------------
-   Announcements Table with Show More / Show Less on the Body
------------------------------------------------------------------------- */
-import { useState as useStateLocal } from 'react';
-
-// We rename it 'useStateLocal' if you prefer. 
-// Alternatively, just place this logic inline and remove the second import.
-// We do need a separate state inside the component to track expansion.
+/**
+ * Announcements Table - with Show More / Show Less for Body
+ * and improved spacing to avoid scrunching.
+ */
+import { useState as useLocalState } from 'react';
 
 function AnnouncementsTable({
   records,
@@ -300,10 +313,9 @@ function AnnouncementsTable({
     currentValue: boolean
   ) => void;
 }) {
-  // Track expanded rows
-  const [expandedRows, setExpandedRows] = useStateLocal<Record<string, boolean>>({});
+  // For Show More / Show Less
+  const [expandedRows, setExpandedRows] = useLocalState<Record<string, boolean>>({});
 
-  // truncate text
   function truncateWords(text: string, wordLimit = 80) {
     if (!text) return '';
     const words = text.split(/\s+/);
@@ -327,27 +339,19 @@ function AnnouncementsTable({
         Announcements
       </h3>
       <div className="overflow-x-auto">
-        <table className="w-full table-auto border-collapse text-sm">
+        <table className="table-auto w-full border-collapse text-sm">
           <thead>
             <tr className="bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-              <th className="px-3 py-2 border">Summarize?</th>
-              <th className="px-3 py-2 border">Name</th>
-              <th className="px-3 py-2 border">Ministry</th>
-              <th className="px-3 py-2 border">Date/Time</th>
-              <th className="px-3 py-2 border">Promotion Start</th>
-              <th className="px-3 py-2 border">Platforms</th>
-
-              {/* Make the body column wider */}
-              <th className="px-3 py-2 border w-[400px]">
-                Announcement Body
-              </th>
-
-              {/* Shrink the file links column */}
-              <th className="px-3 py-2 border w-[150px]">
-                File Links
-              </th>
-              <th className="px-3 py-2 border">Override</th>
-              <th className="px-3 py-2 border">Completed?</th>
+              <th className="px-4 py-2 border">Summarize?</th>
+              <th className="px-4 py-2 border">Name</th>
+              <th className="px-4 py-2 border">Ministry</th>
+              <th className="px-4 py-2 border">Date/Time</th>
+              <th className="px-4 py-2 border">Promotion Start</th>
+              <th className="px-4 py-2 border">Platforms</th>
+              <th className="px-4 py-2 border">Announcement Body</th>
+              <th className="px-4 py-2 border">File Links</th>
+              <th className="px-4 py-2 border">Override</th>
+              <th className="px-4 py-2 border">Completed?</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-gray-600">
@@ -366,7 +370,7 @@ function AnnouncementsTable({
                   key={r.id}
                   className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                 >
-                  <td className="px-3 py-2 border text-center">
+                  <td className="px-4 py-2 border text-center whitespace-normal break-words leading-relaxed">
                     <input
                       type="checkbox"
                       checked={isSummarize}
@@ -379,27 +383,26 @@ function AnnouncementsTable({
                       }}
                     />
                   </td>
-                  <td className="px-3 py-2 border text-black dark:text-gray-100">
+                  <td className="px-4 py-2 border text-black dark:text-gray-100 whitespace-normal break-words leading-relaxed">
                     {f.Name || ''}
                   </td>
-                  <td className="px-3 py-2 border text-black dark:text-gray-100">
+                  <td className="px-4 py-2 border text-black dark:text-gray-100 whitespace-normal break-words leading-relaxed">
                     {f.Ministry || ''}
                   </td>
-                  <td className="px-3 py-2 border text-black dark:text-gray-100">
+                  <td className="px-4 py-2 border text-black dark:text-gray-100 whitespace-normal break-words leading-relaxed">
                     {f['Date of Event'] || ''} {f['Time of Event'] || ''}
                   </td>
-                  <td className="px-3 py-2 border text-black dark:text-gray-100">
+                  <td className="px-4 py-2 border text-black dark:text-gray-100 whitespace-normal break-words leading-relaxed">
                     {f['Promotion Start Date'] || ''}
                   </td>
-                  <td className="px-3 py-2 border text-black dark:text-gray-100">
+                  <td className="px-4 py-2 border text-black dark:text-gray-100 whitespace-normal break-words leading-relaxed">
                     {(f.Platforms || []).join(', ')}
                   </td>
-                  <td className="px-3 py-2 border text-black dark:text-gray-100 align-top">
-                    {/* truncated or full text */}
+
+                  <td className="px-4 py-2 border text-black dark:text-gray-100 whitespace-normal break-words leading-relaxed">
                     <div className="whitespace-pre-wrap">
                       {displayText}
                     </div>
-                    {/* show more/less if over 80 words */}
                     {fullText.split(/\s+/).length > 80 && (
                       <button
                         onClick={() => toggleExpand(r.id)}
@@ -409,10 +412,11 @@ function AnnouncementsTable({
                       </button>
                     )}
                   </td>
-                  <td className="px-3 py-2 border text-black dark:text-gray-100 align-top">
+
+                  <td className="px-4 py-2 border text-black dark:text-gray-100 whitespace-normal break-words leading-relaxed">
                     {f['File Links'] || ''}
                   </td>
-                  <td className="px-3 py-2 border text-black dark:text-gray-100 align-top">
+                  <td className="px-4 py-2 border text-black dark:text-gray-100 whitespace-normal break-words leading-relaxed">
                     <select
                       className="border rounded p-1 bg-white dark:bg-gray-800 text-black dark:text-gray-200"
                       value={f.overrideStatus || 'none'}
@@ -424,7 +428,7 @@ function AnnouncementsTable({
                       <option value="defer">defer</option>
                     </select>
                   </td>
-                  <td className="px-3 py-2 border text-center text-black dark:text-gray-100 align-top">
+                  <td className="px-4 py-2 border text-center whitespace-normal break-words leading-relaxed">
                     <input
                       type="checkbox"
                       checked={!!f.Completed}
@@ -472,15 +476,15 @@ function WebsiteUpdatesTable({
         Website Updates
       </h3>
       <div className="overflow-x-auto">
-        <table className="w-full table-auto border-collapse text-sm">
+        <table className="table-auto w-full border-collapse text-sm">
           <thead>
             <tr className="bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-              <th className="px-3 py-2 border">Summarize?</th>
-              <th className="px-3 py-2 border">Page to Update</th>
-              <th className="px-3 py-2 border">Description</th>
-              <th className="px-3 py-2 border">Sign-Up URL</th>
-              <th className="px-3 py-2 border">File Links</th>
-              <th className="px-3 py-2 border">Completed?</th>
+              <th className="px-4 py-2 border">Summarize?</th>
+              <th className="px-4 py-2 border">Page to Update</th>
+              <th className="px-4 py-2 border">Description</th>
+              <th className="px-4 py-2 border">Sign-Up URL</th>
+              <th className="px-4 py-2 border">File Links</th>
+              <th className="px-4 py-2 border">Completed?</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-gray-600">
@@ -492,7 +496,7 @@ function WebsiteUpdatesTable({
                   key={r.id}
                   className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                 >
-                  <td className="px-3 py-2 border text-center">
+                  <td className="px-4 py-2 border text-center whitespace-normal break-words leading-relaxed">
                     <input
                       type="checkbox"
                       checked={isSummarize}
@@ -505,19 +509,19 @@ function WebsiteUpdatesTable({
                       }}
                     />
                   </td>
-                  <td className="px-3 py-2 border text-black dark:text-gray-100">
+                  <td className="px-4 py-2 border text-black dark:text-gray-100 whitespace-normal break-words leading-relaxed">
                     {f['Page to Update'] || ''}
                   </td>
-                  <td className="px-3 py-2 border text-black dark:text-gray-100 max-w-md">
+                  <td className="px-4 py-2 border text-black dark:text-gray-100 whitespace-normal break-words leading-relaxed max-w-md">
                     {f.Description || ''}
                   </td>
-                  <td className="px-3 py-2 border text-blue-600 dark:text-blue-300 underline">
+                  <td className="px-4 py-2 border text-blue-600 dark:text-blue-300 underline whitespace-normal break-words leading-relaxed">
                     {f['Sign-Up URL'] || ''}
                   </td>
-                  <td className="px-3 py-2 border text-black dark:text-gray-100">
+                  <td className="px-4 py-2 border text-black dark:text-gray-100 whitespace-normal break-words leading-relaxed">
                     {f['File Links'] || ''}
                   </td>
-                  <td className="px-3 py-2 border text-center text-black dark:text-gray-100">
+                  <td className="px-4 py-2 border text-center whitespace-normal break-words leading-relaxed">
                     <input
                       type="checkbox"
                       checked={!!f.Completed}
@@ -565,16 +569,16 @@ function SmsRequestsTable({
         SMS Requests
       </h3>
       <div className="overflow-x-auto">
-        <table className="w-full table-auto border-collapse text-sm">
+        <table className="table-auto w-full border-collapse text-sm">
           <thead>
             <tr className="bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-              <th className="px-3 py-2 border">Summarize?</th>
-              <th className="px-3 py-2 border">Name</th>
-              <th className="px-3 py-2 border">Ministry</th>
-              <th className="px-3 py-2 border">Requested Date</th>
-              <th className="px-3 py-2 border">SMS Message</th>
-              <th className="px-3 py-2 border">Additional Info</th>
-              <th className="px-3 py-2 border">Completed?</th>
+              <th className="px-4 py-2 border">Summarize?</th>
+              <th className="px-4 py-2 border">Name</th>
+              <th className="px-4 py-2 border">Ministry</th>
+              <th className="px-4 py-2 border">Requested Date</th>
+              <th className="px-4 py-2 border">SMS Message</th>
+              <th className="px-4 py-2 border">Additional Info</th>
+              <th className="px-4 py-2 border">Completed?</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-gray-600">
@@ -586,7 +590,7 @@ function SmsRequestsTable({
                   key={r.id}
                   className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                 >
-                  <td className="px-3 py-2 border text-center">
+                  <td className="px-4 py-2 border text-center whitespace-normal break-words leading-relaxed">
                     <input
                       type="checkbox"
                       checked={isSummarize}
@@ -599,22 +603,22 @@ function SmsRequestsTable({
                       }}
                     />
                   </td>
-                  <td className="px-3 py-2 border text-black dark:text-gray-100">
+                  <td className="px-4 py-2 border text-black dark:text-gray-100 whitespace-normal break-words leading-relaxed">
                     {f.Name || ''}
                   </td>
-                  <td className="px-3 py-2 border text-black dark:text-gray-100">
+                  <td className="px-4 py-2 border text-black dark:text-gray-100 whitespace-normal break-words leading-relaxed">
                     {f.Ministry || ''}
                   </td>
-                  <td className="px-3 py-2 border text-black dark:text-gray-100">
+                  <td className="px-4 py-2 border text-black dark:text-gray-100 whitespace-normal break-words leading-relaxed">
                     {f['Requested Date'] || ''}
                   </td>
-                  <td className="px-3 py-2 border text-black dark:text-gray-100 max-w-md">
+                  <td className="px-4 py-2 border text-black dark:text-gray-100 whitespace-normal break-words leading-relaxed max-w-md">
                     {f['SMS Message'] || ''}
                   </td>
-                  <td className="px-3 py-2 border text-black dark:text-gray-100 max-w-md">
+                  <td className="px-4 py-2 border text-black dark:text-gray-100 whitespace-normal break-words leading-relaxed max-w-md">
                     {f['Additional Info'] || ''}
                   </td>
-                  <td className="px-3 py-2 border text-center text-black dark:text-gray-100">
+                  <td className="px-4 py-2 border text-center whitespace-normal break-words leading-relaxed">
                     <input
                       type="checkbox"
                       checked={!!f.Completed}
