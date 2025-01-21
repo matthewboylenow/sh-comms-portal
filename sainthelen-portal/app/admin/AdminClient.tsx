@@ -5,6 +5,7 @@ import { useSession, signIn, signOut } from 'next-auth/react';
 import { useEffect, useState } from 'react';
 
 type TableName = 'announcements' | 'websiteUpdates' | 'smsRequests';
+
 type AdminRecord = {
   id: string;
   fields: Record<string, any>;
@@ -13,22 +14,23 @@ type AdminRecord = {
 export default function AdminClient() {
   const { data: session, status } = useSession();
 
+  // States for each category
   const [announcements, setAnnouncements] = useState<AdminRecord[]>([]);
   const [websiteUpdates, setWebsiteUpdates] = useState<AdminRecord[]>([]);
   const [smsRequests, setSmsRequests] = useState<AdminRecord[]>([]);
 
-  // store which items are “summarize: true”
-  // Key: recordId, Value: boolean
+  // If you still want Summarize logic
   const [summarizeMap, setSummarizeMap] = useState<Record<string, boolean>>({});
 
   const [errorMessage, setErrorMessage] = useState('');
   const [loadingData, setLoadingData] = useState(false);
   const [hideCompleted, setHideCompleted] = useState(false);
 
-  // Show the Claude summary after we get it
+  // Optional: store a summary from Summarize route
   const [summary, setSummary] = useState<string | null>(null);
 
   useEffect(() => {
+    // Auto-fetch when user is authenticated
     if (status === 'authenticated') {
       fetchAllRequests();
     }
@@ -52,9 +54,13 @@ export default function AdminClient() {
     }
   }
 
-  // Completed logic - same as before
-  async function handleCompleted(tableName: TableName, recordId: string, currentValue: boolean) {
-    // remove row from UI
+  // Completed logic
+  async function handleCompleted(
+    tableName: TableName,
+    recordId: string,
+    currentValue: boolean
+  ) {
+    // Remove item from local array
     if (tableName === 'announcements') {
       setAnnouncements((prev) => prev.filter((r) => r.id !== recordId));
     } else if (tableName === 'websiteUpdates') {
@@ -63,7 +69,7 @@ export default function AdminClient() {
       setSmsRequests((prev) => prev.filter((r) => r.id !== recordId));
     }
 
-    // patch Airtable
+    // Update Airtable
     try {
       const res = await fetch('/api/admin/markCompleted', {
         method: 'POST',
@@ -81,7 +87,7 @@ export default function AdminClient() {
     }
   }
 
-  // Announcements override status
+  // Override status (Announcements only)
   async function handleOverrideStatus(recordId: string, newStatus: string) {
     try {
       const res = await fetch('/api/admin/updateOverrideStatus', {
@@ -96,7 +102,7 @@ export default function AdminClient() {
     }
   }
 
-  // When user toggles "Summarize?" box
+  // Summarize logic
   function handleToggleSummarize(recordId: string, isChecked: boolean) {
     setSummarizeMap((prev) => ({
       ...prev,
@@ -104,21 +110,17 @@ export default function AdminClient() {
     }));
   }
 
-  // Summarize Selected => call our new route
   async function handleSummarizeSelected() {
-    // collect all record IDs that have summarizeMap[id] = true
     const selectedIds: string[] = [];
     [...announcements, ...websiteUpdates, ...smsRequests].forEach((r) => {
       if (summarizeMap[r.id]) {
         selectedIds.push(r.id);
       }
     });
-
     if (!selectedIds.length) {
       alert('No items selected for summarization!');
       return;
     }
-
     try {
       const res = await fetch('/api/admin/summarizeItems', {
         method: 'POST',
@@ -128,24 +130,10 @@ export default function AdminClient() {
       if (!res.ok) throw new Error('Failed to summarize items');
       const data = await res.json();
       setSummary(data.summaryText || 'No summary returned.');
-      alert('Successfully summarized selected items! (Check your email too)');
+      alert('Successfully summarized selected items!');
     } catch (err: any) {
       console.error(err);
       alert('Error summarizing items: ' + (err as Error).message);
-    }
-  }
-
-  // For Weekly Summary (if you keep it or remove it)
-  async function handleManualSummary() {
-    try {
-      const res = await fetch('/api/generateSummary', { method: 'POST' });
-      if (!res.ok) throw new Error('Failed to generate summary');
-      const data = await res.json();
-      setSummary(data.summaryText || 'No summary returned.');
-      alert('Weekly summary triggered successfully!');
-    } catch (err: any) {
-      console.error(err);
-      alert(`Error triggering summary: ${err.message}`);
     }
   }
 
@@ -153,34 +141,46 @@ export default function AdminClient() {
     signOut();
   }
 
+  // Auth gating
   if (status === 'loading') {
-    return <div className="p-4">Loading session...</div>;
+    return (
+      <div className="p-4 text-gray-800 dark:text-gray-200">
+        <p>Loading session...</p>
+      </div>
+    );
   }
   if (status === 'unauthenticated') {
     return (
-      <div className="p-4">
+      <div className="p-4 text-gray-800 dark:text-gray-200">
         <p>You must be signed in to view admin dashboard.</p>
-        <button className="mt-2 bg-blue-500 text-white px-4 py-2 rounded" onClick={() => signIn('azure-ad')}>
+        <button
+          className="mt-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          onClick={() => signIn('azure-ad')}
+        >
           Sign In
         </button>
       </div>
     );
   }
 
+  // Main Admin Dashboard UI
   return (
-    <div className="p-4 text-gray-900 dark:text-gray-200">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-bold">Admin Dashboard</h2>
-        <div className="flex items-center gap-4">
-          {/* If you keep the old manual summary approach */}
+    <div className="p-4 text-gray-900 dark:text-gray-200 space-y-4">
+      {/* Heading / Actions */}
+      <div className="flex justify-between items-center border-b pb-2 mb-3">
+        <h2 className="text-2xl font-bold">
+          Saint Helen Admin Dashboard
+        </h2>
+        <div className="flex items-center gap-3">
+          {/* Refresh */}
           <button
-            onClick={handleManualSummary}
-            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors"
+            onClick={fetchAllRequests}
+            className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition-colors"
           >
-            Manually Run Weekly Summary (Old)
+            Refresh Data
           </button>
 
-          {/* New approach: Summarize the user-selected items */}
+          {/* Summarize Selected */}
           <button
             onClick={handleSummarizeSelected}
             className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors"
@@ -188,7 +188,7 @@ export default function AdminClient() {
             Summarize Selected
           </button>
 
-          {/* Link to Completed */}
+          {/* Completed Items Link */}
           <a
             href="/admin/completed"
             className="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500 transition-colors"
@@ -196,24 +196,37 @@ export default function AdminClient() {
             View Completed Items
           </a>
 
-          <button className="bg-blue-500 text-white px-4 py-2 rounded" onClick={doSignOut}>
+          {/* Sign Out */}
+          <button
+            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+            onClick={doSignOut}
+          >
             Sign Out
           </button>
         </div>
       </div>
 
+      {/* Error message */}
       {errorMessage && (
-        <div className="p-2 mb-4 text-red-800 bg-red-200 rounded">{errorMessage}</div>
-      )}
-
-      {summary && (
-        <div className="mb-6 p-4 rounded bg-gray-50 dark:bg-gray-800">
-          <h3 className="text-lg font-semibold mb-2 text-black dark:text-white">Claude Summary</h3>
-          <pre className="whitespace-pre-wrap text-black dark:text-gray-100">{summary}</pre>
+        <div className="p-3 bg-red-100 text-red-800 rounded border border-red-200">
+          {errorMessage}
         </div>
       )}
 
-      <div className="mb-6 flex items-center gap-2">
+      {/* Summary display */}
+      {summary && (
+        <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
+          <h3 className="text-lg font-semibold mb-2 text-black dark:text-white">
+            Claude Summary
+          </h3>
+          <pre className="whitespace-pre-wrap text-black dark:text-gray-100">
+            {summary}
+          </pre>
+        </div>
+      )}
+
+      {/* Hide Completed Toggle */}
+      <div className="flex items-center gap-2">
         <input
           type="checkbox"
           id="hideCompleted"
@@ -226,8 +239,11 @@ export default function AdminClient() {
         </label>
       </div>
 
+      {/* If data is loading */}
       {loadingData ? (
-        <p>Loading data...</p>
+        <div className="text-gray-800 dark:text-gray-100">
+          Loading data...
+        </div>
       ) : (
         <>
           <AnnouncementsTable
@@ -245,7 +261,7 @@ export default function AdminClient() {
             setSummarizeMap={setSummarizeMap}
             onToggleCompleted={handleCompleted}
           />
-          <SMSRequestsTable
+          <SmsRequestsTable
             records={smsRequests}
             hideCompleted={hideCompleted}
             summarizeMap={summarizeMap}
@@ -258,12 +274,10 @@ export default function AdminClient() {
   );
 }
 
-/* 3 Tables with a “Summarize?” checkbox at the beginning. 
-   For each row, we do an <input type=checkbox> that calls handleToggleSummarize. 
-   We also maintain the Completed logic as before.
-*/
-
-// ANNOUNCEMENTS
+/**
+ * Announcements Table
+ * Using a “card” style container
+ */
 function AnnouncementsTable({
   records,
   hideCompleted,
@@ -284,90 +298,106 @@ function AnnouncementsTable({
   ) => void;
 }) {
   const displayed = hideCompleted ? records.filter((r) => !r.fields.Completed) : records;
-  if (!displayed.length) return <></>;
+  if (!displayed.length) return null;
 
   return (
-    <section className="mb-8">
-      <h3 className="text-xl font-semibold mb-2">Announcements</h3>
-      <table className="w-full border-collapse text-sm">
-        <thead>
-          <tr className="bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-            <th className="border p-2">Summarize?</th>
-            <th className="border p-2">Name</th>
-            <th className="border p-2">Ministry</th>
-            <th className="border p-2">Date/Time</th>
-            <th className="border p-2">Promotion Start</th>
-            <th className="border p-2">Platforms</th>
-            <th className="border p-2">Announcement Body</th>
-            <th className="border p-2">File Links</th>
-            <th className="border p-2">Override</th>
-            <th className="border p-2">Completed?</th>
-          </tr>
-        </thead>
-        <tbody>
-          {displayed.map((r) => {
-            const f = r.fields;
-            const isSummarize = summarizeMap[r.id] || false;
-            return (
-              <tr key={r.id}>
-                {/* Summarize? */}
-                <td className="border p-2 text-center">
-                  <input
-                    type="checkbox"
-                    checked={isSummarize}
-                    onChange={(e) => {
-                      const checked = e.target.checked;
-                      setSummarizeMap((prev) => ({
-                        ...prev,
-                        [r.id]: checked,
-                      }));
-                    }}
-                  />
-                </td>
-                <td className="border p-2 text-black dark:text-gray-100">{f.Name || ''}</td>
-                <td className="border p-2 text-black dark:text-gray-100">{f.Ministry || ''}</td>
-                <td className="border p-2 text-black dark:text-gray-100">
-                  {f['Date of Event'] || ''} {f['Time of Event'] || ''}
-                </td>
-                <td className="border p-2 text-black dark:text-gray-100">
-                  {f['Promotion Start Date'] || ''}
-                </td>
-                <td className="border p-2 text-black dark:text-gray-100">
-                  {(f.Platforms || []).join(', ')}
-                </td>
-                <td className="border p-2 text-black dark:text-gray-100 max-w-md">
-                  {f['Announcement Body'] || ''}
-                </td>
-                <td className="border p-2 text-black dark:text-gray-100">{f['File Links'] || ''}</td>
-                <td className="border p-2 text-black dark:text-gray-100">
-                  <select
-                    className="border rounded p-1 bg-white dark:bg-gray-800 text-black dark:text-gray-200"
-                    value={f.overrideStatus || 'none'}
-                    onChange={(e) => onOverrideStatus(r.id, e.target.value)}
-                  >
-                    <option value="none">none</option>
-                    <option value="forceExclude">forceExclude</option>
-                    <option value="forceInclude">forceInclude</option>
-                    <option value="defer">defer</option>
-                  </select>
-                </td>
-                <td className="border p-2 text-center text-black dark:text-gray-100">
-                  <input
-                    type="checkbox"
-                    checked={!!f.Completed}
-                    onChange={() => onToggleCompleted('announcements', r.id, !!f.Completed)}
-                  />
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </section>
+    <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
+      <h3 className="text-xl font-semibold mb-3 text-black dark:text-white">
+        Announcements
+      </h3>
+      <div className="overflow-x-auto">
+        <table className="w-full table-auto border-collapse text-sm">
+          <thead>
+            <tr className="bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+              <th className="px-3 py-2 border">Summarize?</th>
+              <th className="px-3 py-2 border">Name</th>
+              <th className="px-3 py-2 border">Ministry</th>
+              <th className="px-3 py-2 border">Date/Time</th>
+              <th className="px-3 py-2 border">Promotion Start</th>
+              <th className="px-3 py-2 border">Platforms</th>
+              <th className="px-3 py-2 border">Announcement Body</th>
+              <th className="px-3 py-2 border">File Links</th>
+              <th className="px-3 py-2 border">Override</th>
+              <th className="px-3 py-2 border">Completed?</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100 dark:divide-gray-600">
+            {displayed.map((r) => {
+              const f = r.fields;
+              const isSummarize = summarizeMap[r.id] || false;
+              return (
+                <tr
+                  key={r.id}
+                  className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <td className="px-3 py-2 border text-center">
+                    <input
+                      type="checkbox"
+                      checked={isSummarize}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setSummarizeMap((prev) => ({
+                          ...prev,
+                          [r.id]: checked,
+                        }));
+                      }}
+                    />
+                  </td>
+                  <td className="px-3 py-2 border text-black dark:text-gray-100">
+                    {f.Name || ''}
+                  </td>
+                  <td className="px-3 py-2 border text-black dark:text-gray-100">
+                    {f.Ministry || ''}
+                  </td>
+                  <td className="px-3 py-2 border text-black dark:text-gray-100">
+                    {f['Date of Event'] || ''} {f['Time of Event'] || ''}
+                  </td>
+                  <td className="px-3 py-2 border text-black dark:text-gray-100">
+                    {f['Promotion Start Date'] || ''}
+                  </td>
+                  <td className="px-3 py-2 border text-black dark:text-gray-100">
+                    {(f.Platforms || []).join(', ')}
+                  </td>
+                  <td className="px-3 py-2 border text-black dark:text-gray-100 max-w-md">
+                    {f['Announcement Body'] || ''}
+                  </td>
+                  <td className="px-3 py-2 border text-black dark:text-gray-100">
+                    {f['File Links'] || ''}
+                  </td>
+                  <td className="px-3 py-2 border text-black dark:text-gray-100">
+                    <select
+                      className="border rounded p-1 bg-white dark:bg-gray-800 text-black dark:text-gray-200"
+                      value={f.overrideStatus || 'none'}
+                      onChange={(e) => onOverrideStatus(r.id, e.target.value)}
+                    >
+                      <option value="none">none</option>
+                      <option value="forceExclude">forceExclude</option>
+                      <option value="forceInclude">forceInclude</option>
+                      <option value="defer">defer</option>
+                    </select>
+                  </td>
+                  <td className="px-3 py-2 border text-center text-black dark:text-gray-100">
+                    <input
+                      type="checkbox"
+                      checked={!!f.Completed}
+                      onChange={() =>
+                        onToggleCompleted('announcements', r.id, !!f.Completed)
+                      }
+                    />
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }
 
-// WEBSITE UPDATES
+/**
+ * WebsiteUpdatesTable
+ */
 function WebsiteUpdatesTable({
   records,
   hideCompleted,
@@ -386,65 +416,82 @@ function WebsiteUpdatesTable({
   ) => void;
 }) {
   const displayed = hideCompleted ? records.filter((r) => !r.fields.Completed) : records;
-  if (!displayed.length) return <></>;
+  if (!displayed.length) return null;
 
   return (
-    <section className="mb-8">
-      <h3 className="text-xl font-semibold mb-2">Website Updates</h3>
-      <table className="w-full border-collapse text-sm">
-        <thead>
-          <tr className="bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-            <th className="border p-2">Summarize?</th>
-            <th className="border p-2">Page to Update</th>
-            <th className="border p-2">Description</th>
-            <th className="border p-2">Sign-Up URL</th>
-            <th className="border p-2">File Links</th>
-            <th className="border p-2">Completed?</th>
-          </tr>
-        </thead>
-        <tbody>
-          {displayed.map((r) => {
-            const f = r.fields;
-            const isSummarize = summarizeMap[r.id] || false;
-            return (
-              <tr key={r.id}>
-                <td className="border p-2 text-center">
-                  <input
-                    type="checkbox"
-                    checked={isSummarize}
-                    onChange={(e) => {
-                      const checked = e.target.checked;
-                      setSummarizeMap((prev) => ({
-                        ...prev,
-                        [r.id]: checked,
-                      }));
-                    }}
-                  />
-                </td>
-                <td className="border p-2 text-black dark:text-gray-100">{f['Page to Update'] || ''}</td>
-                <td className="border p-2 text-black dark:text-gray-100 max-w-md">{f.Description || ''}</td>
-                <td className="border p-2 text-blue-600 dark:text-blue-300 underline">
-                  {f['Sign-Up URL'] || ''}
-                </td>
-                <td className="border p-2 text-black dark:text-gray-100">{f['File Links'] || ''}</td>
-                <td className="border p-2 text-center text-black dark:text-gray-100">
-                  <input
-                    type="checkbox"
-                    checked={!!f.Completed}
-                    onChange={() => onToggleCompleted('websiteUpdates', r.id, !!f.Completed)}
-                  />
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </section>
+    <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
+      <h3 className="text-xl font-semibold mb-3 text-black dark:text-white">
+        Website Updates
+      </h3>
+      <div className="overflow-x-auto">
+        <table className="w-full table-auto border-collapse text-sm">
+          <thead>
+            <tr className="bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+              <th className="px-3 py-2 border">Summarize?</th>
+              <th className="px-3 py-2 border">Page to Update</th>
+              <th className="px-3 py-2 border">Description</th>
+              <th className="px-3 py-2 border">Sign-Up URL</th>
+              <th className="px-3 py-2 border">File Links</th>
+              <th className="px-3 py-2 border">Completed?</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100 dark:divide-gray-600">
+            {displayed.map((r) => {
+              const f = r.fields;
+              const isSummarize = summarizeMap[r.id] || false;
+              return (
+                <tr
+                  key={r.id}
+                  className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <td className="px-3 py-2 border text-center">
+                    <input
+                      type="checkbox"
+                      checked={isSummarize}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setSummarizeMap((prev) => ({
+                          ...prev,
+                          [r.id]: checked,
+                        }));
+                      }}
+                    />
+                  </td>
+                  <td className="px-3 py-2 border text-black dark:text-gray-100">
+                    {f['Page to Update'] || ''}
+                  </td>
+                  <td className="px-3 py-2 border text-black dark:text-gray-100 max-w-md">
+                    {f.Description || ''}
+                  </td>
+                  <td className="px-3 py-2 border text-blue-600 dark:text-blue-300 underline">
+                    {f['Sign-Up URL'] || ''}
+                  </td>
+                  <td className="px-3 py-2 border text-black dark:text-gray-100">
+                    {f['File Links'] || ''}
+                  </td>
+                  <td className="px-3 py-2 border text-center text-black dark:text-gray-100">
+                    <input
+                      type="checkbox"
+                      checked={!!f.Completed}
+                      onChange={() =>
+                        onToggleCompleted('websiteUpdates', r.id, !!f.Completed)
+                      }
+                    />
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }
 
-// SMS REQUESTS
-function SMSRequestsTable({
+/**
+ * SmsRequestsTable
+ */
+function SmsRequestsTable({
   records,
   hideCompleted,
   summarizeMap,
@@ -462,59 +509,78 @@ function SMSRequestsTable({
   ) => void;
 }) {
   const displayed = hideCompleted ? records.filter((r) => !r.fields.Completed) : records;
-  if (!displayed.length) return <></>;
+  if (!displayed.length) return null;
 
   return (
-    <section className="mb-8">
-      <h3 className="text-xl font-semibold mb-2">SMS Requests</h3>
-      <table className="w-full border-collapse text-sm">
-        <thead>
-          <tr className="bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-            <th className="border p-2">Summarize?</th>
-            <th className="border p-2">Name</th>
-            <th className="border p-2">Ministry</th>
-            <th className="border p-2">Requested Date</th>
-            <th className="border p-2">SMS Message</th>
-            <th className="border p-2">Additional Info</th>
-            <th className="border p-2">Completed?</th>
-          </tr>
-        </thead>
-        <tbody>
-          {displayed.map((r) => {
-            const f = r.fields;
-            const isSummarize = summarizeMap[r.id] || false;
-            return (
-              <tr key={r.id}>
-                <td className="border p-2 text-center">
-                  <input
-                    type="checkbox"
-                    checked={isSummarize}
-                    onChange={(e) => {
-                      const checked = e.target.checked;
-                      setSummarizeMap((prev) => ({
-                        ...prev,
-                        [r.id]: checked,
-                      }));
-                    }}
-                  />
-                </td>
-                <td className="border p-2 text-black dark:text-gray-100">{f.Name || ''}</td>
-                <td className="border p-2 text-black dark:text-gray-100">{f.Ministry || ''}</td>
-                <td className="border p-2 text-black dark:text-gray-100">{f['Requested Date'] || ''}</td>
-                <td className="border p-2 text-black dark:text-gray-100 max-w-md">{f['SMS Message'] || ''}</td>
-                <td className="border p-2 text-black dark:text-gray-100 max-w-md">{f['Additional Info'] || ''}</td>
-                <td className="border p-2 text-center text-black dark:text-gray-100">
-                  <input
-                    type="checkbox"
-                    checked={!!f.Completed}
-                    onChange={() => onToggleCompleted('smsRequests', r.id, !!f.Completed)}
-                  />
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </section>
+    <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
+      <h3 className="text-xl font-semibold mb-3 text-black dark:text-white">
+        SMS Requests
+      </h3>
+      <div className="overflow-x-auto">
+        <table className="w-full table-auto border-collapse text-sm">
+          <thead>
+            <tr className="bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+              <th className="px-3 py-2 border">Summarize?</th>
+              <th className="px-3 py-2 border">Name</th>
+              <th className="px-3 py-2 border">Ministry</th>
+              <th className="px-3 py-2 border">Requested Date</th>
+              <th className="px-3 py-2 border">SMS Message</th>
+              <th className="px-3 py-2 border">Additional Info</th>
+              <th className="px-3 py-2 border">Completed?</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100 dark:divide-gray-600">
+            {displayed.map((r) => {
+              const f = r.fields;
+              const isSummarize = summarizeMap[r.id] || false;
+              return (
+                <tr
+                  key={r.id}
+                  className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <td className="px-3 py-2 border text-center">
+                    <input
+                      type="checkbox"
+                      checked={isSummarize}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setSummarizeMap((prev) => ({
+                          ...prev,
+                          [r.id]: checked,
+                        }));
+                      }}
+                    />
+                  </td>
+                  <td className="px-3 py-2 border text-black dark:text-gray-100">
+                    {f.Name || ''}
+                  </td>
+                  <td className="px-3 py-2 border text-black dark:text-gray-100">
+                    {f.Ministry || ''}
+                  </td>
+                  <td className="px-3 py-2 border text-black dark:text-gray-100">
+                    {f['Requested Date'] || ''}
+                  </td>
+                  <td className="px-3 py-2 border text-black dark:text-gray-100 max-w-md">
+                    {f['SMS Message'] || ''}
+                  </td>
+                  <td className="px-3 py-2 border text-black dark:text-gray-100 max-w-md">
+                    {f['Additional Info'] || ''}
+                  </td>
+                  <td className="px-3 py-2 border text-center text-black dark:text-gray-100">
+                    <input
+                      type="checkbox"
+                      checked={!!f.Completed}
+                      onChange={() =>
+                        onToggleCompleted('smsRequests', r.id, !!f.Completed)
+                      }
+                    />
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }
