@@ -5,7 +5,7 @@
 import { useSession, signIn, signOut } from 'next-auth/react';
 import { useEffect, useState } from 'react';
 
-// Types for table name and records
+/** Type Declarations */
 type TableName = 'announcements' | 'websiteUpdates' | 'smsRequests';
 
 type AdminRecord = {
@@ -13,10 +13,22 @@ type AdminRecord = {
   fields: Record<string, any>;
 };
 
+/** A helper to parse a 'YYYY-MM-DD' or '2025-02-20' style string into a Date or null. */
+function parseDate(dateStr: string): Date | null {
+  if (!dateStr) return null;
+  // If your date is '2025-01-22' or something. Adjust parsing as needed.
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) return null;
+  const [year, month, day] = parts.map((p) => parseInt(p, 10));
+  if (!year || !month || !day) return null;
+  const dt = new Date(year, month - 1, day);
+  return isNaN(dt.getTime()) ? null : dt;
+}
+
 export default function AdminClient() {
   const { data: session, status } = useSession();
 
-  // States for each category
+  // States for each table
   const [announcements, setAnnouncements] = useState<AdminRecord[]>([]);
   const [websiteUpdates, setWebsiteUpdates] = useState<AdminRecord[]>([]);
   const [smsRequests, setSmsRequests] = useState<AdminRecord[]>([]);
@@ -24,22 +36,55 @@ export default function AdminClient() {
   // Summarize? checkboxes
   const [summarizeMap, setSummarizeMap] = useState<Record<string, boolean>>({});
 
-  // Generic UI states
+  // UI states
   const [errorMessage, setErrorMessage] = useState('');
   const [loadingData, setLoadingData] = useState(false);
-  const [hideCompleted, setHideCompleted] = useState(false);
+  // 1) Default to hide completed
+  const [hideCompleted, setHideCompleted] = useState(true);
 
-  // Optionally store the summary from a “Summarize Selected” operation
+  // If you want to display the summary from Summarize
   const [summary, setSummary] = useState<string | null>(null);
 
-  // Fetch data once user is authenticated
+  // Auto-fetch data once user is authenticated
   useEffect(() => {
     if (status === 'authenticated') {
       fetchAllRequests();
     }
   }, [status]);
 
-  // Fetch all 3 categories (announcements, website updates, sms) from /api/admin/fetchRequests
+  /** 
+   * Sort Announcements by Promotion Start Date ascending.
+   * We'll parse the 'Promotion Start Date' field if it exists.
+   */
+  function sortAnnouncementsByPromotion(records: AdminRecord[]): AdminRecord[] {
+    return [...records].sort((a, b) => {
+      const aDateStr = a.fields['Promotion Start Date'] || '';
+      const bDateStr = b.fields['Promotion Start Date'] || '';
+      const aDate = parseDate(aDateStr);
+      const bDate = parseDate(bDateStr);
+      if (!aDate && !bDate) return 0;
+      if (!aDate) return 1;
+      if (!bDate) return -1;
+      return aDate.getTime() - bDate.getTime();
+    });
+  }
+
+  /**
+   * Sort Website Updates so Urgent ones appear on top, in red. 
+   * We'll do it by sorting urgent == true before false. 
+   */
+  function sortWebsiteUpdatesByUrgent(records: AdminRecord[]): AdminRecord[] {
+    return [...records].sort((a, b) => {
+      const aUrgent = !!a.fields['Urgent'];
+      const bUrgent = !!b.fields['Urgent'];
+      // if A is urgent and B not => A first
+      if (aUrgent && !bUrgent) return -1;
+      if (!aUrgent && bUrgent) return 1;
+      return 0;
+    });
+  }
+
+  // 2) Fetch from /api/admin/fetchRequests and apply sorts
   async function fetchAllRequests() {
     setLoadingData(true);
     setErrorMessage('');
@@ -49,8 +94,19 @@ export default function AdminClient() {
         throw new Error(`Error fetching data: ${response.status}`);
       }
       const data = await response.json();
-      setAnnouncements(data.announcements || []);
-      setWebsiteUpdates(data.websiteUpdates || []);
+
+      // Sort announcements by Promotion Start date
+      const sortedAnnouncements = sortAnnouncementsByPromotion(
+        data.announcements || []
+      );
+
+      // Sort website updates so urgent appear on top
+      const sortedWebsiteUpdates = sortWebsiteUpdatesByUrgent(
+        data.websiteUpdates || []
+      );
+
+      setAnnouncements(sortedAnnouncements);
+      setWebsiteUpdates(sortedWebsiteUpdates);
       setSmsRequests(data.smsRequests || []);
     } catch (error: any) {
       console.error(error);
@@ -60,13 +116,15 @@ export default function AdminClient() {
     }
   }
 
-  // Mark item as completed => remove from UI + call /api/admin/markCompleted
+  /**
+   * Mark an item as completed => remove from local array => update in Airtable
+   */
   async function handleCompleted(
     tableName: TableName,
     recordId: string,
     currentValue: boolean
   ) {
-    // Remove from local UI
+    // remove from local UI
     if (tableName === 'announcements') {
       setAnnouncements((prev) => prev.filter((r) => r.id !== recordId));
     } else if (tableName === 'websiteUpdates') {
@@ -75,7 +133,7 @@ export default function AdminClient() {
       setSmsRequests((prev) => prev.filter((r) => r.id !== recordId));
     }
 
-    // Patch in Airtable
+    // patch airtable
     try {
       const res = await fetch('/api/admin/markCompleted', {
         method: 'POST',
@@ -95,7 +153,9 @@ export default function AdminClient() {
     }
   }
 
-  // Override status (only for Announcements)
+  /**
+   * Override status (Announcements only)
+   */
   async function handleOverrideStatus(recordId: string, newStatus: string) {
     try {
       const res = await fetch('/api/admin/updateOverrideStatus', {
@@ -106,7 +166,7 @@ export default function AdminClient() {
       if (!res.ok) {
         throw new Error('Failed to update override status');
       }
-      // Optionally re-fetch the data after changing override
+      // optionally re-fetch
       fetchAllRequests();
     } catch (error: any) {
       console.error(error);
@@ -114,7 +174,9 @@ export default function AdminClient() {
     }
   }
 
-  // Summarize? checkboxes logic
+  /**
+   * Summarize? checkboxes logic
+   */
   function handleToggleSummarize(recordId: string, isChecked: boolean) {
     setSummarizeMap((prev) => ({
       ...prev,
@@ -122,21 +184,18 @@ export default function AdminClient() {
     }));
   }
 
-  // Summarize Selected => call /api/admin/summarizeItems
   async function handleSummarizeSelected() {
     const selectedIds: string[] = [];
-    // Gather all records from announcements, website updates, sms
+    // gather from all 3 sets
     [...announcements, ...websiteUpdates, ...smsRequests].forEach((r) => {
       if (summarizeMap[r.id]) {
         selectedIds.push(r.id);
       }
     });
-
     if (!selectedIds.length) {
       alert('No items selected for summarization!');
       return;
     }
-
     try {
       const res = await fetch('/api/admin/summarizeItems', {
         method: 'POST',
@@ -155,6 +214,7 @@ export default function AdminClient() {
     }
   }
 
+  // sign out
   function doSignOut() {
     signOut();
   }
@@ -181,9 +241,10 @@ export default function AdminClient() {
     );
   }
 
-  // Main Admin Dashboard
+  // The main Admin UI
   return (
     <div className="p-4 text-gray-900 dark:text-gray-200 space-y-4">
+      {/* Heading / actions */}
       <div className="flex justify-between items-center border-b pb-2 mb-3">
         <h2 className="text-2xl font-bold">Saint Helen Admin Dashboard</h2>
         <div className="flex items-center gap-3">
@@ -195,7 +256,7 @@ export default function AdminClient() {
             Refresh Data
           </button>
 
-          {/* Summarize selected items */}
+          {/* Summarize Selected */}
           <button
             onClick={handleSummarizeSelected}
             className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors"
@@ -203,7 +264,7 @@ export default function AdminClient() {
             Summarize Selected
           </button>
 
-          {/* Link to completed items */}
+          {/* Completed Items */}
           <a
             href="/admin/completed"
             className="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500 transition-colors"
@@ -221,14 +282,13 @@ export default function AdminClient() {
         </div>
       </div>
 
-      {/* Error message */}
       {errorMessage && (
         <div className="p-3 bg-red-100 text-red-800 rounded border border-red-200">
           {errorMessage}
         </div>
       )}
 
-      {/* If we have a summary from Summarize Items */}
+      {/* Summarize Response */}
       {summary && (
         <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
           <h3 className="text-lg font-semibold mb-2 text-black dark:text-white">
@@ -240,7 +300,7 @@ export default function AdminClient() {
         </div>
       )}
 
-      {/* Hide Completed Toggle */}
+      {/* Hide Completed Toggle: default is true */}
       <div className="flex items-center gap-2">
         <input
           type="checkbox"
@@ -254,12 +314,12 @@ export default function AdminClient() {
         </label>
       </div>
 
+      {/* If loading data */}
       {loadingData ? (
-        <div className="text-gray-800 dark:text-gray-100">
-          Loading data...
-        </div>
+        <div className="text-gray-800 dark:text-gray-100">Loading data...</div>
       ) : (
         <>
+          {/* Announcements Table */}
           <AnnouncementsTable
             records={announcements}
             hideCompleted={hideCompleted}
@@ -268,6 +328,7 @@ export default function AdminClient() {
             onOverrideStatus={handleOverrideStatus}
             onToggleCompleted={handleCompleted}
           />
+          {/* Website Updates Table */}
           <WebsiteUpdatesTable
             records={websiteUpdates}
             hideCompleted={hideCompleted}
@@ -275,6 +336,7 @@ export default function AdminClient() {
             setSummarizeMap={setSummarizeMap}
             onToggleCompleted={handleCompleted}
           />
+          {/* SMS Requests Table */}
           <SmsRequestsTable
             records={smsRequests}
             hideCompleted={hideCompleted}
@@ -288,10 +350,10 @@ export default function AdminClient() {
   );
 }
 
-/**
- * Announcements Table - with Show More / Show Less for Body
- * and improved spacing to avoid scrunching.
- */
+/* ------------------------------------------------------------------------
+   Announcements Table - Show More / Show Less, sorted by Promotion Start
+   Also includes S3 file links as clickable <a> tags
+------------------------------------------------------------------------ */
 import { useState as useLocalState } from 'react';
 
 function AnnouncementsTable({
@@ -313,10 +375,9 @@ function AnnouncementsTable({
     currentValue: boolean
   ) => void;
 }) {
-  // For Show More / Show Less
   const [expandedRows, setExpandedRows] = useLocalState<Record<string, boolean>>({});
 
-  function truncateWords(text: string, wordLimit = 80) {
+  function truncateWords(text: string, wordLimit: number) {
     if (!text) return '';
     const words = text.split(/\s+/);
     if (words.length <= wordLimit) return text;
@@ -330,8 +391,38 @@ function AnnouncementsTable({
     }));
   }
 
+  // Filter out completed if hideCompleted is true
   const displayed = hideCompleted ? records.filter((r) => !r.fields.Completed) : records;
   if (!displayed.length) return null;
+
+  // A helper to parse multiple S3 links or handle one link
+  function renderFileLinks(linksStr: string) {
+    if (!linksStr) return null;
+    // If you store them newline- or space-separated, adjust as needed
+    const parts = linksStr
+      .split(/\s+/)
+      .map((p) => p.trim())
+      .filter(Boolean);
+    if (!parts.length) return null;
+
+    return (
+      <ul className="space-y-1">
+        {parts.map((link, idx) => (
+          <li key={idx}>
+            {/* 2) Make them clickable, open in new tab */}
+            <a
+              href={link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 dark:text-blue-300 underline break-words"
+            >
+              {link}
+            </a>
+          </li>
+        ))}
+      </ul>
+    );
+  }
 
   return (
     <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
@@ -359,11 +450,12 @@ function AnnouncementsTable({
               const f = r.fields;
               const isSummarize = summarizeMap[r.id] || false;
 
+              // Show more/less logic for the body
               const isExpanded = !!expandedRows[r.id];
-              const fullText = f['Announcement Body'] || '';
-              const displayText = isExpanded
-                ? fullText
-                : truncateWords(fullText, 80);
+              const fullBody = f['Announcement Body'] || '';
+              const displayBody = isExpanded
+                ? fullBody
+                : truncateWords(fullBody, 80);
 
               return (
                 <tr
@@ -398,23 +490,26 @@ function AnnouncementsTable({
                   <td className="px-4 py-2 border text-black dark:text-gray-100 whitespace-normal break-words leading-relaxed">
                     {(f.Platforms || []).join(', ')}
                   </td>
-
                   <td className="px-4 py-2 border text-black dark:text-gray-100 whitespace-normal break-words leading-relaxed">
                     <div className="whitespace-pre-wrap">
-                      {displayText}
+                      {displayBody}
                     </div>
-                    {fullText.split(/\s+/).length > 80 && (
+                    {fullBody.split(/\s+/).length > 80 && (
                       <button
-                        onClick={() => toggleExpand(r.id)}
+                        onClick={() =>
+                          setExpandedRows((prev) => ({
+                            ...prev,
+                            [r.id]: !prev[r.id],
+                          }))
+                        }
                         className="text-blue-600 dark:text-blue-300 underline mt-1"
                       >
                         {isExpanded ? 'Show Less' : 'Show More'}
                       </button>
                     )}
                   </td>
-
                   <td className="px-4 py-2 border text-black dark:text-gray-100 whitespace-normal break-words leading-relaxed">
-                    {f['File Links'] || ''}
+                    {renderFileLinks(f['File Links'] || '')}
                   </td>
                   <td className="px-4 py-2 border text-black dark:text-gray-100 whitespace-normal break-words leading-relaxed">
                     <select
@@ -448,7 +543,7 @@ function AnnouncementsTable({
 }
 
 /* ------------------------------------------------------------------------
-   WebsiteUpdatesTable
+   WebsiteUpdatesTable - Urgent items at top, in red
 ------------------------------------------------------------------------ */
 function WebsiteUpdatesTable({
   records,
@@ -469,6 +564,27 @@ function WebsiteUpdatesTable({
 }) {
   const displayed = hideCompleted ? records.filter((r) => !r.fields.Completed) : records;
   if (!displayed.length) return null;
+
+  function renderFileLinks(linksStr: string) {
+    if (!linksStr) return null;
+    const parts = linksStr.split(/\s+/).filter(Boolean);
+    return (
+      <ul className="space-y-1">
+        {parts.map((link, idx) => (
+          <li key={idx}>
+            <a
+              href={link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 dark:text-blue-300 underline break-words"
+            >
+              {link}
+            </a>
+          </li>
+        ))}
+      </ul>
+    );
+  }
 
   return (
     <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
@@ -491,42 +607,58 @@ function WebsiteUpdatesTable({
             {displayed.map((r) => {
               const f = r.fields;
               const isSummarize = summarizeMap[r.id] || false;
+              // 4) If urgent => row text is dark red
+              const urgent = !!f['Urgent'];
+              const rowClass = urgent
+                ? 'text-red-600 dark:text-red-500'
+                : 'text-black dark:text-gray-100';
+
               return (
                 <tr
                   key={r.id}
-                  className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  className={`hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${rowClass}`}
                 >
                   <td className="px-4 py-2 border text-center whitespace-normal break-words leading-relaxed">
                     <input
                       type="checkbox"
                       checked={isSummarize}
-                      onChange={(e) => {
-                        const checked = e.target.checked;
+                      onChange={(e) =>
                         setSummarizeMap((prev) => ({
                           ...prev,
-                          [r.id]: checked,
-                        }));
-                      }}
+                          [r.id]: e.target.checked,
+                        }))
+                      }
                     />
                   </td>
-                  <td className="px-4 py-2 border text-black dark:text-gray-100 whitespace-normal break-words leading-relaxed">
+                  <td className="px-4 py-2 border whitespace-normal break-words leading-relaxed">
                     {f['Page to Update'] || ''}
                   </td>
-                  <td className="px-4 py-2 border text-black dark:text-gray-100 whitespace-normal break-words leading-relaxed max-w-md">
+                  <td className="px-4 py-2 border whitespace-normal break-words leading-relaxed max-w-md">
                     {f.Description || ''}
                   </td>
-                  <td className="px-4 py-2 border text-blue-600 dark:text-blue-300 underline whitespace-normal break-words leading-relaxed">
-                    {f['Sign-Up URL'] || ''}
+                  <td className="px-4 py-2 border whitespace-normal break-words leading-relaxed">
+                    <a
+                      href={f['Sign-Up URL'] || '#'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 dark:text-blue-300 underline break-words"
+                    >
+                      {f['Sign-Up URL'] || ''}
+                    </a>
                   </td>
-                  <td className="px-4 py-2 border text-black dark:text-gray-100 whitespace-normal break-words leading-relaxed">
-                    {f['File Links'] || ''}
+                  <td className="px-4 py-2 border whitespace-normal break-words leading-relaxed">
+                    {renderFileLinks(f['File Links'] || '')}
                   </td>
                   <td className="px-4 py-2 border text-center whitespace-normal break-words leading-relaxed">
                     <input
                       type="checkbox"
                       checked={!!f.Completed}
                       onChange={() =>
-                        onToggleCompleted('websiteUpdates', r.id, !!f.Completed)
+                        onToggleCompleted(
+                          'websiteUpdates',
+                          r.id,
+                          !!f.Completed
+                        )
                       }
                     />
                   </td>
@@ -541,7 +673,7 @@ function WebsiteUpdatesTable({
 }
 
 /* ------------------------------------------------------------------------
-   SmsRequestsTable
+   SMS Requests Table - clickable S3 links, default hide completed
 ------------------------------------------------------------------------ */
 function SmsRequestsTable({
   records,
@@ -562,6 +694,27 @@ function SmsRequestsTable({
 }) {
   const displayed = hideCompleted ? records.filter((r) => !r.fields.Completed) : records;
   if (!displayed.length) return null;
+
+  function renderFileLinks(linksStr: string) {
+    if (!linksStr) return null;
+    const parts = linksStr.split(/\s+/).filter(Boolean);
+    return (
+      <ul className="space-y-1">
+        {parts.map((link, idx) => (
+          <li key={idx}>
+            <a
+              href={link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 dark:text-blue-300 underline break-words"
+            >
+              {link}
+            </a>
+          </li>
+        ))}
+      </ul>
+    );
+  }
 
   return (
     <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
@@ -585,6 +738,7 @@ function SmsRequestsTable({
             {displayed.map((r) => {
               const f = r.fields;
               const isSummarize = summarizeMap[r.id] || false;
+
               return (
                 <tr
                   key={r.id}
@@ -594,13 +748,12 @@ function SmsRequestsTable({
                     <input
                       type="checkbox"
                       checked={isSummarize}
-                      onChange={(e) => {
-                        const checked = e.target.checked;
+                      onChange={(e) =>
                         setSummarizeMap((prev) => ({
                           ...prev,
-                          [r.id]: checked,
-                        }));
-                      }}
+                          [r.id]: e.target.checked,
+                        }))
+                      }
                     />
                   </td>
                   <td className="px-4 py-2 border text-black dark:text-gray-100 whitespace-normal break-words leading-relaxed">
