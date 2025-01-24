@@ -13,10 +13,9 @@ type AdminRecord = {
   fields: Record<string, any>;
 };
 
-/** A helper to parse a 'YYYY-MM-DD' or '2025-02-20' style string into a Date or null. */
+/** Helper parse date if needed for sorting, but we'll keep it minimal. */
 function parseDate(dateStr: string): Date | null {
   if (!dateStr) return null;
-  // If your date is '2025-01-22' or something. Adjust parsing as needed.
   const parts = dateStr.split('-');
   if (parts.length !== 3) return null;
   const [year, month, day] = parts.map((p) => parseInt(p, 10));
@@ -28,40 +27,36 @@ function parseDate(dateStr: string): Date | null {
 export default function AdminClient() {
   const { data: session, status } = useSession();
 
-  // States for each table
+  // We'll store the data for each table
   const [announcements, setAnnouncements] = useState<AdminRecord[]>([]);
   const [websiteUpdates, setWebsiteUpdates] = useState<AdminRecord[]>([]);
   const [smsRequests, setSmsRequests] = useState<AdminRecord[]>([]);
 
-  // Summarize? checkboxes
+  // Summarize checkboxes
   const [summarizeMap, setSummarizeMap] = useState<Record<string, boolean>>({});
 
-  // UI states
   const [errorMessage, setErrorMessage] = useState('');
   const [loadingData, setLoadingData] = useState(false);
-  // 1) Default to hide completed
+  // 1) Start with hideCompleted = true
   const [hideCompleted, setHideCompleted] = useState(true);
 
-  // If you want to display the summary from Summarize
+  // If you want to display a summary from Summarize Items
   const [summary, setSummary] = useState<string | null>(null);
 
-  // Auto-fetch data once user is authenticated
+  // On load, if user is authenticated, fetch data
   useEffect(() => {
     if (status === 'authenticated') {
       fetchAllRequests();
     }
   }, [status]);
 
-  /** 
-   * Sort Announcements by Promotion Start Date ascending.
-   * We'll parse the 'Promotion Start Date' field if it exists.
-   */
-  function sortAnnouncementsByPromotion(records: AdminRecord[]): AdminRecord[] {
+  // Example sorting if you want it
+  function sortAnnouncements(records: AdminRecord[]): AdminRecord[] {
     return [...records].sort((a, b) => {
-      const aDateStr = a.fields['Promotion Start Date'] || '';
-      const bDateStr = b.fields['Promotion Start Date'] || '';
-      const aDate = parseDate(aDateStr);
-      const bDate = parseDate(bDateStr);
+      const aStr = a.fields['Promotion Start Date'] || '';
+      const bStr = b.fields['Promotion Start Date'] || '';
+      const aDate = parseDate(aStr);
+      const bDate = parseDate(bStr);
       if (!aDate && !bDate) return 0;
       if (!aDate) return 1;
       if (!bDate) return -1;
@@ -69,62 +64,49 @@ export default function AdminClient() {
     });
   }
 
-  /**
-   * Sort Website Updates so Urgent ones appear on top, in red. 
-   * We'll do it by sorting urgent == true before false. 
-   */
-  function sortWebsiteUpdatesByUrgent(records: AdminRecord[]): AdminRecord[] {
+  function sortWebsiteUpdates(records: AdminRecord[]): AdminRecord[] {
+    // Example to put urgent = true on top
     return [...records].sort((a, b) => {
       const aUrgent = !!a.fields['Urgent'];
       const bUrgent = !!b.fields['Urgent'];
-      // if A is urgent and B not => A first
       if (aUrgent && !bUrgent) return -1;
       if (!aUrgent && bUrgent) return 1;
       return 0;
     });
   }
 
-  // 2) Fetch from /api/admin/fetchRequests and apply sorts
   async function fetchAllRequests() {
     setLoadingData(true);
     setErrorMessage('');
     try {
-      const response = await fetch('/api/admin/fetchRequests');
-      if (!response.ok) {
-        throw new Error(`Error fetching data: ${response.status}`);
+      const res = await fetch('/api/admin/fetchRequests');
+      if (!res.ok) {
+        throw new Error(`Error fetching data: ${res.status}`);
       }
-      const data = await response.json();
+      const data = await res.json();
 
-      // Sort announcements by Promotion Start date
-      const sortedAnnouncements = sortAnnouncementsByPromotion(
-        data.announcements || []
-      );
-
-      // Sort website updates so urgent appear on top
-      const sortedWebsiteUpdates = sortWebsiteUpdatesByUrgent(
+      // sort announcements if needed
+      const sortedAnnouncements = sortAnnouncements(data.announcements || []);
+      const sortedWebsiteUpdates = sortWebsiteUpdates(
         data.websiteUpdates || []
       );
 
       setAnnouncements(sortedAnnouncements);
       setWebsiteUpdates(sortedWebsiteUpdates);
       setSmsRequests(data.smsRequests || []);
-    } catch (error: any) {
-      console.error(error);
-      setErrorMessage(error.message);
+    } catch (err: any) {
+      console.error(err);
+      setErrorMessage(err.message);
     } finally {
       setLoadingData(false);
     }
   }
 
-  /**
-   * Mark an item as completed => remove from local array => update in Airtable
-   */
   async function handleCompleted(
     tableName: TableName,
     recordId: string,
     currentValue: boolean
   ) {
-    // remove from local UI
     if (tableName === 'announcements') {
       setAnnouncements((prev) => prev.filter((r) => r.id !== recordId));
     } else if (tableName === 'websiteUpdates') {
@@ -133,7 +115,6 @@ export default function AdminClient() {
       setSmsRequests((prev) => prev.filter((r) => r.id !== recordId));
     }
 
-    // patch airtable
     try {
       const res = await fetch('/api/admin/markCompleted', {
         method: 'POST',
@@ -144,18 +125,13 @@ export default function AdminClient() {
           completed: !currentValue,
         }),
       });
-      if (!res.ok) {
-        throw new Error('Failed to update Completed status.');
-      }
-    } catch (error: any) {
-      console.error(error);
-      setErrorMessage(error.message);
+      if (!res.ok) throw new Error('Failed to update Completed status');
+    } catch (err: any) {
+      console.error(err);
+      setErrorMessage(err.message);
     }
   }
 
-  /**
-   * Override status (Announcements only)
-   */
   async function handleOverrideStatus(recordId: string, newStatus: string) {
     try {
       const res = await fetch('/api/admin/updateOverrideStatus', {
@@ -166,17 +142,13 @@ export default function AdminClient() {
       if (!res.ok) {
         throw new Error('Failed to update override status');
       }
-      // optionally re-fetch
       fetchAllRequests();
-    } catch (error: any) {
-      console.error(error);
-      setErrorMessage(error.message);
+    } catch (err: any) {
+      console.error(err);
+      setErrorMessage(err.message);
     }
   }
 
-  /**
-   * Summarize? checkboxes logic
-   */
   function handleToggleSummarize(recordId: string, isChecked: boolean) {
     setSummarizeMap((prev) => ({
       ...prev,
@@ -186,7 +158,6 @@ export default function AdminClient() {
 
   async function handleSummarizeSelected() {
     const selectedIds: string[] = [];
-    // gather from all 3 sets
     [...announcements, ...websiteUpdates, ...smsRequests].forEach((r) => {
       if (summarizeMap[r.id]) {
         selectedIds.push(r.id);
@@ -208,18 +179,17 @@ export default function AdminClient() {
       const data = await res.json();
       setSummary(data.summaryText || 'No summary returned.');
       alert('Successfully summarized selected items!');
-    } catch (error: any) {
-      console.error(error);
-      alert('Error summarizing items: ' + (error as Error).message);
+    } catch (err: any) {
+      console.error(err);
+      alert('Error summarizing items: ' + (err as Error).message);
     }
   }
 
-  // sign out
   function doSignOut() {
     signOut();
   }
 
-  // Auth gating
+  // If loading or unauth
   if (status === 'loading') {
     return (
       <div className="p-4 text-gray-800 dark:text-gray-200">
@@ -241,119 +211,124 @@ export default function AdminClient() {
     );
   }
 
-  // The main Admin UI
+  // 2) A top nav (brand bar) that is consistent
   return (
-    <div className="p-4 text-gray-900 dark:text-gray-200 space-y-4">
-      {/* Heading / actions */}
-      <div className="flex justify-between items-center border-b pb-2 mb-3">
-        <h2 className="text-2xl font-bold">Saint Helen Admin Dashboard</h2>
-        <div className="flex items-center gap-3">
-          {/* Refresh Data */}
-          <button
-            onClick={fetchAllRequests}
-            className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition-colors"
-          >
-            Refresh Data
-          </button>
-
-          {/* Summarize Selected */}
-          <button
-            onClick={handleSummarizeSelected}
-            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors"
-          >
-            Summarize Selected
-          </button>
-
-          {/* Completed Items */}
+    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+      {/* Brand Nav */}
+      <header className="bg-blue-900 text-white py-3 px-6 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <a href="/admin" className="text-xl font-bold hover:opacity-80">
+            Saint Helen Admin
+          </a>
+          {/* Another link to completed */}
           <a
             href="/admin/completed"
-            className="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500 transition-colors"
+            className="hover:opacity-80 transition-opacity"
           >
-            View Completed Items
+            Completed Items
           </a>
-
-          {/* Sign Out */}
+        </div>
+        <div>
           <button
-            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
             onClick={doSignOut}
+            className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded"
           >
             Sign Out
           </button>
         </div>
-      </div>
+      </header>
 
-      {errorMessage && (
-        <div className="p-3 bg-red-100 text-red-800 rounded border border-red-200">
-          {errorMessage}
+      {/* Main container */}
+      <main className="flex-1 p-4 text-gray-900 dark:text-gray-200 space-y-4">
+        {/* Additional top controls row */}
+        <div className="flex items-center justify-between border-b pb-2 mb-3">
+          <h2 className="text-2xl font-bold">Dashboard</h2>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={fetchAllRequests}
+              className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition-colors"
+            >
+              Refresh Data
+            </button>
+            <button
+              onClick={handleSummarizeSelected}
+              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors"
+            >
+              Summarize Selected
+            </button>
+          </div>
         </div>
-      )}
 
-      {/* Summarize Response */}
-      {summary && (
-        <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
-          <h3 className="text-lg font-semibold mb-2 text-black dark:text-white">
-            Claude Summary
-          </h3>
-          <pre className="whitespace-pre-wrap text-black dark:text-gray-100">
-            {summary}
-          </pre>
+        {errorMessage && (
+          <div className="p-3 bg-red-100 text-red-800 rounded border border-red-200">
+            {errorMessage}
+          </div>
+        )}
+
+        {summary && (
+          <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
+            <h3 className="text-lg font-semibold mb-2 text-black dark:text-white">
+              Claude Summary
+            </h3>
+            <pre className="whitespace-pre-wrap text-black dark:text-gray-100">
+              {summary}
+            </pre>
+          </div>
+        )}
+
+        {/* Hide Completed? */}
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            id="hideCompleted"
+            className="h-4 w-4"
+            checked={hideCompleted}
+            onChange={() => setHideCompleted(!hideCompleted)}
+          />
+          <label htmlFor="hideCompleted" className="text-sm">
+            Hide Completed?
+          </label>
         </div>
-      )}
 
-      {/* Hide Completed Toggle: default is true */}
-      <div className="flex items-center gap-2">
-        <input
-          type="checkbox"
-          id="hideCompleted"
-          className="h-4 w-4"
-          checked={hideCompleted}
-          onChange={() => setHideCompleted(!hideCompleted)}
-        />
-        <label htmlFor="hideCompleted" className="text-sm">
-          Hide Completed?
-        </label>
-      </div>
-
-      {/* If loading data */}
-      {loadingData ? (
-        <div className="text-gray-800 dark:text-gray-100">Loading data...</div>
-      ) : (
-        <>
-          {/* Announcements Table */}
-          <AnnouncementsTable
-            records={announcements}
-            hideCompleted={hideCompleted}
-            summarizeMap={summarizeMap}
-            setSummarizeMap={setSummarizeMap}
-            onOverrideStatus={handleOverrideStatus}
-            onToggleCompleted={handleCompleted}
-          />
-          {/* Website Updates Table */}
-          <WebsiteUpdatesTable
-            records={websiteUpdates}
-            hideCompleted={hideCompleted}
-            summarizeMap={summarizeMap}
-            setSummarizeMap={setSummarizeMap}
-            onToggleCompleted={handleCompleted}
-          />
-          {/* SMS Requests Table */}
-          <SmsRequestsTable
-            records={smsRequests}
-            hideCompleted={hideCompleted}
-            summarizeMap={summarizeMap}
-            setSummarizeMap={setSummarizeMap}
-            onToggleCompleted={handleCompleted}
-          />
-        </>
-      )}
+        {loadingData ? (
+          <div className="text-gray-800 dark:text-gray-100">Loading data...</div>
+        ) : (
+          <>
+            <AnnouncementsTable
+              records={announcements}
+              hideCompleted={hideCompleted}
+              summarizeMap={summarizeMap}
+              setSummarizeMap={setSummarizeMap}
+              onOverrideStatus={handleOverrideStatus}
+              onToggleCompleted={handleCompleted}
+            />
+            <WebsiteUpdatesTable
+              records={websiteUpdates}
+              hideCompleted={hideCompleted}
+              summarizeMap={summarizeMap}
+              setSummarizeMap={setSummarizeMap}
+              onToggleCompleted={handleCompleted}
+            />
+            <SmsRequestsTable
+              records={smsRequests}
+              hideCompleted={hideCompleted}
+              summarizeMap={summarizeMap}
+              setSummarizeMap={setSummarizeMap}
+              onToggleCompleted={handleCompleted}
+            />
+          </>
+        )}
+      </main>
     </div>
   );
 }
 
-/* ------------------------------------------------------------------------
-   Announcements Table - Show More / Show Less, sorted by Promotion Start
-   Also includes S3 file links as clickable <a> tags
------------------------------------------------------------------------- */
+/* Now you can place the table components below:
+   AnnouncementsTable, WebsiteUpdatesTable, SmsRequestsTable 
+   with your styling, show more logic, clickable S3 links, etc.
+   We'll re-paste final versions with 'table-auto w-full' and so on. 
+*/
+
 import { useState as useLocalState } from 'react';
 
 function AnnouncementsTable({
@@ -377,11 +352,11 @@ function AnnouncementsTable({
 }) {
   const [expandedRows, setExpandedRows] = useLocalState<Record<string, boolean>>({});
 
-  function truncateWords(text: string, wordLimit: number) {
+  function truncateWords(text: string, limit: number) {
     if (!text) return '';
     const words = text.split(/\s+/);
-    if (words.length <= wordLimit) return text;
-    return words.slice(0, wordLimit).join(' ') + '...';
+    if (words.length <= limit) return text;
+    return words.slice(0, limit).join(' ') + '...';
   }
 
   function toggleExpand(rowId: string) {
@@ -391,25 +366,13 @@ function AnnouncementsTable({
     }));
   }
 
-  // Filter out completed if hideCompleted is true
-  const displayed = hideCompleted ? records.filter((r) => !r.fields.Completed) : records;
-  if (!displayed.length) return null;
-
-  // A helper to parse multiple S3 links or handle one link
   function renderFileLinks(linksStr: string) {
     if (!linksStr) return null;
-    // If you store them newline- or space-separated, adjust as needed
-    const parts = linksStr
-      .split(/\s+/)
-      .map((p) => p.trim())
-      .filter(Boolean);
-    if (!parts.length) return null;
-
+    const parts = linksStr.split(/\s+/).filter(Boolean);
     return (
       <ul className="space-y-1">
         {parts.map((link, idx) => (
           <li key={idx}>
-            {/* 2) Make them clickable, open in new tab */}
             <a
               href={link}
               target="_blank"
@@ -423,6 +386,9 @@ function AnnouncementsTable({
       </ul>
     );
   }
+
+  const displayed = hideCompleted ? records.filter((r) => !r.fields.Completed) : records;
+  if (!displayed.length) return null;
 
   return (
     <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
@@ -450,12 +416,11 @@ function AnnouncementsTable({
               const f = r.fields;
               const isSummarize = summarizeMap[r.id] || false;
 
-              // Show more/less logic for the body
               const isExpanded = !!expandedRows[r.id];
-              const fullBody = f['Announcement Body'] || '';
-              const displayBody = isExpanded
-                ? fullBody
-                : truncateWords(fullBody, 80);
+              const fullText = f['Announcement Body'] || '';
+              const displayText = isExpanded
+                ? fullText
+                : truncateWords(fullText, 80);
 
               return (
                 <tr
@@ -466,13 +431,12 @@ function AnnouncementsTable({
                     <input
                       type="checkbox"
                       checked={isSummarize}
-                      onChange={(e) => {
-                        const checked = e.target.checked;
+                      onChange={(e) =>
                         setSummarizeMap((prev) => ({
                           ...prev,
-                          [r.id]: checked,
-                        }));
-                      }}
+                          [r.id]: e.target.checked,
+                        }))
+                      }
                     />
                   </td>
                   <td className="px-4 py-2 border text-black dark:text-gray-100 whitespace-normal break-words leading-relaxed">
@@ -491,10 +455,8 @@ function AnnouncementsTable({
                     {(f.Platforms || []).join(', ')}
                   </td>
                   <td className="px-4 py-2 border text-black dark:text-gray-100 whitespace-normal break-words leading-relaxed">
-                    <div className="whitespace-pre-wrap">
-                      {displayBody}
-                    </div>
-                    {fullBody.split(/\s+/).length > 80 && (
+                    <div className="whitespace-pre-wrap">{displayText}</div>
+                    {fullText.split(/\s+/).length > 80 && (
                       <button
                         onClick={() =>
                           setExpandedRows((prev) => ({
@@ -542,9 +504,7 @@ function AnnouncementsTable({
   );
 }
 
-/* ------------------------------------------------------------------------
-   WebsiteUpdatesTable - Urgent items at top, in red
------------------------------------------------------------------------- */
+/* WebsiteUpdates: show urgent in red, also file links clickable */
 function WebsiteUpdatesTable({
   records,
   hideCompleted,
@@ -607,7 +567,6 @@ function WebsiteUpdatesTable({
             {displayed.map((r) => {
               const f = r.fields;
               const isSummarize = summarizeMap[r.id] || false;
-              // 4) If urgent => row text is dark red
               const urgent = !!f['Urgent'];
               const rowClass = urgent
                 ? 'text-red-600 dark:text-red-500'
@@ -654,11 +613,7 @@ function WebsiteUpdatesTable({
                       type="checkbox"
                       checked={!!f.Completed}
                       onChange={() =>
-                        onToggleCompleted(
-                          'websiteUpdates',
-                          r.id,
-                          !!f.Completed
-                        )
+                        onToggleCompleted('websiteUpdates', r.id, !!f.Completed)
                       }
                     />
                   </td>
@@ -672,9 +627,7 @@ function WebsiteUpdatesTable({
   );
 }
 
-/* ------------------------------------------------------------------------
-   SMS Requests Table - clickable S3 links, default hide completed
------------------------------------------------------------------------- */
+/* SMS Requests Table - clickable S3 links, hide completed by default */
 function SmsRequestsTable({
   records,
   hideCompleted,
