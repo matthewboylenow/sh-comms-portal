@@ -1,6 +1,10 @@
 // app/api/admin/fetchRequests/route.ts
+
 import { NextRequest, NextResponse } from 'next/server';
 import Airtable from 'airtable';
+
+export const dynamic = 'force-dynamic';
+// This ensures Next never statically caches the route output.
 
 const personalToken = process.env.AIRTABLE_PERSONAL_TOKEN || '';
 const baseId = process.env.AIRTABLE_BASE_ID || '';
@@ -27,7 +31,8 @@ export async function GET(request: NextRequest) {
       .select({ view: 'Grid view' })
       .all();
 
-    return NextResponse.json({
+    // Build JSON
+    const data = {
       announcements: announcementsRecords.map((r) => ({
         id: r.id,
         fields: r.fields,
@@ -40,6 +45,15 @@ export async function GET(request: NextRequest) {
         id: r.id,
         fields: r.fields,
       })),
+    };
+
+    // Return with no-store headers
+    return new NextResponse(JSON.stringify(data), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      },
     });
   } catch (error: any) {
     console.error('Error fetching requests:', error);

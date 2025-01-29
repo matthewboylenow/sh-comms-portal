@@ -1,5 +1,4 @@
 // app/admin/AdminClient.tsx
-
 'use client';
 
 import { useSession, signIn, signOut } from 'next-auth/react';
@@ -13,7 +12,7 @@ type AdminRecord = {
   fields: Record<string, any>;
 };
 
-/** Helper parse date if needed for sorting, but we'll keep it minimal. */
+/** Helper parse date if needed for sorting. */
 function parseDate(dateStr: string): Date | null {
   if (!dateStr) return null;
   const parts = dateStr.split('-');
@@ -37,7 +36,7 @@ export default function AdminClient() {
 
   const [errorMessage, setErrorMessage] = useState('');
   const [loadingData, setLoadingData] = useState(false);
-  // 1) Start with hideCompleted = true
+  // Start with hideCompleted = true
   const [hideCompleted, setHideCompleted] = useState(true);
 
   // If you want to display a summary from Summarize Items
@@ -50,7 +49,6 @@ export default function AdminClient() {
     }
   }, [status]);
 
-  // Example sorting if you want it
   function sortAnnouncements(records: AdminRecord[]): AdminRecord[] {
     return [...records].sort((a, b) => {
       const aStr = a.fields['Promotion Start Date'] || '';
@@ -75,21 +73,33 @@ export default function AdminClient() {
     });
   }
 
+  /** 
+   * Approach A: We append a timestamp param & set fetch option to `cache: 'no-store'`.
+   * This ensures the client never reuses a cached response.
+   */
   async function fetchAllRequests() {
     setLoadingData(true);
     setErrorMessage('');
+
     try {
-      const res = await fetch('/api/admin/fetchRequests');
+      const timeStamp = Date.now();
+      const res = await fetch(`/api/admin/fetchRequests?ts=${timeStamp}`, {
+        method: 'GET',
+        headers: {
+          'Cache-Control': 'no-cache',
+        },
+        cache: 'no-store', // critical: ensures Next/browsers won't store this
+      });
+
       if (!res.ok) {
         throw new Error(`Error fetching data: ${res.status}`);
       }
+
       const data = await res.json();
 
-      // sort announcements if needed
+      // Sort if needed
       const sortedAnnouncements = sortAnnouncements(data.announcements || []);
-      const sortedWebsiteUpdates = sortWebsiteUpdates(
-        data.websiteUpdates || []
-      );
+      const sortedWebsiteUpdates = sortWebsiteUpdates(data.websiteUpdates || []);
 
       setAnnouncements(sortedAnnouncements);
       setWebsiteUpdates(sortedWebsiteUpdates);
@@ -211,7 +221,7 @@ export default function AdminClient() {
     );
   }
 
-  // 2) A top nav (brand bar) that is consistent
+  // Render your top nav & main content as before
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
       {/* Brand Nav */}
@@ -220,7 +230,6 @@ export default function AdminClient() {
           <a href="/admin" className="text-xl font-bold hover:opacity-80">
             Saint Helen Admin
           </a>
-          {/* Another link to completed */}
           <a
             href="/admin/completed"
             className="hover:opacity-80 transition-opacity"
@@ -240,7 +249,6 @@ export default function AdminClient() {
 
       {/* Main container */}
       <main className="flex-1 p-4 text-gray-900 dark:text-gray-200 space-y-4">
-        {/* Additional top controls row */}
         <div className="flex items-center justify-between border-b pb-2 mb-3">
           <h2 className="text-2xl font-bold">Dashboard</h2>
           <div className="flex items-center gap-3">
@@ -294,6 +302,8 @@ export default function AdminClient() {
           <div className="text-gray-800 dark:text-gray-100">Loading data...</div>
         ) : (
           <>
+            {/* The table components: AnnouncementsTable, WebsiteUpdatesTable, SmsRequestsTable */}
+            {/* You already have them below with your final styling. */}
             <AnnouncementsTable
               records={announcements}
               hideCompleted={hideCompleted}
