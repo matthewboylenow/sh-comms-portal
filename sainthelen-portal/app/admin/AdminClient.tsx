@@ -1,8 +1,21 @@
 // app/admin/AdminClient.tsx
 'use client';
 
-import { useSession, signIn, signOut } from 'next-auth/react';
+import { useSession, signIn } from 'next-auth/react';
 import { useEffect, useState } from 'react';
+import AdminLayout from '../components/admin/AdminLayout';
+import DashboardStats from '../components/admin/DashboardStats';
+import AnnouncementCard from '../components/admin/AnnouncementCard';
+import WebsiteUpdateCard from '../components/admin/WebsiteUpdateCard';
+import SmsRequestCard from '../components/admin/SmsRequestCard';
+import { Button } from '../components/ui/Button';
+import { Card, CardContent } from '../components/ui/Card';
+import {
+  ArrowPathIcon,
+  MagnifyingGlassIcon,
+  AdjustmentsHorizontalIcon,
+  DocumentTextIcon,
+} from '@heroicons/react/24/outline';
 
 /** Type Declarations */
 type TableName = 'announcements' | 'websiteUpdates' | 'smsRequests';
@@ -34,6 +47,10 @@ export default function AdminClient() {
   // Summarize checkboxes
   const [summarizeMap, setSummarizeMap] = useState<Record<string, boolean>>({});
 
+  // Search and filters
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeFilters, setActiveFilters] = useState<Record<string, any>>({});
+
   const [errorMessage, setErrorMessage] = useState('');
   const [loadingData, setLoadingData] = useState(false);
   // Start with hideCompleted = true
@@ -63,7 +80,7 @@ export default function AdminClient() {
   }
 
   function sortWebsiteUpdates(records: AdminRecord[]): AdminRecord[] {
-    // Example to put urgent = true on top
+    // Put urgent = true on top
     return [...records].sort((a, b) => {
       const aUrgent = !!a.fields['Urgent'];
       const bUrgent = !!b.fields['Urgent'];
@@ -74,8 +91,7 @@ export default function AdminClient() {
   }
 
   /** 
-   * Approach A: We append a timestamp param & set fetch option to `cache: 'no-store'`.
-   * This ensures the client never reuses a cached response.
+   * Fetch data with cache busting
    */
   async function fetchAllRequests() {
     setLoadingData(true);
@@ -117,15 +133,35 @@ export default function AdminClient() {
     recordId: string,
     currentValue: boolean
   ) {
-    if (tableName === 'announcements') {
-      setAnnouncements((prev) => prev.filter((r) => r.id !== recordId));
-    } else if (tableName === 'websiteUpdates') {
-      setWebsiteUpdates((prev) => prev.filter((r) => r.id !== recordId));
-    } else {
-      setSmsRequests((prev) => prev.filter((r) => r.id !== recordId));
-    }
-
     try {
+      // Update UI optimistically
+      if (tableName === 'announcements') {
+        setAnnouncements((prev) => 
+          prev.map(item => 
+            item.id === recordId 
+              ? { ...item, fields: { ...item.fields, Completed: !currentValue } } 
+              : item
+          )
+        );
+      } else if (tableName === 'websiteUpdates') {
+        setWebsiteUpdates((prev) => 
+          prev.map(item => 
+            item.id === recordId 
+              ? { ...item, fields: { ...item.fields, Completed: !currentValue } } 
+              : item
+          )
+        );
+      } else {
+        setSmsRequests((prev) => 
+          prev.map(item => 
+            item.id === recordId 
+              ? { ...item, fields: { ...item.fields, Completed: !currentValue } } 
+              : item
+          )
+        );
+      }
+
+      // Update in Airtable
       const res = await fetch('/api/admin/markCompleted', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -135,27 +171,41 @@ export default function AdminClient() {
           completed: !currentValue,
         }),
       });
+      
       if (!res.ok) throw new Error('Failed to update Completed status');
     } catch (err: any) {
       console.error(err);
       setErrorMessage(err.message);
+      // Revert UI if the API call failed
+      fetchAllRequests();
     }
   }
 
   async function handleOverrideStatus(recordId: string, newStatus: string) {
     try {
+      // Optimistic UI update
+      setAnnouncements((prev) => 
+        prev.map(item => 
+          item.id === recordId 
+            ? { ...item, fields: { ...item.fields, overrideStatus: newStatus } } 
+            : item
+        )
+      );
+
       const res = await fetch('/api/admin/updateOverrideStatus', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ recordId, overrideStatus: newStatus }),
       });
+      
       if (!res.ok) {
         throw new Error('Failed to update override status');
       }
-      fetchAllRequests();
     } catch (err: any) {
       console.error(err);
       setErrorMessage(err.message);
+      // Revert UI if the API call failed
+      fetchAllRequests();
     }
   }
 
@@ -173,582 +223,296 @@ export default function AdminClient() {
         selectedIds.push(r.id);
       }
     });
+    
     if (!selectedIds.length) {
-      alert('No items selected for summarization!');
+      setErrorMessage('No items selected for summarization!');
       return;
     }
+    
+    setSummary(null);
+    setLoadingData(true);
+    
     try {
       const res = await fetch('/api/admin/summarizeItems', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ recordIds: selectedIds }),
       });
+      
       if (!res.ok) {
         throw new Error('Failed to summarize items');
       }
+      
       const data = await res.json();
       setSummary(data.summaryText || 'No summary returned.');
-      alert('Successfully summarized selected items!');
     } catch (err: any) {
       console.error(err);
-      alert('Error summarizing items: ' + (err as Error).message);
+      setErrorMessage('Error summarizing items: ' + (err as Error).message);
+    } finally {
+      setLoadingData(false);
     }
   }
-
-  function doSignOut() {
-    signOut();
+  
+  // Filter function for search
+  function filterRecords<T extends AdminRecord>(records: T[], query: string): T[] {
+    if (!query.trim()) return records;
+    
+    const lowercaseQuery = query.toLowerCase();
+    return records.filter(record => {
+      const fields = record.fields;
+      
+      // Search in common fields
+      if (fields.Name && fields.Name.toLowerCase().includes(lowercaseQuery)) return true;
+      if (fields.Ministry && fields.Ministry.toLowerCase().includes(lowercaseQuery)) return true;
+      
+      // Search in announcement specific fields
+      if (fields['Announcement Body'] && fields['Announcement Body'].toLowerCase().includes(lowercaseQuery)) return true;
+      
+      // Search in website update specific fields
+      if (fields['Page to Update'] && fields['Page to Update'].toLowerCase().includes(lowercaseQuery)) return true;
+      if (fields['Description'] && fields['Description'].toLowerCase().includes(lowercaseQuery)) return true;
+      
+      // Search in SMS specific fields
+      if (fields['SMS Message'] && fields['SMS Message'].toLowerCase().includes(lowercaseQuery)) return true;
+      
+      return false;
+    });
+  }
+  
+  // Apply filters and search to get displayed records
+  function getFilteredRecords() {
+    let filteredAnnouncements = [...announcements];
+    let filteredWebsiteUpdates = [...websiteUpdates];
+    let filteredSmsRequests = [...smsRequests];
+    
+    // Apply hide completed filter
+    if (hideCompleted) {
+      filteredAnnouncements = filteredAnnouncements.filter(r => !r.fields.Completed);
+      filteredWebsiteUpdates = filteredWebsiteUpdates.filter(r => !r.fields.Completed);
+      filteredSmsRequests = filteredSmsRequests.filter(r => !r.fields.Completed);
+    }
+    
+    // Apply search query
+    if (searchQuery) {
+      filteredAnnouncements = filterRecords(filteredAnnouncements, searchQuery);
+      filteredWebsiteUpdates = filterRecords(filteredWebsiteUpdates, searchQuery);
+      filteredSmsRequests = filterRecords(filteredSmsRequests, searchQuery);
+    }
+    
+    return {
+      filteredAnnouncements,
+      filteredWebsiteUpdates,
+      filteredSmsRequests
+    };
   }
 
-  // If loading or unauth
+  // If loading or unauthenticated, show appropriate UI
   if (status === 'loading') {
     return (
-      <div className="p-4 text-gray-800 dark:text-gray-200">
-        <p>Loading session...</p>
+      <div className="flex items-center justify-center h-screen bg-gray-100 dark:bg-gray-900">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-sh-primary border-t-transparent mb-4"></div>
+          <p className="text-gray-800 dark:text-gray-200">Loading session...</p>
+        </div>
       </div>
     );
   }
+  
   if (status === 'unauthenticated') {
     return (
-      <div className="p-4 text-gray-800 dark:text-gray-200">
-        <p>You must be signed in to view admin dashboard.</p>
-        <button
-          className="mt-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-          onClick={() => signIn('azure-ad')}
-        >
-          Sign In
-        </button>
+      <div className="flex flex-col items-center justify-center h-screen bg-gray-100 dark:bg-gray-900">
+        <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow-md max-w-md w-full">
+          <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Sign In Required</h2>
+          <p className="text-gray-600 dark:text-gray-300 mb-6">
+            You must be signed in to view the admin dashboard.
+          </p>
+          <Button
+            onClick={() => signIn('azure-ad')}
+            className="w-full"
+            size="lg"
+          >
+            Sign In with Microsoft 365
+          </Button>
+        </div>
       </div>
     );
   }
 
-  // Render your top nav & main content as before
+  // Get filtered records
+  const { 
+    filteredAnnouncements, 
+    filteredWebsiteUpdates, 
+    filteredSmsRequests 
+  } = getFilteredRecords();
+
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
-      {/* Brand Nav */}
-      <header className="bg-blue-900 text-white py-3 px-6 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <a href="/admin" className="text-xl font-bold hover:opacity-80">
-            Saint Helen Admin
-          </a>
-          <a
-            href="/admin/completed"
-            className="hover:opacity-80 transition-opacity"
-          >
-            Completed Items
-          </a>
-        </div>
-        <div>
-          <button
-            onClick={doSignOut}
-            className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded"
-          >
-            Sign Out
-          </button>
-        </div>
-      </header>
+    <AdminLayout title="Dashboard">
+      {/* Dashboard Stats */}
+      <DashboardStats 
+        announcements={announcements}
+        websiteUpdates={websiteUpdates}
+        smsRequests={smsRequests}
+        hideCompleted={hideCompleted}
+      />
+      
+      {/* Toolbar */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0 mb-6">
+        <div className="flex items-center">
+          <div className="relative w-64">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+              type="text"
+              className="pl-10 focus:ring-sh-primary focus:border-sh-primary block w-full sm:text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md"
+              placeholder="Search..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
 
-      {/* Main container */}
-      <main className="flex-1 p-4 text-gray-900 dark:text-gray-200 space-y-4">
-        <div className="flex items-center justify-between border-b pb-2 mb-3">
-          <h2 className="text-2xl font-bold">Dashboard</h2>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={fetchAllRequests}
-              className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition-colors"
-            >
-              Refresh Data
-            </button>
-            <button
-              onClick={handleSummarizeSelected}
-              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors"
-            >
-              Summarize Selected
-            </button>
+          <div className="ml-4 flex items-center">
+            <input
+              type="checkbox"
+              id="hideCompleted"
+              className="h-4 w-4 text-sh-primary rounded border-gray-300 focus:ring-sh-primary"
+              checked={hideCompleted}
+              onChange={() => setHideCompleted(!hideCompleted)}
+            />
+            <label htmlFor="hideCompleted" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+              Hide Completed
+            </label>
           </div>
         </div>
 
-        {errorMessage && (
-          <div className="p-3 bg-red-100 text-red-800 rounded border border-red-200">
-            {errorMessage}
-          </div>
-        )}
+        <div className="flex space-x-2">
+          <Button
+            onClick={fetchAllRequests}
+            variant="outline"
+            className="flex items-center"
+            disabled={loadingData}
+            icon={<ArrowPathIcon className={`h-4 w-4 ${loadingData ? 'animate-spin' : ''}`} />}
+          >
+            Refresh
+          </Button>
 
-        {summary && (
-          <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
-            <h3 className="text-lg font-semibold mb-2 text-black dark:text-white">
-              Claude Summary
-            </h3>
-            <pre className="whitespace-pre-wrap text-black dark:text-gray-100">
+          <Button
+            onClick={handleSummarizeSelected}
+            variant="primary"
+            className="flex items-center"
+            disabled={loadingData || Object.keys(summarizeMap).filter(key => summarizeMap[key]).length === 0}
+            icon={<DocumentTextIcon className="h-4 w-4" />}
+          >
+            Summarize Selected
+          </Button>
+        </div>
+      </div>
+
+      {/* Error messages */}
+      {errorMessage && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300 p-4 rounded-md mb-6">
+          {errorMessage}
+        </div>
+      )}
+
+      {/* Claude Summary */}
+      {summary && (
+        <Card className="mb-6">
+          <CardContent className="p-4">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-3">Generated Summary</h3>
+            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-md whitespace-pre-wrap text-sm">
               {summary}
-            </pre>
-          </div>
-        )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-        {/* Hide Completed? */}
-        <div className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            id="hideCompleted"
-            className="h-4 w-4"
-            checked={hideCompleted}
-            onChange={() => setHideCompleted(!hideCompleted)}
-          />
-          <label htmlFor="hideCompleted" className="text-sm">
-            Hide Completed?
-          </label>
+      {/* Loading indicator */}
+      {loadingData && (
+        <div className="flex justify-center items-center p-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-4 border-sh-primary border-t-transparent"></div>
         </div>
+      )}
 
-        {loadingData ? (
-          <div className="text-gray-800 dark:text-gray-100">Loading data...</div>
-        ) : (
-          <>
-            {/* The table components: AnnouncementsTable, WebsiteUpdatesTable, SmsRequestsTable */}
-            {/* You already have them below with your final styling. */}
-            <AnnouncementsTable
-              records={announcements}
-              hideCompleted={hideCompleted}
-              summarizeMap={summarizeMap}
-              setSummarizeMap={setSummarizeMap}
-              onOverrideStatus={handleOverrideStatus}
-              onToggleCompleted={handleCompleted}
-            />
-            <WebsiteUpdatesTable
-              records={websiteUpdates}
-              hideCompleted={hideCompleted}
-              summarizeMap={summarizeMap}
-              setSummarizeMap={setSummarizeMap}
-              onToggleCompleted={handleCompleted}
-            />
-            <SmsRequestsTable
-              records={smsRequests}
-              hideCompleted={hideCompleted}
-              summarizeMap={summarizeMap}
-              setSummarizeMap={setSummarizeMap}
-              onToggleCompleted={handleCompleted}
-            />
-          </>
-        )}
-      </main>
-    </div>
-  );
-}
+      {/* No results message */}
+      {!loadingData && 
+        filteredAnnouncements.length === 0 && 
+        filteredWebsiteUpdates.length === 0 && 
+        filteredSmsRequests.length === 0 && (
+        <div className="flex flex-col items-center justify-center p-12 text-center">
+          <div className="bg-gray-100 dark:bg-gray-800 rounded-full p-4 mb-4">
+            <MagnifyingGlassIcon className="h-8 w-8 text-gray-400" />
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1">No items found</h3>
+          <p className="text-gray-500 dark:text-gray-400 mb-4">
+            {searchQuery ? 'Try adjusting your search or filters' : 'There are no items to display'}
+          </p>
+          <Button
+            onClick={() => {
+              setSearchQuery('');
+              setHideCompleted(false);
+            }}
+            variant="outline"
+          >
+            Reset Filters
+          </Button>
+        </div>
+      )}
 
-/* Now you can place the table components below:
-   AnnouncementsTable, WebsiteUpdatesTable, SmsRequestsTable 
-   with your styling, show more logic, clickable S3 links, etc.
-   We'll re-paste final versions with 'table-auto w-full' and so on. 
-*/
+      {/* Announcements Section */}
+      {filteredAnnouncements.length > 0 && (
+        <section id="announcements" className="mb-8">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Announcements</h2>
+          <div className="space-y-4">
+            {filteredAnnouncements.map((record) => (
+              <AnnouncementCard
+                key={record.id}
+                record={record}
+                summarizeMap={summarizeMap}
+                onToggleSummarize={handleToggleSummarize}
+                onOverrideStatus={handleOverrideStatus}
+                onToggleCompleted={handleCompleted}
+              />
+            ))}
+          </div>
+        </section>
+      )}
 
-import { useState as useLocalState } from 'react';
+      {/* Website Updates Section */}
+      {filteredWebsiteUpdates.length > 0 && (
+        <section id="websiteUpdates" className="mb-8">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Website Updates</h2>
+          <div className="space-y-4">
+            {filteredWebsiteUpdates.map((record) => (
+              <WebsiteUpdateCard
+                key={record.id}
+                record={record}
+                summarizeMap={summarizeMap}
+                onToggleSummarize={handleToggleSummarize}
+                onToggleCompleted={handleCompleted}
+              />
+            ))}
+          </div>
+        </section>
+      )}
 
-function AnnouncementsTable({
-  records,
-  hideCompleted,
-  summarizeMap,
-  setSummarizeMap,
-  onOverrideStatus,
-  onToggleCompleted,
-}: {
-  records: AdminRecord[];
-  hideCompleted: boolean;
-  summarizeMap: Record<string, boolean>;
-  setSummarizeMap: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
-  onOverrideStatus: (recordId: string, newStatus: string) => void;
-  onToggleCompleted: (
-    tableName: 'announcements',
-    recordId: string,
-    currentValue: boolean
-  ) => void;
-}) {
-  const [expandedRows, setExpandedRows] = useLocalState<Record<string, boolean>>({});
-
-  function truncateWords(text: string, limit: number) {
-    if (!text) return '';
-    const words = text.split(/\s+/);
-    if (words.length <= limit) return text;
-    return words.slice(0, limit).join(' ') + '...';
-  }
-
-  function toggleExpand(rowId: string) {
-    setExpandedRows((prev) => ({
-      ...prev,
-      [rowId]: !prev[rowId],
-    }));
-  }
-
-  function renderFileLinks(linksStr: string) {
-    if (!linksStr) return null;
-    const parts = linksStr.split(/\s+/).filter(Boolean);
-    return (
-      <ul className="space-y-1">
-        {parts.map((link, idx) => (
-          <li key={idx}>
-            <a
-              href={link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-600 dark:text-blue-300 underline break-words"
-            >
-              {link}
-            </a>
-          </li>
-        ))}
-      </ul>
-    );
-  }
-
-  const displayed = hideCompleted ? records.filter((r) => !r.fields.Completed) : records;
-  if (!displayed.length) return null;
-
-  return (
-    <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
-      <h3 className="text-xl font-semibold mb-3 text-black dark:text-white">
-        Announcements
-      </h3>
-      <div className="overflow-x-auto">
-        <table className="table-auto w-full border-collapse text-sm">
-          <thead>
-            <tr className="bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-              <th className="px-4 py-2 border">Summarize?</th>
-              <th className="px-4 py-2 border">Name</th>
-              <th className="px-4 py-2 border">Ministry</th>
-              <th className="px-4 py-2 border">Date/Time</th>
-              <th className="px-4 py-2 border">Promotion Start</th>
-              <th className="px-4 py-2 border">Platforms</th>
-              <th className="px-4 py-2 border">Announcement Body</th>
-              <th className="px-4 py-2 border">File Links</th>
-              <th className="px-4 py-2 border">Override</th>
-              <th className="px-4 py-2 border">Completed?</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100 dark:divide-gray-600">
-            {displayed.map((r) => {
-              const f = r.fields;
-              const isSummarize = summarizeMap[r.id] || false;
-
-              const isExpanded = !!expandedRows[r.id];
-              const fullText = f['Announcement Body'] || '';
-              const displayText = isExpanded
-                ? fullText
-                : truncateWords(fullText, 80);
-
-              return (
-                <tr
-                  key={r.id}
-                  className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                >
-                  <td className="px-4 py-2 border text-center whitespace-normal break-words leading-relaxed">
-                    <input
-                      type="checkbox"
-                      checked={isSummarize}
-                      onChange={(e) =>
-                        setSummarizeMap((prev) => ({
-                          ...prev,
-                          [r.id]: e.target.checked,
-                        }))
-                      }
-                    />
-                  </td>
-                  <td className="px-4 py-2 border text-black dark:text-gray-100 whitespace-normal break-words leading-relaxed">
-                    {f.Name || ''}
-                  </td>
-                  <td className="px-4 py-2 border text-black dark:text-gray-100 whitespace-normal break-words leading-relaxed">
-                    {f.Ministry || ''}
-                  </td>
-                  <td className="px-4 py-2 border text-black dark:text-gray-100 whitespace-normal break-words leading-relaxed">
-                    {f['Date of Event'] || ''} {f['Time of Event'] || ''}
-                  </td>
-                  <td className="px-4 py-2 border text-black dark:text-gray-100 whitespace-normal break-words leading-relaxed">
-                    {f['Promotion Start Date'] || ''}
-                  </td>
-                  <td className="px-4 py-2 border text-black dark:text-gray-100 whitespace-normal break-words leading-relaxed">
-                    {(f.Platforms || []).join(', ')}
-                  </td>
-                  <td className="px-4 py-2 border text-black dark:text-gray-100 whitespace-normal break-words leading-relaxed">
-                    <div className="whitespace-pre-wrap">{displayText}</div>
-                    {fullText.split(/\s+/).length > 80 && (
-                      <button
-                        onClick={() =>
-                          setExpandedRows((prev) => ({
-                            ...prev,
-                            [r.id]: !prev[r.id],
-                          }))
-                        }
-                        className="text-blue-600 dark:text-blue-300 underline mt-1"
-                      >
-                        {isExpanded ? 'Show Less' : 'Show More'}
-                      </button>
-                    )}
-                  </td>
-                  <td className="px-4 py-2 border text-black dark:text-gray-100 whitespace-normal break-words leading-relaxed">
-                    {renderFileLinks(f['File Links'] || '')}
-                  </td>
-                  <td className="px-4 py-2 border text-black dark:text-gray-100 whitespace-normal break-words leading-relaxed">
-                    <select
-                      className="border rounded p-1 bg-white dark:bg-gray-800 text-black dark:text-gray-200"
-                      value={f.overrideStatus || 'none'}
-                      onChange={(e) => onOverrideStatus(r.id, e.target.value)}
-                    >
-                      <option value="none">none</option>
-                      <option value="forceExclude">forceExclude</option>
-                      <option value="forceInclude">forceInclude</option>
-                      <option value="defer">defer</option>
-                    </select>
-                  </td>
-                  <td className="px-4 py-2 border text-center whitespace-normal break-words leading-relaxed">
-                    <input
-                      type="checkbox"
-                      checked={!!f.Completed}
-                      onChange={() =>
-                        onToggleCompleted('announcements', r.id, !!f.Completed)
-                      }
-                    />
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-/* WebsiteUpdates: show urgent in red, also file links clickable */
-function WebsiteUpdatesTable({
-  records,
-  hideCompleted,
-  summarizeMap,
-  setSummarizeMap,
-  onToggleCompleted,
-}: {
-  records: AdminRecord[];
-  hideCompleted: boolean;
-  summarizeMap: Record<string, boolean>;
-  setSummarizeMap: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
-  onToggleCompleted: (
-    tableName: 'websiteUpdates',
-    recordId: string,
-    currentValue: boolean
-  ) => void;
-}) {
-  const displayed = hideCompleted ? records.filter((r) => !r.fields.Completed) : records;
-  if (!displayed.length) return null;
-
-  function renderFileLinks(linksStr: string) {
-    if (!linksStr) return null;
-    const parts = linksStr.split(/\s+/).filter(Boolean);
-    return (
-      <ul className="space-y-1">
-        {parts.map((link, idx) => (
-          <li key={idx}>
-            <a
-              href={link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-600 dark:text-blue-300 underline break-words"
-            >
-              {link}
-            </a>
-          </li>
-        ))}
-      </ul>
-    );
-  }
-
-  return (
-    <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
-      <h3 className="text-xl font-semibold mb-3 text-black dark:text-white">
-        Website Updates
-      </h3>
-      <div className="overflow-x-auto">
-        <table className="table-auto w-full border-collapse text-sm">
-          <thead>
-            <tr className="bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-              <th className="px-4 py-2 border">Summarize?</th>
-              <th className="px-4 py-2 border">Page to Update</th>
-              <th className="px-4 py-2 border">Description</th>
-              <th className="px-4 py-2 border">Sign-Up URL</th>
-              <th className="px-4 py-2 border">File Links</th>
-              <th className="px-4 py-2 border">Completed?</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100 dark:divide-gray-600">
-            {displayed.map((r) => {
-              const f = r.fields;
-              const isSummarize = summarizeMap[r.id] || false;
-              const urgent = !!f['Urgent'];
-              const rowClass = urgent
-                ? 'text-red-600 dark:text-red-500'
-                : 'text-black dark:text-gray-100';
-
-              return (
-                <tr
-                  key={r.id}
-                  className={`hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${rowClass}`}
-                >
-                  <td className="px-4 py-2 border text-center whitespace-normal break-words leading-relaxed">
-                    <input
-                      type="checkbox"
-                      checked={isSummarize}
-                      onChange={(e) =>
-                        setSummarizeMap((prev) => ({
-                          ...prev,
-                          [r.id]: e.target.checked,
-                        }))
-                      }
-                    />
-                  </td>
-                  <td className="px-4 py-2 border whitespace-normal break-words leading-relaxed">
-                    {f['Page to Update'] || ''}
-                  </td>
-                  <td className="px-4 py-2 border whitespace-normal break-words leading-relaxed max-w-md">
-                    {f.Description || ''}
-                  </td>
-                  <td className="px-4 py-2 border whitespace-normal break-words leading-relaxed">
-                    <a
-                      href={f['Sign-Up URL'] || '#'}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 dark:text-blue-300 underline break-words"
-                    >
-                      {f['Sign-Up URL'] || ''}
-                    </a>
-                  </td>
-                  <td className="px-4 py-2 border whitespace-normal break-words leading-relaxed">
-                    {renderFileLinks(f['File Links'] || '')}
-                  </td>
-                  <td className="px-4 py-2 border text-center whitespace-normal break-words leading-relaxed">
-                    <input
-                      type="checkbox"
-                      checked={!!f.Completed}
-                      onChange={() =>
-                        onToggleCompleted('websiteUpdates', r.id, !!f.Completed)
-                      }
-                    />
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-/* SMS Requests Table - clickable S3 links, hide completed by default */
-function SmsRequestsTable({
-  records,
-  hideCompleted,
-  summarizeMap,
-  setSummarizeMap,
-  onToggleCompleted,
-}: {
-  records: AdminRecord[];
-  hideCompleted: boolean;
-  summarizeMap: Record<string, boolean>;
-  setSummarizeMap: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
-  onToggleCompleted: (
-    tableName: 'smsRequests',
-    recordId: string,
-    currentValue: boolean
-  ) => void;
-}) {
-  const displayed = hideCompleted ? records.filter((r) => !r.fields.Completed) : records;
-  if (!displayed.length) return null;
-
-  function renderFileLinks(linksStr: string) {
-    if (!linksStr) return null;
-    const parts = linksStr.split(/\s+/).filter(Boolean);
-    return (
-      <ul className="space-y-1">
-        {parts.map((link, idx) => (
-          <li key={idx}>
-            <a
-              href={link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-600 dark:text-blue-300 underline break-words"
-            >
-              {link}
-            </a>
-          </li>
-        ))}
-      </ul>
-    );
-  }
-
-  return (
-    <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
-      <h3 className="text-xl font-semibold mb-3 text-black dark:text-white">
-        SMS Requests
-      </h3>
-      <div className="overflow-x-auto">
-        <table className="table-auto w-full border-collapse text-sm">
-          <thead>
-            <tr className="bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-              <th className="px-4 py-2 border">Summarize?</th>
-              <th className="px-4 py-2 border">Name</th>
-              <th className="px-4 py-2 border">Ministry</th>
-              <th className="px-4 py-2 border">Requested Date</th>
-              <th className="px-4 py-2 border">SMS Message</th>
-              <th className="px-4 py-2 border">Additional Info</th>
-              <th className="px-4 py-2 border">Completed?</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100 dark:divide-gray-600">
-            {displayed.map((r) => {
-              const f = r.fields;
-              const isSummarize = summarizeMap[r.id] || false;
-
-              return (
-                <tr
-                  key={r.id}
-                  className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                >
-                  <td className="px-4 py-2 border text-center whitespace-normal break-words leading-relaxed">
-                    <input
-                      type="checkbox"
-                      checked={isSummarize}
-                      onChange={(e) =>
-                        setSummarizeMap((prev) => ({
-                          ...prev,
-                          [r.id]: e.target.checked,
-                        }))
-                      }
-                    />
-                  </td>
-                  <td className="px-4 py-2 border text-black dark:text-gray-100 whitespace-normal break-words leading-relaxed">
-                    {f.Name || ''}
-                  </td>
-                  <td className="px-4 py-2 border text-black dark:text-gray-100 whitespace-normal break-words leading-relaxed">
-                    {f.Ministry || ''}
-                  </td>
-                  <td className="px-4 py-2 border text-black dark:text-gray-100 whitespace-normal break-words leading-relaxed">
-                    {f['Requested Date'] || ''}
-                  </td>
-                  <td className="px-4 py-2 border text-black dark:text-gray-100 whitespace-normal break-words leading-relaxed max-w-md">
-                    {f['SMS Message'] || ''}
-                  </td>
-                  <td className="px-4 py-2 border text-black dark:text-gray-100 whitespace-normal break-words leading-relaxed max-w-md">
-                    {f['Additional Info'] || ''}
-                  </td>
-                  <td className="px-4 py-2 border text-center whitespace-normal break-words leading-relaxed">
-                    <input
-                      type="checkbox"
-                      checked={!!f.Completed}
-                      onChange={() =>
-                        onToggleCompleted('smsRequests', r.id, !!f.Completed)
-                      }
-                    />
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </div>
+      {/* SMS Requests Section */}
+      {filteredSmsRequests.length > 0 && (
+        <section id="smsRequests" className="mb-8">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">SMS Requests</h2>
+          <div className="space-y-4">
+            {filteredSmsRequests.map((record) => (
+              <SmsRequestCard
+                key={record.id}
+                record={record}
+                summarizeMap={summarizeMap}
+                onToggleSummarize={handleToggleSummarize}
+                onToggleCompleted={handleCompleted}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+    </AdminLayout>
   );
 }
