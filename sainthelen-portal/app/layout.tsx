@@ -40,8 +40,8 @@ export default function RootLayout({
       <body className="min-h-screen flex flex-col bg-white dark:bg-[#121212] transition-colors duration-300">
         {/* Wrap everything in the SessionProvider */}
         <Providers>
-          <Header />
-          <main className="flex-1">{children}</main>
+          {/* The Header component is conditionally rendered only on non-admin pages */}
+          {children}
         </Providers>
       </body>
     </html>
