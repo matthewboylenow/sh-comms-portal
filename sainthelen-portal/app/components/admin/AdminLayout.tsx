@@ -130,11 +130,11 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
         </div>
 
         {/* Sidebar footer */}
-        <div className="absolute bottom-0 w-full border-t border-sh-primary dark:border-gray-700 p-4">
+        <div className="fixed bottom-0 w-64 border-t border-sh-primary dark:border-gray-700 p-4 bg-sh-primary dark:bg-gray-800 transition-all duration-300" style={{ width: collapsed ? '4rem' : '16rem' }}>
           <div className="flex flex-col space-y-4">
             <button
               onClick={handleToggleTheme}
-              className="flex items-center px-4 py-2 text-sm font-medium text-white rounded-md hover:bg-sh-secondary dark:hover:bg-gray-700"
+              className="flex items-center px-4 py-2 text-sm font-medium text-white rounded-md hover:bg-sh-secondary dark:hover:bg-gray-700 w-full"
             >
               {isDark ? 
                 <SunIcon className="h-5 w-5 mr-3" /> : 
@@ -145,7 +145,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
             
             <button
               onClick={handleSignOut}
-              className="flex items-center px-4 py-2 text-sm font-medium text-white rounded-md hover:bg-sh-secondary dark:hover:bg-gray-700"
+              className="flex items-center px-4 py-2 text-sm font-medium text-white rounded-md hover:bg-sh-secondary dark:hover:bg-gray-700 w-full"
             >
               <ArrowRightOnRectangleIcon className="h-5 w-5 mr-3" />
               {!collapsed && <span>Sign Out</span>}
@@ -187,7 +187,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-4 bg-gray-50 dark:bg-gray-900">
+        <main className="flex-1 overflow-y-auto p-4 pb-24 bg-gray-50 dark:bg-gray-900">
           {children}
         </main>
       </div>

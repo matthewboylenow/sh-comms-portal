@@ -27,8 +27,42 @@ h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-baskerville), serif;
 }
 
+/* Dark mode text overrides */
+.dark .text-gray-500 {
+  color: #a0aec0 !important;
+}
+
+.dark .text-gray-600, 
+.dark .text-gray-700, 
+.dark .text-gray-800, 
+.dark .text-gray-900 {
+  color: #e2e8f0 !important;
+}
+
+.dark .bg-gray-100,
+.dark .bg-gray-200,
+.dark .bg-gray-300 {
+  background-color: #2d3748 !important;
+}
+
 /* Smooth transitions for toggling dark mode */
 body,
 .dark body {
   transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Fix for prose content in dark mode */
+.dark .prose {
+  color: #e2e8f0;
+}
+
+.dark .prose h1,
+.dark .prose h2,
+.dark .prose h3,
+.dark .prose h4,
+.dark .prose h5,
+.dark .prose h6,
+.dark .prose strong,
+.dark .prose b {
+  color: #f7fafc;
 }

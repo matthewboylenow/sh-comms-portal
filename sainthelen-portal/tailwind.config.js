@@ -32,42 +32,32 @@ module.exports = {
             },
           },
         },
-        dark: {
-          css: {
-            color: theme('colors.gray.100'),
-            a: {
-              color: theme('colors.blue.400'),
-              '&:hover': {
-                color: theme('colors.blue.300'),
-              },
-            },
-            h1: {
-              color: theme('colors.gray.100'),
-            },
-            h2: {
-              color: theme('colors.gray.100'),
-            },
-            h3: {
-              color: theme('colors.gray.100'),
-            },
-            h4: {
-              color: theme('colors.gray.100'),
-            },
-            code: {
-              color: theme('colors.gray.100'),
-            },
-            blockquote: {
-              color: theme('colors.gray.100'),
-            },
-            strong: {
-              color: theme('colors.gray.100'),
-            },
-          },
-        },
       }),
     },
   },
   plugins: [
     require('@tailwindcss/typography'),
+    function({ addBase, theme }) {
+      addBase({
+        '.dark': {
+          '--tw-prose-body': theme('colors.gray.300'),
+          '--tw-prose-headings': theme('colors.white'),
+          '--tw-prose-lead': theme('colors.gray.300'),
+          '--tw-prose-links': theme('colors.blue.400'),
+          '--tw-prose-bold': theme('colors.white'),
+          '--tw-prose-counters': theme('colors.gray.400'),
+          '--tw-prose-bullets': theme('colors.gray.400'),
+          '--tw-prose-hr': theme('colors.gray.600'),
+          '--tw-prose-quotes': theme('colors.gray.300'),
+          '--tw-prose-quote-borders': theme('colors.gray.600'),
+          '--tw-prose-captions': theme('colors.gray.400'),
+          '--tw-prose-code': theme('colors.gray.300'),
+          '--tw-prose-pre-code': theme('colors.gray.300'),
+          '--tw-prose-pre-bg': theme('colors.gray.800'),
+          '--tw-prose-th-borders': theme('colors.gray.600'),
+          '--tw-prose-td-borders': theme('colors.gray.600'),
+        },
+      });
+    },
   ],
 };
