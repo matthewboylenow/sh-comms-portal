@@ -27,6 +27,7 @@ interface EventData {
   title: string;
   description: string;
   start_date: string;
+  end_date: string;
   status: string;
   organizer?: string;
   website?: string;
@@ -179,6 +180,27 @@ function parseDateTime(dateStr: string, timeStr: string): string {
   }
 }
 
+/**
+ * Calculate end date (1 hour after start date by default)
+ */
+function calculateEndDate(startDateISO: string): string {
+  try {
+    const startDate = new Date(startDateISO);
+    const endDate = new Date(startDate);
+    
+    // Default duration is 1 hour if no specific duration is provided
+    endDate.setHours(endDate.getHours() + 1);
+    
+    return endDate.toISOString();
+  } catch (error) {
+    console.error('Error calculating end date:', error);
+    // Fallback: return a date 1 hour after now
+    const now = new Date();
+    now.setHours(now.getHours() + 1);
+    return now.toISOString();
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Parse request body
@@ -222,11 +244,15 @@ export async function POST(request: NextRequest) {
           safeToString(record.get('Time of Event'))
         );
         
+        // Calculate end date (1 hour after start by default)
+        const endDate = calculateEndDate(startDate);
+        
         // Create event data object
         const eventData: EventData = {
           title: safeToString(record.get('Name') || 'Unnamed Event'),
           description,
           start_date: startDate,
+          end_date: endDate,
           status: 'draft',
           organizer: safeToString(record.get('Ministry')),
           website: '',
