@@ -22,7 +22,9 @@ type AnnouncementRecord = {
 type AnnouncementCardProps = {
   record: AnnouncementRecord;
   summarizeMap: Record<string, boolean>;
+  calendarMap?: Record<string, boolean>; // New prop for calendar selection
   onToggleSummarize: (recordId: string, isChecked: boolean) => void;
+  onToggleCalendar?: (recordId: string, isChecked: boolean) => void; // New handler
   onOverrideStatus: (recordId: string, newStatus: string) => void;
   onToggleCompleted: (tableName: 'announcements', recordId: string, currentValue: boolean) => void;
 };
@@ -46,13 +48,16 @@ const formatDate = (dateStr: string) => {
 export default function AnnouncementCard({
   record,
   summarizeMap,
+  calendarMap = {}, // Default to empty object if not provided
   onToggleSummarize,
+  onToggleCalendar,
   onOverrideStatus,
   onToggleCompleted
 }: AnnouncementCardProps) {
   const [expanded, setExpanded] = useState(false);
   const f = record.fields;
   const isSummarize = summarizeMap[record.id] || false;
+  const isCalendarSelected = calendarMap[record.id] || false;
   
   // Determine badge color based on platforms
   const getPlatformBadge = (platform: string) => {
@@ -82,6 +87,9 @@ export default function AnnouncementCard({
     }
   };
 
+  // Check if calendar functions are available
+  const hasCalendarFeature = typeof onToggleCalendar === 'function';
+
   return (
     <Card className="mb-4">
       <CardHeader className="flex flex-row items-start justify-between">
@@ -105,6 +113,23 @@ export default function AnnouncementCard({
               Summarize
             </label>
           </div>
+          
+          {/* New Calendar Checkbox */}
+          {hasCalendarFeature && (
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id={`calendar-${record.id}`}
+                checked={isCalendarSelected}
+                onChange={(e) => onToggleCalendar?.(record.id, e.target.checked)}
+                className="h-4 w-4 text-green-600 rounded border-gray-300 focus:ring-green-500"
+              />
+              <label htmlFor={`calendar-${record.id}`} className="ml-2 text-sm text-gray-600 dark:text-gray-300">
+                Calendar
+              </label>
+            </div>
+          )}
+          
           <div className="flex items-center">
             <input
               type="checkbox"

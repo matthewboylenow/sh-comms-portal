@@ -15,6 +15,7 @@ import {
   MagnifyingGlassIcon,
   AdjustmentsHorizontalIcon,
   DocumentTextIcon,
+  CalendarIcon,
 } from '@heroicons/react/24/outline';
 
 /** Type Declarations */
@@ -46,18 +47,28 @@ export default function AdminClient() {
 
   // Summarize checkboxes
   const [summarizeMap, setSummarizeMap] = useState<Record<string, boolean>>({});
+  
+  // Calendar checkboxes
+  const [calendarMap, setCalendarMap] = useState<Record<string, boolean>>({});
 
   // Search and filters
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilters, setActiveFilters] = useState<Record<string, any>>({});
 
+  // Status states
   const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [loadingData, setLoadingData] = useState(false);
+  const [creatingEvents, setCreatingEvents] = useState(false);
+  
   // Start with hideCompleted = true
   const [hideCompleted, setHideCompleted] = useState(true);
 
   // If you want to display a summary from Summarize Items
   const [summary, setSummary] = useState<string | null>(null);
+  
+  // Calendar results
+  const [calendarResults, setCalendarResults] = useState<any[] | null>(null);
 
   // On load, if user is authenticated, fetch data
   useEffect(() => {
@@ -96,6 +107,7 @@ export default function AdminClient() {
   async function fetchAllRequests() {
     setLoadingData(true);
     setErrorMessage('');
+    setSuccessMessage('');
 
     try {
       const timeStamp = Date.now();
@@ -214,6 +226,68 @@ export default function AdminClient() {
       ...prev,
       [recordId]: isChecked,
     }));
+  }
+  
+  // Handle calendar checkbox toggle
+  function handleToggleCalendar(recordId: string, isChecked: boolean) {
+    setCalendarMap((prev) => ({
+      ...prev,
+      [recordId]: isChecked,
+    }));
+  }
+
+  // Process adding selected announcements to the calendar
+  async function handleAddToCalendar() {
+    // Get the selected record IDs
+    const selectedIds: string[] = [];
+    announcements.forEach((r) => {
+      if (calendarMap[r.id]) {
+        selectedIds.push(r.id);
+      }
+    });
+    
+    if (!selectedIds.length) {
+      setErrorMessage('No items selected for calendar!');
+      return;
+    }
+    
+    setCreatingEvents(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+    setCalendarResults(null);
+    
+    try {
+      const res = await fetch('/api/calendar/add-events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recordIds: selectedIds }),
+      });
+      
+      if (!res.ok) {
+        throw new Error('Failed to create events');
+      }
+      
+      const data = await res.json();
+      
+      if (data.success) {
+        setSuccessMessage(`Successfully created ${data.results.length} events${data.errors.length > 0 ? ` (with ${data.errors.length} errors)` : ''}!`);
+        setCalendarResults(data.results);
+        
+        // Clear checkboxes for successful items
+        const newCalendarMap = { ...calendarMap };
+        data.results.forEach((result: any) => {
+          delete newCalendarMap[result.recordId];
+        });
+        setCalendarMap(newCalendarMap);
+      } else {
+        throw new Error(data.error || 'Failed to create events');
+      }
+    } catch (err: any) {
+      console.error('Error adding to calendar:', err);
+      setErrorMessage('Error creating events: ' + (err as Error).message);
+    } finally {
+      setCreatingEvents(false);
+    }
   }
 
   async function handleSummarizeSelected() {
@@ -405,6 +479,16 @@ export default function AdminClient() {
           >
             Summarize Selected
           </Button>
+          
+          <Button
+            onClick={handleAddToCalendar}
+            variant="success"
+            className="flex items-center"
+            disabled={creatingEvents || Object.keys(calendarMap).filter(key => calendarMap[key]).length === 0}
+            icon={<CalendarIcon className="h-4 w-4" />}
+          >
+            Add To Calendar
+          </Button>
         </div>
       </div>
 
@@ -412,6 +496,13 @@ export default function AdminClient() {
       {errorMessage && (
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300 p-4 rounded-md mb-6">
           {errorMessage}
+        </div>
+      )}
+      
+      {/* Success messages */}
+      {successMessage && (
+        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-300 p-4 rounded-md mb-6">
+          {successMessage}
         </div>
       )}
 
@@ -422,6 +513,52 @@ export default function AdminClient() {
             <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-3">Generated Summary</h3>
             <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-md whitespace-pre-wrap text-sm">
               {summary}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
+      {/* Calendar Results */}
+      {calendarResults && calendarResults.length > 0 && (
+        <Card className="mb-6">
+          <CardContent className="p-4">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-3">Calendar Events Created</h3>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-800">
+                  <tr>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Event</th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800">
+                  {calendarResults.map((result, index) => (
+                    <tr key={index} className={index % 2 === 0 ? 'bg-white dark:bg-gray-900' : 'bg-gray-50 dark:bg-gray-800'}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                        Event #{index + 1} (ID: {result.eventId})
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        <a 
+                          href={result.editUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-blue-600 dark:text-blue-400 hover:underline mr-4"
+                        >
+                          Edit
+                        </a>
+                        <a 
+                          href={result.eventUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-blue-600 dark:text-blue-400 hover:underline"
+                        >
+                          View
+                        </a>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </CardContent>
         </Card>
@@ -469,7 +606,9 @@ export default function AdminClient() {
                 key={record.id}
                 record={record}
                 summarizeMap={summarizeMap}
+                calendarMap={calendarMap}
                 onToggleSummarize={handleToggleSummarize}
+                onToggleCalendar={handleToggleCalendar}
                 onOverrideStatus={handleOverrideStatus}
                 onToggleCompleted={handleCompleted}
               />
