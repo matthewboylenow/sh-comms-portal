@@ -29,7 +29,6 @@ interface EventData {
   start_date: string;
   end_date: string;
   status: string;
-  organizer?: string;
   website?: string;
   featured?: boolean;
 }
@@ -254,7 +253,6 @@ export async function POST(request: NextRequest) {
           start_date: startDate,
           end_date: endDate,
           status: 'draft',
-          organizer: safeToString(record.get('Ministry')),
           website: '',
           featured: false
         };
