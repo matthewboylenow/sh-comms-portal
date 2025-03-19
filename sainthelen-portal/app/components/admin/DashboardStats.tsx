@@ -1,11 +1,10 @@
-// app/components/admin/DashboardStats.tsx
+// app/components/admin/DashboardStats.tsx - Improved layout
 
 import { Card, CardContent } from '../ui/Card';
 import { 
   MegaphoneIcon,
   GlobeAltIcon,
   ChatBubbleLeftRightIcon,
-  CheckCircleIcon,
   ExclamationTriangleIcon,
   VideoCameraIcon,
   DocumentTextIcon,
@@ -44,41 +43,34 @@ export default function DashboardStats({
   const urgentFlyerReviews = flyerReviews.filter(r => !r.fields.Completed && r.fields.Urgency === 'urgent').length;
   const livestreamRequests = avRequests.filter(r => !r.fields.Completed && r.fields['Needs Livestream']).length;
   const urgentGraphicDesign = graphicDesign.filter(r => !r.fields.Completed && r.fields.Priority === 'Urgent').length;
-  
-  // Calculate today's date in YYYY-MM-DD format for date comparison
-  const today = new Date().toISOString().split('T')[0];
-  
-  // Find announcements with today's promotion start date
-  const todayStarting = announcements.filter(r => {
-    const startDate = r.fields['Promotion Start Date'];
-    return startDate === today;
-  }).length;
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
-      <Card>
-        <CardContent className="p-4 flex items-center">
-          <div className="rounded-full p-3 bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-200 mr-3">
-            <MegaphoneIcon className="h-6 w-6" />
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+      {/* Announcements Card */}
+      <Card className="relative overflow-hidden">
+        <CardContent className="p-6">
+          <div className="absolute top-0 left-0 w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-br-xl flex items-center justify-center">
+            <MegaphoneIcon className="h-8 w-8 text-blue-600 dark:text-blue-300" />
           </div>
-          <div>
+          <div className="ml-14 mt-1">
             <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Announcements</p>
-            <p className="text-2xl font-bold">{pendingAnnouncements}</p>
+            <p className="text-4xl font-bold mt-1">{pendingAnnouncements}</p>
           </div>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent className="p-4 flex items-center">
-          <div className="rounded-full p-3 bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-200 mr-3">
-            <GlobeAltIcon className="h-6 w-6" />
+      {/* Website Updates Card */}
+      <Card className="relative overflow-hidden">
+        <CardContent className="p-6">
+          <div className="absolute top-0 left-0 w-16 h-16 bg-green-100 dark:bg-green-900 rounded-br-xl flex items-center justify-center">
+            <GlobeAltIcon className="h-8 w-8 text-green-600 dark:text-green-300" />
           </div>
-          <div>
+          <div className="ml-14 mt-1">
             <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Website Updates</p>
             <div className="flex items-center">
-              <p className="text-2xl font-bold">{pendingWebsiteUpdates}</p>
+              <p className="text-4xl font-bold mt-1">{pendingWebsiteUpdates}</p>
               {urgentWebsiteUpdates > 0 && (
-                <span className="ml-2 flex items-center text-xs bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 px-2 py-0.5 rounded-full">
+                <span className="ml-2 flex items-center text-xs bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 px-2 py-0.5 rounded-full whitespace-nowrap">
                   <ExclamationTriangleIcon className="h-3 w-3 mr-1" />
                   {urgentWebsiteUpdates} urgent
                 </span>
@@ -88,29 +80,31 @@ export default function DashboardStats({
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent className="p-4 flex items-center">
-          <div className="rounded-full p-3 bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-200 mr-3">
-            <ChatBubbleLeftRightIcon className="h-6 w-6" />
+      {/* SMS Requests Card */}
+      <Card className="relative overflow-hidden">
+        <CardContent className="p-6">
+          <div className="absolute top-0 left-0 w-16 h-16 bg-purple-100 dark:bg-purple-900 rounded-br-xl flex items-center justify-center">
+            <ChatBubbleLeftRightIcon className="h-8 w-8 text-purple-600 dark:text-purple-300" />
           </div>
-          <div>
+          <div className="ml-14 mt-1">
             <p className="text-sm font-medium text-gray-500 dark:text-gray-400">SMS Requests</p>
-            <p className="text-2xl font-bold">{pendingSmsRequests}</p>
+            <p className="text-4xl font-bold mt-1">{pendingSmsRequests}</p>
           </div>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent className="p-4 flex items-center">
-          <div className="rounded-full p-3 bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-200 mr-3">
-            <VideoCameraIcon className="h-6 w-6" />
+      {/* A/V Requests Card */}
+      <Card className="relative overflow-hidden">
+        <CardContent className="p-6">
+          <div className="absolute top-0 left-0 w-16 h-16 bg-red-100 dark:bg-red-900 rounded-br-xl flex items-center justify-center">
+            <VideoCameraIcon className="h-8 w-8 text-red-600 dark:text-red-300" />
           </div>
-          <div>
+          <div className="ml-14 mt-1">
             <p className="text-sm font-medium text-gray-500 dark:text-gray-400">A/V Requests</p>
             <div className="flex items-center">
-              <p className="text-2xl font-bold">{pendingAvRequests}</p>
+              <p className="text-4xl font-bold mt-1">{pendingAvRequests}</p>
               {livestreamRequests > 0 && (
-                <span className="ml-2 flex items-center text-xs bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 px-2 py-0.5 rounded-full">
+                <span className="ml-2 flex items-center text-xs bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 px-2 py-0.5 rounded-full whitespace-nowrap">
                   <ExclamationTriangleIcon className="h-3 w-3 mr-1" />
                   {livestreamRequests} stream
                 </span>
@@ -120,17 +114,18 @@ export default function DashboardStats({
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent className="p-4 flex items-center">
-          <div className="rounded-full p-3 bg-amber-100 dark:bg-amber-900 text-amber-600 dark:text-amber-200 mr-3">
-            <DocumentTextIcon className="h-6 w-6" />
+      {/* Flyer Reviews Card */}
+      <Card className="relative overflow-hidden">
+        <CardContent className="p-6">
+          <div className="absolute top-0 left-0 w-16 h-16 bg-amber-100 dark:bg-amber-900 rounded-br-xl flex items-center justify-center">
+            <DocumentTextIcon className="h-8 w-8 text-amber-600 dark:text-amber-300" />
           </div>
-          <div>
+          <div className="ml-14 mt-1">
             <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Flyer Reviews</p>
             <div className="flex items-center">
-              <p className="text-2xl font-bold">{pendingFlyerReviews}</p>
+              <p className="text-4xl font-bold mt-1">{pendingFlyerReviews}</p>
               {urgentFlyerReviews > 0 && (
-                <span className="ml-2 flex items-center text-xs bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 px-2 py-0.5 rounded-full">
+                <span className="ml-2 flex items-center text-xs bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 px-2 py-0.5 rounded-full whitespace-nowrap">
                   <ExclamationTriangleIcon className="h-3 w-3 mr-1" />
                   {urgentFlyerReviews} urgent
                 </span>
@@ -140,17 +135,18 @@ export default function DashboardStats({
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent className="p-4 flex items-center">
-          <div className="rounded-full p-3 bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-200 mr-3">
-            <PencilSquareIcon className="h-6 w-6" />
+      {/* Graphic Design Card */}
+      <Card className="relative overflow-hidden">
+        <CardContent className="p-6">
+          <div className="absolute top-0 left-0 w-16 h-16 bg-indigo-100 dark:bg-indigo-900 rounded-br-xl flex items-center justify-center">
+            <PencilSquareIcon className="h-8 w-8 text-indigo-600 dark:text-indigo-300" />
           </div>
-          <div>
+          <div className="ml-14 mt-1">
             <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Graphic Design</p>
             <div className="flex items-center">
-              <p className="text-2xl font-bold">{pendingGraphicDesign}</p>
+              <p className="text-4xl font-bold mt-1">{pendingGraphicDesign}</p>
               {urgentGraphicDesign > 0 && (
-                <span className="ml-2 flex items-center text-xs bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 px-2 py-0.5 rounded-full">
+                <span className="ml-2 flex items-center text-xs bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 px-2 py-0.5 rounded-full whitespace-nowrap">
                   <ExclamationTriangleIcon className="h-3 w-3 mr-1" />
                   {urgentGraphicDesign} urgent
                 </span>
