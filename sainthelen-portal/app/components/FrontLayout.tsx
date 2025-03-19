@@ -3,7 +3,17 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { SunIcon, MoonIcon, HomeIcon, InformationCircleIcon, MegaphoneIcon, GlobeAltIcon, ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
+import { 
+  SunIcon, 
+  MoonIcon, 
+  HomeIcon, 
+  InformationCircleIcon, 
+  MegaphoneIcon, 
+  GlobeAltIcon, 
+  ChatBubbleLeftRightIcon,
+  VideoCameraIcon,
+  DocumentTextIcon
+} from '@heroicons/react/24/outline';
 
 interface FrontLayoutProps {
   children: React.ReactNode;
@@ -63,7 +73,7 @@ export default function FrontLayout({ children, title = 'Saint Helen Communicati
           </div>
 
           {/* Desktop navigation */}
-          <nav className="hidden md:flex space-x-8">
+          <nav className="hidden md:flex space-x-6">
             <Link href="/" className="flex items-center text-white hover:text-gray-300 transition">
               <HomeIcon className="h-5 w-5 mr-1" />
               <span>Home</span>
@@ -83,6 +93,14 @@ export default function FrontLayout({ children, title = 'Saint Helen Communicati
             <Link href="/sms-requests" className="flex items-center text-white hover:text-gray-300 transition">
               <ChatBubbleLeftRightIcon className="h-5 w-5 mr-1" />
               <span>SMS Requests</span>
+            </Link>
+            <Link href="/av-requests" className="flex items-center text-white hover:text-gray-300 transition">
+              <VideoCameraIcon className="h-5 w-5 mr-1" />
+              <span>A/V Requests</span>
+            </Link>
+            <Link href="/flyer-review" className="flex items-center text-white hover:text-gray-300 transition">
+              <DocumentTextIcon className="h-5 w-5 mr-1" />
+              <span>Flyer Review</span>
             </Link>
           </nav>
 
@@ -153,6 +171,22 @@ export default function FrontLayout({ children, title = 'Saint Helen Communicati
                 >
                   <ChatBubbleLeftRightIcon className="h-5 w-5 mr-2" />
                   <span>SMS Requests</span>
+                </Link>
+                <Link 
+                  href="/av-requests" 
+                  className="flex items-center text-white hover:bg-sh-secondary dark:hover:bg-gray-700 px-3 py-2 rounded"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <VideoCameraIcon className="h-5 w-5 mr-2" />
+                  <span>A/V Requests</span>
+                </Link>
+                <Link 
+                  href="/flyer-review" 
+                  className="flex items-center text-white hover:bg-sh-secondary dark:hover:bg-gray-700 px-3 py-2 rounded"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <DocumentTextIcon className="h-5 w-5 mr-2" />
+                  <span>Flyer Review</span>
                 </Link>
               </div>
             </div>

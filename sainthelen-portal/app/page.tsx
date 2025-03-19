@@ -4,7 +4,17 @@
 import FrontLayout from './components/FrontLayout';
 import Link from 'next/link';
 import { FrontCard, FrontCardContent, FrontCardHeader, FrontCardTitle } from './components/ui/FrontCard';
-import { InformationCircleIcon, CheckCircleIcon, ClockIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/outline';
+import { 
+  InformationCircleIcon, 
+  CheckCircleIcon, 
+  ClockIcon, 
+  QuestionMarkCircleIcon,
+  MegaphoneIcon,
+  GlobeAltIcon,
+  ChatBubbleLeftRightIcon,
+  VideoCameraIcon,
+  DocumentTextIcon
+} from '@heroicons/react/24/outline';
 
 export default function HomePage() {
   return (
@@ -16,7 +26,7 @@ export default function HomePage() {
           <h2 className="text-2xl md:text-3xl font-semibold text-gray-900 dark:text-white">Welcome!</h2>
           <p className="text-lg text-gray-700 dark:text-gray-300">
             Thank you for your ministry work. We're here to help with promotion and communications. 
-            Below you'll find resources and forms for submitting announcements, website updates, and SMS requests.
+            Below you'll find resources and forms for various communication services.
           </p>
         </div>
 
@@ -52,7 +62,7 @@ export default function HomePage() {
                 </div>
                 <h4 className="font-bold text-lg mb-2 text-gray-900 dark:text-white">2. Submit Your Request</h4>
                 <p className="text-gray-600 dark:text-gray-300 mb-4">
-                  Choose the appropriate form below—Announcements, Website Updates, or SMS—and fill it out.
+                  Choose the appropriate form below and fill it out with all necessary details.
                 </p>
                 <Link
                   href="#forms"
@@ -82,7 +92,7 @@ export default function HomePage() {
                 </div>
                 <h4 className="font-bold text-lg mb-2 text-gray-900 dark:text-white">4. We Handle the Rest</h4>
                 <p className="text-gray-600 dark:text-gray-300 mb-4">
-                  Our team reviews each request, coordinates promotion channels, and ensures timely sharing.
+                  Our team reviews each request, coordinates promotion channels, and ensures timely processing.
                 </p>
               </FrontCardContent>
             </FrontCard>
@@ -95,39 +105,30 @@ export default function HomePage() {
             <ClockIcon className="h-6 w-6 text-sh-primary dark:text-blue-400" />
             Estimated Turnaround
           </h3>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             <FrontCard>
               <FrontCardContent className="p-6">
-                <h4 className="font-bold text-lg mb-2 text-gray-900 dark:text-white">Bulletin</h4>
+                <h4 className="font-bold text-lg mb-2 text-gray-900 dark:text-white">Bulletin & Email Blast</h4>
                 <p className="text-gray-600 dark:text-gray-300">
-                  Typically finalized and printed on <strong>Fridays</strong>. We recommend submitting 1–2 weeks in advance.
+                  Bulletin is finalized on <strong>Fridays</strong>. Email blasts are sent <strong>Wednesday nights at 8 PM</strong>. We recommend submitting 1–2 weeks in advance.
                 </p>
               </FrontCardContent>
             </FrontCard>
 
             <FrontCard>
               <FrontCardContent className="p-6">
-                <h4 className="font-bold text-lg mb-2 text-gray-900 dark:text-white">Email Blast</h4>
+                <h4 className="font-bold text-lg mb-2 text-gray-900 dark:text-white">Website Updates & SMS</h4>
                 <p className="text-gray-600 dark:text-gray-300">
-                  Usually sent <strong>Wednesday nights at 8 PM</strong>. We pull announcements the prior day.
+                  Website changes are posted <strong>within 2–3 business days</strong> of approval. SMS messages are sent <strong>within 48 hours</strong> once approved.
                 </p>
               </FrontCardContent>
             </FrontCard>
 
             <FrontCard>
               <FrontCardContent className="p-6">
-                <h4 className="font-bold text-lg mb-2 text-gray-900 dark:text-white">Website Updates</h4>
+                <h4 className="font-bold text-lg mb-2 text-gray-900 dark:text-white">A/V & Flyer Reviews</h4>
                 <p className="text-gray-600 dark:text-gray-300">
-                  Changes are posted <strong>within 2–3 business days</strong> of approval.
-                </p>
-              </FrontCardContent>
-            </FrontCard>
-
-            <FrontCard>
-              <FrontCardContent className="p-6">
-                <h4 className="font-bold text-lg mb-2 text-gray-900 dark:text-white">SMS Messages</h4>
-                <p className="text-gray-600 dark:text-gray-300">
-                  Sent as needed, <strong>typically within 48 hours</strong> once approved.
+                  A/V requests take <strong>1-2 weeks</strong> to process. Flyer reviews are completed <strong>within 3-5 business days</strong> (1-2 days for urgent requests).
                 </p>
               </FrontCardContent>
             </FrontCard>
@@ -155,10 +156,10 @@ export default function HomePage() {
             <FrontCard>
               <FrontCardContent>
                 <h4 className="font-bold text-lg mb-2 text-sh-primary dark:text-blue-400">
-                  Do I need to sign in to use these forms?
+                  What's the difference between flyer review and an announcement?
                 </h4>
                 <p className="text-gray-600 dark:text-gray-300">
-                  No sign-in required. The forms are public for easy submission. Only our communications staff needs to sign in to access the admin dashboard.
+                  Flyer review is for feedback on your existing design before finalizing it, while an announcement is submitting content for our team to create and publish in our bulletin, email, and screens.
                 </p>
               </FrontCardContent>
             </FrontCard>
@@ -166,10 +167,21 @@ export default function HomePage() {
             <FrontCard>
               <FrontCardContent>
                 <h4 className="font-bold text-lg mb-2 text-sh-primary dark:text-blue-400">
-                  How do I know if my request was approved?
+                  How far in advance should I request A/V and livestreaming?
                 </h4>
                 <p className="text-gray-600 dark:text-gray-300">
-                  You'll receive a confirmation email right away. We'll follow up if we have questions, and you'll see your announcement go live in the requested channels.
+                  Please submit A/V requests at least 2 weeks before your event. Livestreaming requires additional setup and planning, so earlier notice is always appreciated.
+                </p>
+              </FrontCardContent>
+            </FrontCard>
+
+            <FrontCard>
+              <FrontCardContent>
+                <h4 className="font-bold text-lg mb-2 text-sh-primary dark:text-blue-400">
+                  Do I need to sign in to use these forms?
+                </h4>
+                <p className="text-gray-600 dark:text-gray-300">
+                  No sign-in required. The forms are public for easy submission. Only our communications staff needs to sign in to access the admin dashboard.
                 </p>
               </FrontCardContent>
             </FrontCard>
@@ -181,14 +193,17 @@ export default function HomePage() {
           <h3 className="text-xl md:text-2xl font-semibold mb-6 text-center text-gray-900 dark:text-white">
             Submit Your Request
           </h3>
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <FrontCard className="text-center">
               <FrontCardHeader>
-                <FrontCardTitle>Announcements</FrontCardTitle>
+                <FrontCardTitle className="flex items-center justify-center">
+                  <MegaphoneIcon className="h-5 w-5 mr-2 text-sh-primary" />
+                  Announcements
+                </FrontCardTitle>
               </FrontCardHeader>
               <FrontCardContent className="flex flex-col items-center">
                 <p className="mb-6 text-gray-600 dark:text-gray-300">
-                  Use this form to submit bulletins, email blasts, and church screen announcements.
+                  Submit bulletins, email blasts, and church screen announcements for your ministry or event.
                 </p>
                 <Link
                   href="/announcements"
@@ -201,7 +216,10 @@ export default function HomePage() {
 
             <FrontCard className="text-center">
               <FrontCardHeader>
-                <FrontCardTitle>Website Updates</FrontCardTitle>
+                <FrontCardTitle className="flex items-center justify-center">
+                  <GlobeAltIcon className="h-5 w-5 mr-2 text-sh-primary" />
+                  Website Updates
+                </FrontCardTitle>
               </FrontCardHeader>
               <FrontCardContent className="flex flex-col items-center">
                 <p className="mb-6 text-gray-600 dark:text-gray-300">
@@ -218,7 +236,10 @@ export default function HomePage() {
 
             <FrontCard className="text-center">
               <FrontCardHeader>
-                <FrontCardTitle>SMS Requests</FrontCardTitle>
+                <FrontCardTitle className="flex items-center justify-center">
+                  <ChatBubbleLeftRightIcon className="h-5 w-5 mr-2 text-sh-primary" />
+                  SMS Requests
+                </FrontCardTitle>
               </FrontCardHeader>
               <FrontCardContent className="flex flex-col items-center">
                 <p className="mb-6 text-gray-600 dark:text-gray-300">
@@ -232,6 +253,52 @@ export default function HomePage() {
                 </Link>
               </FrontCardContent>
             </FrontCard>
+
+            <FrontCard className="text-center">
+              <FrontCardHeader>
+                <FrontCardTitle className="flex items-center justify-center">
+                  <VideoCameraIcon className="h-5 w-5 mr-2 text-sh-primary" />
+                  A/V Requests
+                </FrontCardTitle>
+              </FrontCardHeader>
+              <FrontCardContent className="flex flex-col items-center">
+                <p className="mb-6 text-gray-600 dark:text-gray-300">
+                  Request audio/visual support or livestreaming for your parish event or meeting.
+                </p>
+                <Link
+                  href="/av-requests"
+                  className="bg-sh-primary hover:bg-sh-secondary text-white px-6 py-2 rounded transition"
+                >
+                  Submit A/V Request
+                </Link>
+              </FrontCardContent>
+            </FrontCard>
+
+            <FrontCard className="text-center">
+              <FrontCardHeader>
+                <FrontCardTitle className="flex items-center justify-center">
+                  <DocumentTextIcon className="h-5 w-5 mr-2 text-sh-primary" />
+                  Flyer Review
+                </FrontCardTitle>
+              </FrontCardHeader>
+              <FrontCardContent className="flex flex-col items-center">
+                <p className="mb-6 text-gray-600 dark:text-gray-300">
+                  Get feedback on your flyer design or request help making your flyer more effective.
+                </p>
+                <Link
+                  href="/flyer-review"
+                  className="bg-sh-primary hover:bg-sh-secondary text-white px-6 py-2 rounded transition"
+                >
+                  Submit Flyer for Review
+                </Link>
+              </FrontCardContent>
+            </FrontCard>
+
+            <div className="text-center md:col-span-2 lg:col-span-3 mt-8">
+              <p className="text-gray-600 dark:text-gray-300">
+                Need additional communications support? Contact us at <a href="mailto:communications@sainthelen.org" className="text-sh-primary dark:text-blue-400 hover:underline">communications@sainthelen.org</a>
+              </p>
+            </div>
           </div>
         </div>
       </section>
