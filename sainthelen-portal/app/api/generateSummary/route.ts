@@ -2,11 +2,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import Airtable from 'airtable';
-
 import Anthropic from '@anthropic-ai/sdk';
-import { Client } from '@microsoft/microsoft-graph-client';
-import { TokenCredentialAuthenticationProvider } from '@microsoft/microsoft-graph-client/authProviders/azureTokenCredentials';
-import { ClientSecretCredential } from '@azure/identity';
 
 export const dynamic = 'force-dynamic'; // ensures no static generation
 
@@ -23,40 +19,43 @@ const ANNOUNCEMENTS_TABLE = process.env.ANNOUNCEMENTS_TABLE_NAME || 'Announcemen
 const base = new Airtable({ apiKey: AIRTABLE_PERSONAL_TOKEN }).base(AIRTABLE_BASE_ID);
 
 //
-// 3) Configure MS Graph
-//
-function getGraphClient() {
-  const tenantId = process.env.AZURE_AD_TENANT_ID || '';
-  const clientId = process.env.AZURE_AD_CLIENT_ID || '';
-  const clientSecret = process.env.AZURE_AD_CLIENT_SECRET || '';
-
-  console.log('Graph Credentials:', { tenantId, clientId, clientSecretExists: !!clientSecret });
-
-  const credential = new ClientSecretCredential(tenantId, clientId, clientSecret);
-  const authProvider = new TokenCredentialAuthenticationProvider(credential, {
-    scopes: ['https://graph.microsoft.com/.default'],
-  });
-
-  return Client.initWithMiddleware({ authProvider });
-}
-
-//
-// 4) Configure Anthropic
+// 3) Configure Anthropic
 //
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || '',
 });
 
 //
-// 5) The brand pre-prompt
+// 4) The brand pre-prompt
 //
 const brandPrePrompt = `
-You are a communications assistant for Saint Helen Parish...
-[Your brand instructions, as before]
+You are a communications assistant for Saint Helen Parish, a modern Catholic church known for its warm, inclusive, authentic, and uplifting brand style.
+
+**Required Format** for each announcement:
+[Ministry]
+[Date] [Time]
+Email Blast Copy:
+Bulletin Copy:
+Screens Copy:
+[Attached Files]
+
+**Tone & Style**:
+- Warm, inviting, inclusive
+- Authentic, encouraging, uplifting
+- Clear and detailed
+- DO NOT produce arrays or JSON objects—just plain text.
+
+**Word Limits**:
+- Email Blast: ~65-70 words, must include event date/time, venue, CTA link if any
+- Bulletin Copy: ~50 words, same essential info but shorter
+- Screens Copy: extremely concise (~12-14 seconds), minimal text, short CTA or link
+- If attached files exist, list them under [Attached Files]
+
+For each selected announcement, transform it into that exact format. If any required fields (Ministry, Date, Time) are missing, gracefully show "N/A".
 `.trim();
 
 //
-// 6) parseMmDdYy("MM/DD/YY") => Date
+// 5) parseMmDdYy("MM/DD/YY") => Date
 //
 function parseMmDdYy(dateStr: string): Date | null {
   if (!dateStr) return null;
@@ -194,39 +193,11 @@ ${announcementsText}
     }
     console.log('Claude summary text (first 200 chars):', summaryText.slice(0, 200));
 
-    // C) Send Email via Microsoft Graph
-    console.log('Initializing MS Graph client...');
-    const client = getGraphClient();
-    const fromAddress = process.env.MAILBOX_TO_SEND_FROM || '';
-    const toAddress = 'mboyle@sainthelen.org';
-
-    const subject = 'Weekly Saint Helen Announcements Summary';
-    const htmlContent = `
-      <p>Hello,</p>
-      <p>Here is the weekly summary from Claude:</p>
-      <div style="white-space:pre-wrap; font-family:Arial, sans-serif;">
-        ${summaryText}
-      </div>
-      <p>Thank you!</p>
-    `;
-
-    console.log('Attempting to send email FROM:', fromAddress, 'TO:', toAddress);
-    const sendMailResponse = await client.api(`/users/${fromAddress}/sendMail`).post({
-      message: {
-        subject,
-        body: { contentType: 'html', content: htmlContent },
-        from: { emailAddress: { address: fromAddress } },
-        toRecipients: [{ emailAddress: { address: toAddress } }],
-      },
-      saveToSentItems: true,
-    });
-
-    console.log('Microsoft Graph sendMail response:', JSON.stringify(sendMailResponse, null, 2));
-
+    // Return the summary directly without sending email
     return NextResponse.json({
       success: true,
       summaryText,
-      message: 'Email sent with Claude summary!',
+      message: 'Generated announcements summary',
     });
   } catch (error: any) {
     console.error('Error in generateSummary route:', error);

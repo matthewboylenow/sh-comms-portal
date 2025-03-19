@@ -16,8 +16,6 @@ type SmsRequestRecord = {
 
 type SmsRequestCardProps = {
   record: SmsRequestRecord;
-  summarizeMap: Record<string, boolean>;
-  onToggleSummarize: (recordId: string, isChecked: boolean) => void;
   onToggleCompleted: (tableName: 'smsRequests', recordId: string, currentValue: boolean) => void;
 };
 
@@ -39,12 +37,9 @@ const formatDate = (dateStr: string) => {
 
 export default function SmsRequestCard({
   record,
-  summarizeMap,
-  onToggleSummarize,
   onToggleCompleted
 }: SmsRequestCardProps) {
   const f = record.fields;
-  const isSummarize = summarizeMap[record.id] || false;
   
   return (
     <Card className="mb-4">
@@ -59,18 +54,6 @@ export default function SmsRequestCard({
           </div>
         </div>
         <div className="flex items-center space-x-2">
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id={`summarize-${record.id}`}
-              checked={isSummarize}
-              onChange={(e) => onToggleSummarize(record.id, e.target.checked)}
-              className="h-4 w-4 text-sh-primary rounded border-gray-300 focus:ring-sh-primary"
-            />
-            <label htmlFor={`summarize-${record.id}`} className="ml-2 text-sm text-gray-600 dark:text-gray-300">
-              Summarize
-            </label>
-          </div>
           <div className="flex items-center">
             <input
               type="checkbox"

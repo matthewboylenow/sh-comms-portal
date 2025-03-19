@@ -16,13 +16,43 @@ import {
   MagnifyingGlassIcon,
   CheckCircleIcon,
   CalendarIcon,
+  ArrowUpIcon,
+  ArrowDownIcon,
 } from '@heroicons/react/24/outline';
 
 type TableName = 'announcements' | 'websiteUpdates' | 'smsRequests' | 'avRequests' | 'flyerReviews';
+type SortDirection = 'asc' | 'desc';
+type SortField = 'createdTime' | 'name' | 'date';
+
 type AdminRecord = {
   id: string;
   fields: Record<string, any>;
 };
+
+function parseDate(dateStr: string): Date | null {
+  if (!dateStr) return null;
+  // Check if in YYYY-MM-DD format
+  if (dateStr.includes('-')) {
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return null;
+    const [year, month, day] = parts.map((p) => parseInt(p, 10));
+    if (!year || !month || !day) return null;
+    const dt = new Date(year, month - 1, day);
+    return isNaN(dt.getTime()) ? null : dt;
+  }
+  // Check if in MM/DD/YY format
+  else if (dateStr.includes('/')) {
+    const parts = dateStr.split('/');
+    if (parts.length !== 3) return null;
+    let [month, day, year] = parts.map((p) => parseInt(p, 10));
+    // Convert 2-digit year to 4-digit
+    if (year < 100) year += 2000;
+    if (!year || !month || !day) return null;
+    const dt = new Date(year, month - 1, day);
+    return isNaN(dt.getTime()) ? null : dt;
+  }
+  return null;
+}
 
 export default function CompletedClient() {
   const { data: session, status } = useSession();
@@ -32,6 +62,10 @@ export default function CompletedClient() {
   const [smsRequests, setSmsRequests] = useState<AdminRecord[]>([]);
   const [avRequests, setAvRequests] = useState<AdminRecord[]>([]);
   const [flyerReviews, setFlyerReviews] = useState<AdminRecord[]>([]);
+  
+  // Sort state
+  const [sortField, setSortField] = useState<SortField>('createdTime');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -50,7 +84,7 @@ export default function CompletedClient() {
   // Calendar results
   const [calendarResults, setCalendarResults] = useState<any[] | null>(null);
 
-  // Dummy summarize map for the card components
+  // Dummy summarize map for the announcement card component
   const [summarizeMap, setSummarizeMap] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -58,6 +92,61 @@ export default function CompletedClient() {
       fetchCompleted();
     }
   }, [status]);
+
+  function sortRecords(records: AdminRecord[]): AdminRecord[] {
+    return [...records].sort((a, b) => {
+      if (sortField === 'createdTime') {
+        // Most Airtable records have a createdTime field
+        const aTime = a.fields.createdTime || '';
+        const bTime = b.fields.createdTime || '';
+        return sortDirection === 'asc' 
+          ? aTime.localeCompare(bTime)
+          : bTime.localeCompare(aTime);
+      } 
+      else if (sortField === 'name') {
+        const aName = a.fields.Name || '';
+        const bName = b.fields.Name || '';
+        return sortDirection === 'asc'
+          ? aName.localeCompare(bName)
+          : bName.localeCompare(aName);
+      }
+      else if (sortField === 'date') {
+        // First, determine which date field to use based on the table
+        let aDateStr = '';
+        let bDateStr = '';
+        
+        if (activeTab === 'announcements') {
+          aDateStr = a.fields['Date of Event'] || '';
+          bDateStr = b.fields['Date of Event'] || '';
+        } else if (activeTab === 'avRequests') {
+          // For A/V requests, just use the first date string in the dates and times field
+          const aDates = a.fields['Event Dates and Times'] || '';
+          const bDates = b.fields['Event Dates and Times'] || '';
+          aDateStr = aDates.split('\n')[0]?.split(',')[0] || '';
+          bDateStr = bDates.split('\n')[0]?.split(',')[0] || '';
+        } else if (activeTab === 'flyerReviews') {
+          aDateStr = a.fields['Event Date'] || '';
+          bDateStr = b.fields['Event Date'] || '';
+        } else if (activeTab === 'smsRequests') {
+          aDateStr = a.fields['Requested Date'] || '';
+          bDateStr = b.fields['Requested Date'] || '';
+        }
+        
+        const aDate = parseDate(aDateStr);
+        const bDate = parseDate(bDateStr);
+        
+        if (!aDate && !bDate) return 0;
+        if (!aDate) return sortDirection === 'asc' ? -1 : 1;
+        if (!bDate) return sortDirection === 'asc' ? 1 : -1;
+        
+        return sortDirection === 'asc'
+          ? aDate.getTime() - bDate.getTime()
+          : bDate.getTime() - aDate.getTime();
+      }
+      
+      return 0;
+    });
+  }
 
   async function fetchCompleted() {
     setLoadingData(true);
@@ -79,6 +168,18 @@ export default function CompletedClient() {
       setLoadingData(false);
     }
   }
+
+  // Function to handle changing sort
+  const handleSortChange = (field: SortField) => {
+    if (sortField === field) {
+      // If same field, toggle direction
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // If new field, set to that field and default to descending (newest first)
+      setSortField(field);
+      setSortDirection('desc');
+    }
+  };
 
   // Un-check completed items to move them back to active
   async function handleUncheck(tableName: TableName, recordId: string) {
@@ -152,7 +253,7 @@ export default function CompletedClient() {
     });
   }
 
-  // Apply filtering
+  // Apply filtering and sorting
   function getFilteredRecords() {
     let filteredAnnouncements = [...announcements];
     let filteredWebsiteUpdates = [...websiteUpdates];
@@ -167,6 +268,19 @@ export default function CompletedClient() {
       filteredSmsRequests = filterRecords(filteredSmsRequests, searchQuery);
       filteredAvRequests = filterRecords(filteredAvRequests, searchQuery);
       filteredFlyerReviews = filterRecords(filteredFlyerReviews, searchQuery);
+    }
+    
+    // Apply sorting based on active tab
+    if (activeTab === 'announcements') {
+      filteredAnnouncements = sortRecords(filteredAnnouncements);
+    } else if (activeTab === 'websiteUpdates') {
+      filteredWebsiteUpdates = sortRecords(filteredWebsiteUpdates);
+    } else if (activeTab === 'smsRequests') {
+      filteredSmsRequests = sortRecords(filteredSmsRequests);
+    } else if (activeTab === 'avRequests') {
+      filteredAvRequests = sortRecords(filteredAvRequests);
+    } else if (activeTab === 'flyerReviews') {
+      filteredFlyerReviews = sortRecords(filteredFlyerReviews);
     }
     
     return {
@@ -322,6 +436,50 @@ export default function CompletedClient() {
         </div>
 
         <div className="flex space-x-2">
+          <div className="flex mr-2 border border-gray-300 dark:border-gray-600 rounded-md overflow-hidden">
+            <button
+              onClick={() => handleSortChange('createdTime')}
+              className={`px-3 py-1.5 text-sm flex items-center ${
+                sortField === 'createdTime' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+              }`}
+            >
+              Date Added
+              {sortField === 'createdTime' && (
+                <span className="ml-1">
+                  {sortDirection === 'asc' ? <ArrowUpIcon className="h-3 w-3" /> : <ArrowDownIcon className="h-3 w-3" />}
+                </span>
+              )}
+            </button>
+            
+            <button
+              onClick={() => handleSortChange('name')}
+              className={`px-3 py-1.5 text-sm flex items-center border-l border-gray-300 dark:border-gray-600 ${
+                sortField === 'name' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+              }`}
+            >
+              Name
+              {sortField === 'name' && (
+                <span className="ml-1">
+                  {sortDirection === 'asc' ? <ArrowUpIcon className="h-3 w-3" /> : <ArrowDownIcon className="h-3 w-3" />}
+                </span>
+              )}
+            </button>
+            
+            <button
+              onClick={() => handleSortChange('date')}
+              className={`px-3 py-1.5 text-sm flex items-center border-l border-gray-300 dark:border-gray-600 ${
+                sortField === 'date' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+              }`}
+            >
+              Event Date
+              {sortField === 'date' && (
+                <span className="ml-1">
+                  {sortDirection === 'asc' ? <ArrowUpIcon className="h-3 w-3" /> : <ArrowDownIcon className="h-3 w-3" />}
+                </span>
+              )}
+            </button>
+          </div>
+
           <Button
             onClick={fetchCompleted}
             variant="outline"
@@ -332,22 +490,24 @@ export default function CompletedClient() {
             Refresh
           </Button>
           
-          <Button
-            onClick={handleAddToCalendar}
-            variant="success"
-            className="flex items-center"
-            disabled={creatingEvents || Object.keys(calendarMap).filter(key => calendarMap[key]).length === 0}
-            icon={<CalendarIcon className="h-4 w-4" />}
-          >
-            Add To Calendar
-          </Button>
+          {activeTab === 'announcements' && (
+            <Button
+              onClick={handleAddToCalendar}
+              variant="success"
+              className="flex items-center"
+              disabled={creatingEvents || Object.keys(calendarMap).filter(key => calendarMap[key]).length === 0}
+              icon={<CalendarIcon className="h-4 w-4" />}
+            >
+              Add To Calendar
+            </Button>
+          )}
         </div>
       </div>
 
       {/* Navigation Tabs */}
-      <div className="mb-6">
-        <div className="border-b border-gray-200 dark:border-gray-700">
-          <nav className="-mb-px flex space-x-6 overflow-x-auto">
+      <div className="mb-6 overflow-x-auto">
+        <div className="border-b border-gray-200 dark:border-gray-700 min-w-max">
+          <nav className="-mb-px flex space-x-6">
             <button
               onClick={() => setActiveTab('announcements')}
               className={`whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm ${
@@ -530,8 +690,6 @@ export default function CompletedClient() {
                 <WebsiteUpdateCard
                   key={record.id}
                   record={record}
-                  summarizeMap={summarizeMap}
-                  onToggleSummarize={handleToggleSummarize}
                   onToggleCompleted={() => handleUncheck('websiteUpdates', record.id)}
                 />
               ))
@@ -553,8 +711,6 @@ export default function CompletedClient() {
                 <SmsRequestCard
                   key={record.id}
                   record={record}
-                  summarizeMap={summarizeMap}
-                  onToggleSummarize={handleToggleSummarize}
                   onToggleCompleted={() => handleUncheck('smsRequests', record.id)}
                 />
               ))
@@ -576,8 +732,6 @@ export default function CompletedClient() {
                 <AVRequestCard
                   key={record.id}
                   record={record}
-                  summarizeMap={summarizeMap}
-                  onToggleSummarize={handleToggleSummarize}
                   onToggleCompleted={() => handleUncheck('avRequests', record.id)}
                 />
               ))
@@ -599,8 +753,6 @@ export default function CompletedClient() {
                 <FlyerReviewCard
                   key={record.id}
                   record={record}
-                  summarizeMap={summarizeMap}
-                  onToggleSummarize={handleToggleSummarize}
                   onToggleCompleted={() => handleUncheck('flyerReviews', record.id)}
                 />
               ))

@@ -18,10 +18,14 @@ import {
   AdjustmentsHorizontalIcon,
   DocumentTextIcon,
   CalendarIcon,
+  ArrowUpIcon,
+  ArrowDownIcon,
 } from '@heroicons/react/24/outline';
 
 /** Type Declarations */
 type TableName = 'announcements' | 'websiteUpdates' | 'smsRequests' | 'avRequests' | 'flyerReviews';
+type SortDirection = 'asc' | 'desc';
+type SortField = 'createdTime' | 'name' | 'date';
 
 type AdminRecord = {
   id: string;
@@ -31,12 +35,27 @@ type AdminRecord = {
 /** Helper parse date if needed for sorting. */
 function parseDate(dateStr: string): Date | null {
   if (!dateStr) return null;
-  const parts = dateStr.split('-');
-  if (parts.length !== 3) return null;
-  const [year, month, day] = parts.map((p) => parseInt(p, 10));
-  if (!year || !month || !day) return null;
-  const dt = new Date(year, month - 1, day);
-  return isNaN(dt.getTime()) ? null : dt;
+  // Check if in YYYY-MM-DD format
+  if (dateStr.includes('-')) {
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return null;
+    const [year, month, day] = parts.map((p) => parseInt(p, 10));
+    if (!year || !month || !day) return null;
+    const dt = new Date(year, month - 1, day);
+    return isNaN(dt.getTime()) ? null : dt;
+  }
+  // Check if in MM/DD/YY format
+  else if (dateStr.includes('/')) {
+    const parts = dateStr.split('/');
+    if (parts.length !== 3) return null;
+    let [month, day, year] = parts.map((p) => parseInt(p, 10));
+    // Convert 2-digit year to 4-digit
+    if (year < 100) year += 2000;
+    if (!year || !month || !day) return null;
+    const dt = new Date(year, month - 1, day);
+    return isNaN(dt.getTime()) ? null : dt;
+  }
+  return null;
 }
 
 export default function AdminClient() {
@@ -49,7 +68,11 @@ export default function AdminClient() {
   const [avRequests, setAvRequests] = useState<AdminRecord[]>([]);
   const [flyerReviews, setFlyerReviews] = useState<AdminRecord[]>([]);
 
-  // Summarize checkboxes
+  // Sort state
+  const [sortField, setSortField] = useState<SortField>('createdTime');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+
+  // Summarize checkboxes (only for announcements now)
   const [summarizeMap, setSummarizeMap] = useState<Record<string, boolean>>({});
   
   // Calendar checkboxes
@@ -84,48 +107,57 @@ export default function AdminClient() {
     }
   }, [status]);
 
-  function sortAnnouncements(records: AdminRecord[]): AdminRecord[] {
+  function sortRecords(records: AdminRecord[]): AdminRecord[] {
     return [...records].sort((a, b) => {
-      const aStr = a.fields['Promotion Start Date'] || '';
-      const bStr = b.fields['Promotion Start Date'] || '';
-      const aDate = parseDate(aStr);
-      const bDate = parseDate(bStr);
-      if (!aDate && !bDate) return 0;
-      if (!aDate) return 1;
-      if (!bDate) return -1;
-      return aDate.getTime() - bDate.getTime();
-    });
-  }
-
-  function sortWebsiteUpdates(records: AdminRecord[]): AdminRecord[] {
-    // Put urgent = true on top
-    return [...records].sort((a, b) => {
-      const aUrgent = !!a.fields['Urgent'];
-      const bUrgent = !!b.fields['Urgent'];
-      if (aUrgent && !bUrgent) return -1;
-      if (!aUrgent && bUrgent) return 1;
-      return 0;
-    });
-  }
-
-  function sortAvRequests(records: AdminRecord[]): AdminRecord[] {
-    // Put livestream = true on top
-    return [...records].sort((a, b) => {
-      const aLivestream = !!a.fields['Needs Livestream'];
-      const bLivestream = !!b.fields['Needs Livestream'];
-      if (aLivestream && !bLivestream) return -1;
-      if (!aLivestream && bLivestream) return 1;
-      return 0;
-    });
-  }
-
-  function sortFlyerReviews(records: AdminRecord[]): AdminRecord[] {
-    // Put urgent = true on top
-    return [...records].sort((a, b) => {
-      const aUrgent = a.fields['Urgency'] === 'urgent';
-      const bUrgent = b.fields['Urgency'] === 'urgent';
-      if (aUrgent && !bUrgent) return -1;
-      if (!aUrgent && bUrgent) return 1;
+      if (sortField === 'createdTime') {
+        // Most Airtable records have a createdTime field
+        const aTime = a.fields.createdTime || '';
+        const bTime = b.fields.createdTime || '';
+        return sortDirection === 'asc' 
+          ? aTime.localeCompare(bTime)
+          : bTime.localeCompare(aTime);
+      } 
+      else if (sortField === 'name') {
+        const aName = a.fields.Name || '';
+        const bName = b.fields.Name || '';
+        return sortDirection === 'asc'
+          ? aName.localeCompare(bName)
+          : bName.localeCompare(aName);
+      }
+      else if (sortField === 'date') {
+        // First, determine which date field to use based on the table
+        let aDateStr = '';
+        let bDateStr = '';
+        
+        if (activeTab === 'announcements') {
+          aDateStr = a.fields['Date of Event'] || '';
+          bDateStr = b.fields['Date of Event'] || '';
+        } else if (activeTab === 'avRequests') {
+          // For A/V requests, just use the first date string in the dates and times field
+          const aDates = a.fields['Event Dates and Times'] || '';
+          const bDates = b.fields['Event Dates and Times'] || '';
+          aDateStr = aDates.split('\n')[0]?.split(',')[0] || '';
+          bDateStr = bDates.split('\n')[0]?.split(',')[0] || '';
+        } else if (activeTab === 'flyerReviews') {
+          aDateStr = a.fields['Event Date'] || '';
+          bDateStr = b.fields['Event Date'] || '';
+        } else if (activeTab === 'smsRequests') {
+          aDateStr = a.fields['Requested Date'] || '';
+          bDateStr = b.fields['Requested Date'] || '';
+        }
+        
+        const aDate = parseDate(aDateStr);
+        const bDate = parseDate(bDateStr);
+        
+        if (!aDate && !bDate) return 0;
+        if (!aDate) return sortDirection === 'asc' ? -1 : 1;
+        if (!bDate) return sortDirection === 'asc' ? 1 : -1;
+        
+        return sortDirection === 'asc'
+          ? aDate.getTime() - bDate.getTime()
+          : bDate.getTime() - aDate.getTime();
+      }
+      
       return 0;
     });
   }
@@ -154,17 +186,12 @@ export default function AdminClient() {
 
       const data = await res.json();
 
-      // Sort if needed
-      const sortedAnnouncements = sortAnnouncements(data.announcements || []);
-      const sortedWebsiteUpdates = sortWebsiteUpdates(data.websiteUpdates || []);
-      const sortedAvRequests = sortAvRequests(data.avRequests || []);
-      const sortedFlyerReviews = sortFlyerReviews(data.flyerReviews || []);
-
-      setAnnouncements(sortedAnnouncements);
-      setWebsiteUpdates(sortedWebsiteUpdates);
+      // Apply sorting to all record types
+      setAnnouncements(data.announcements || []);
+      setWebsiteUpdates(data.websiteUpdates || []);
       setSmsRequests(data.smsRequests || []);
-      setAvRequests(sortedAvRequests);
-      setFlyerReviews(sortedFlyerReviews);
+      setAvRequests(data.avRequests || []);
+      setFlyerReviews(data.flyerReviews || []);
     } catch (err: any) {
       console.error(err);
       setErrorMessage(err.message);
@@ -172,6 +199,18 @@ export default function AdminClient() {
       setLoadingData(false);
     }
   }
+
+  // Function to handle changing sort
+  const handleSortChange = (field: SortField) => {
+    if (sortField === field) {
+      // If same field, toggle direction
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // If new field, set to that field and default to descending (newest first)
+      setSortField(field);
+      setSortDirection('desc');
+    }
+  };
 
   async function handleCompleted(
     tableName: TableName,
@@ -341,7 +380,7 @@ export default function AdminClient() {
 
   async function handleSummarizeSelected() {
     const selectedIds: string[] = [];
-    [...announcements, ...websiteUpdates, ...smsRequests, ...avRequests, ...flyerReviews].forEach((r) => {
+    [...announcements].forEach((r) => {
       if (summarizeMap[r.id]) {
         selectedIds.push(r.id);
       }
@@ -438,6 +477,19 @@ export default function AdminClient() {
       filteredFlyerReviews = filterRecords(filteredFlyerReviews, searchQuery);
     }
     
+    // Apply sorting based on active tab
+    if (activeTab === 'announcements') {
+      filteredAnnouncements = sortRecords(filteredAnnouncements);
+    } else if (activeTab === 'websiteUpdates') {
+      filteredWebsiteUpdates = sortRecords(filteredWebsiteUpdates);
+    } else if (activeTab === 'smsRequests') {
+      filteredSmsRequests = sortRecords(filteredSmsRequests);
+    } else if (activeTab === 'avRequests') {
+      filteredAvRequests = sortRecords(filteredAvRequests);
+    } else if (activeTab === 'flyerReviews') {
+      filteredFlyerReviews = sortRecords(filteredFlyerReviews);
+    }
+    
     return {
       filteredAnnouncements,
       filteredWebsiteUpdates,
@@ -502,7 +554,7 @@ export default function AdminClient() {
       
       {/* Toolbar */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0 mb-6">
-        <div className="flex items-center">
+        <div className="flex flex-col md:flex-row items-start md:items-center md:space-x-4 space-y-2 md:space-y-0">
           <div className="relative w-64">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
@@ -516,7 +568,7 @@ export default function AdminClient() {
             />
           </div>
 
-          <div className="ml-4 flex items-center">
+          <div className="flex items-center">
             <input
               type="checkbox"
               id="hideCompleted"
@@ -531,6 +583,50 @@ export default function AdminClient() {
         </div>
 
         <div className="flex space-x-2">
+          <div className="flex mr-2 border border-gray-300 dark:border-gray-600 rounded-md overflow-hidden">
+            <button
+              onClick={() => handleSortChange('createdTime')}
+              className={`px-3 py-1.5 text-sm flex items-center ${
+                sortField === 'createdTime' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+              }`}
+            >
+              Date Added
+              {sortField === 'createdTime' && (
+                <span className="ml-1">
+                  {sortDirection === 'asc' ? <ArrowUpIcon className="h-3 w-3" /> : <ArrowDownIcon className="h-3 w-3" />}
+                </span>
+              )}
+            </button>
+            
+            <button
+              onClick={() => handleSortChange('name')}
+              className={`px-3 py-1.5 text-sm flex items-center border-l border-gray-300 dark:border-gray-600 ${
+                sortField === 'name' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+              }`}
+            >
+              Name
+              {sortField === 'name' && (
+                <span className="ml-1">
+                  {sortDirection === 'asc' ? <ArrowUpIcon className="h-3 w-3" /> : <ArrowDownIcon className="h-3 w-3" />}
+                </span>
+              )}
+            </button>
+            
+            <button
+              onClick={() => handleSortChange('date')}
+              className={`px-3 py-1.5 text-sm flex items-center border-l border-gray-300 dark:border-gray-600 ${
+                sortField === 'date' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+              }`}
+            >
+              Event Date
+              {sortField === 'date' && (
+                <span className="ml-1">
+                  {sortDirection === 'asc' ? <ArrowUpIcon className="h-3 w-3" /> : <ArrowDownIcon className="h-3 w-3" />}
+                </span>
+              )}
+            </button>
+          </div>
+
           <Button
             onClick={fetchAllRequests}
             variant="outline"
@@ -541,32 +637,36 @@ export default function AdminClient() {
             Refresh
           </Button>
 
-          <Button
-            onClick={handleSummarizeSelected}
-            variant="primary"
-            className="flex items-center"
-            disabled={loadingData || Object.keys(summarizeMap).filter(key => summarizeMap[key]).length === 0}
-            icon={<DocumentTextIcon className="h-4 w-4" />}
-          >
-            Summarize Selected
-          </Button>
-          
-          <Button
-            onClick={handleAddToCalendar}
-            variant="success"
-            className="flex items-center"
-            disabled={creatingEvents || Object.keys(calendarMap).filter(key => calendarMap[key]).length === 0}
-            icon={<CalendarIcon className="h-4 w-4" />}
-          >
-            Add To Calendar
-          </Button>
+          {activeTab === 'announcements' && (
+            <>
+              <Button
+                onClick={handleSummarizeSelected}
+                variant="primary"
+                className="flex items-center"
+                disabled={loadingData || Object.keys(summarizeMap).filter(key => summarizeMap[key]).length === 0}
+                icon={<DocumentTextIcon className="h-4 w-4" />}
+              >
+                Summarize Selected
+              </Button>
+              
+              <Button
+                onClick={handleAddToCalendar}
+                variant="success"
+                className="flex items-center"
+                disabled={creatingEvents || Object.keys(calendarMap).filter(key => calendarMap[key]).length === 0}
+                icon={<CalendarIcon className="h-4 w-4" />}
+              >
+                Add To Calendar
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
       {/* Navigation Tabs */}
-      <div className="mb-6">
-        <div className="border-b border-gray-200 dark:border-gray-700">
-          <nav className="-mb-px flex space-x-6 overflow-x-auto">
+      <div className="mb-6 overflow-x-auto">
+        <div className="border-b border-gray-200 dark:border-gray-700 min-w-max">
+          <nav className="-mb-px flex space-x-6">
             <button
               onClick={() => setActiveTab('announcements')}
               className={`whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm ${
@@ -762,8 +862,6 @@ export default function AdminClient() {
                 <WebsiteUpdateCard
                   key={record.id}
                   record={record}
-                  summarizeMap={summarizeMap}
-                  onToggleSummarize={handleToggleSummarize}
                   onToggleCompleted={handleCompleted}
                 />
               ))
@@ -785,8 +883,6 @@ export default function AdminClient() {
                 <SmsRequestCard
                   key={record.id}
                   record={record}
-                  summarizeMap={summarizeMap}
-                  onToggleSummarize={handleToggleSummarize}
                   onToggleCompleted={handleCompleted}
                 />
               ))
@@ -808,8 +904,6 @@ export default function AdminClient() {
                 <AVRequestCard
                   key={record.id}
                   record={record}
-                  summarizeMap={summarizeMap}
-                  onToggleSummarize={handleToggleSummarize}
                   onToggleCompleted={handleCompleted}
                 />
               ))
@@ -831,8 +925,6 @@ export default function AdminClient() {
                 <FlyerReviewCard
                   key={record.id}
                   record={record}
-                  summarizeMap={summarizeMap}
-                  onToggleSummarize={handleToggleSummarize}
                   onToggleCompleted={handleCompleted}
                 />
               ))

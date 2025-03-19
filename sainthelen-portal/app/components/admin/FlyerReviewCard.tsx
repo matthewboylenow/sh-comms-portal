@@ -20,20 +20,15 @@ type FlyerReviewRecord = {
 
 type FlyerReviewCardProps = {
   record: FlyerReviewRecord;
-  summarizeMap: Record<string, boolean>;
-  onToggleSummarize: (recordId: string, isChecked: boolean) => void;
   onToggleCompleted: (tableName: 'flyerReviews', recordId: string, currentValue: boolean) => void;
 };
 
 export default function FlyerReviewCard({
   record,
-  summarizeMap,
-  onToggleSummarize,
   onToggleCompleted
 }: FlyerReviewCardProps) {
   const [expanded, setExpanded] = useState(false);
   const f = record.fields;
-  const isSummarize = summarizeMap[record.id] || false;
   const isUrgent = f.Urgency === 'urgent';
   
   // Format date if available
@@ -74,18 +69,6 @@ export default function FlyerReviewCard({
           </div>
         </div>
         <div className="flex items-center space-x-2">
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id={`summarize-${record.id}`}
-              checked={isSummarize}
-              onChange={(e) => onToggleSummarize(record.id, e.target.checked)}
-              className="h-4 w-4 text-sh-primary rounded border-gray-300 focus:ring-sh-primary"
-            />
-            <label htmlFor={`summarize-${record.id}`} className="ml-2 text-sm text-gray-600 dark:text-gray-300">
-              Summarize
-            </label>
-          </div>
           <div className="flex items-center">
             <input
               type="checkbox"

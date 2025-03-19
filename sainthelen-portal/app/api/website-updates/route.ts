@@ -21,7 +21,7 @@ const websiteUpdatesTable = process.env.WEBSITE_UPDATES_TABLE_NAME || 'Website U
 
 const base = new Airtable({ apiKey: personalToken }).base(baseId);
 
-// Microsoft Graph client (same approach as in Announcements)
+// Microsoft Graph client
 function getGraphClient() {
   const tenantId = process.env.AZURE_AD_TENANT_ID || '';
   const clientId = process.env.AZURE_AD_CLIENT_ID || '';
@@ -43,13 +43,16 @@ export async function POST(request: NextRequest) {
     // Build the fileLinks string for Airtable
     const fileLinksString = data.fileLinks?.length ? data.fileLinks.join('\n') : '';
 
+    // Fix: Convert the urgent boolean to a proper Yes/No string for Airtable
+    const urgentValue = data.urgent ? 'Yes' : 'No';
+
     // Create a record in Airtable
     await base(websiteUpdatesTable).create([
       {
         fields: {
           Name: data.name,
           Email: data.email,
-          Urgent: data.urgent ? 'Yes' : 'No',
+          Urgent: urgentValue, // Fixed: Pass string instead of boolean
           'Page to Update': data.pageToUpdate,
           Description: data.description,
           'Sign-Up URL': data.signUpUrl || '',
@@ -58,7 +61,7 @@ export async function POST(request: NextRequest) {
       },
     ]);
 
-    // Send a confirmation email via Microsoft Graph
+    // Send confirmation email via Microsoft Graph
     const client = getGraphClient();
     const fromAddress = process.env.MAILBOX_TO_SEND_FROM || '';
     const subject = 'Saint Helen Website Update Request Received';

@@ -19,20 +19,15 @@ type AVRequestRecord = {
 
 type AVRequestCardProps = {
   record: AVRequestRecord;
-  summarizeMap: Record<string, boolean>;
-  onToggleSummarize: (recordId: string, isChecked: boolean) => void;
   onToggleCompleted: (tableName: 'avRequests', recordId: string, currentValue: boolean) => void;
 };
 
 export default function AVRequestCard({
   record,
-  summarizeMap,
-  onToggleSummarize,
   onToggleCompleted
 }: AVRequestCardProps) {
   const [expanded, setExpanded] = useState(false);
   const f = record.fields;
-  const isSummarize = summarizeMap[record.id] || false;
   const needsLivestream = !!f['Needs Livestream'];
   
   return (
@@ -54,18 +49,6 @@ export default function AVRequestCard({
           </div>
         </div>
         <div className="flex items-center space-x-2">
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id={`summarize-${record.id}`}
-              checked={isSummarize}
-              onChange={(e) => onToggleSummarize(record.id, e.target.checked)}
-              className="h-4 w-4 text-sh-primary rounded border-gray-300 focus:ring-sh-primary"
-            />
-            <label htmlFor={`summarize-${record.id}`} className="ml-2 text-sm text-gray-600 dark:text-gray-300">
-              Summarize
-            </label>
-          </div>
           <div className="flex items-center">
             <input
               type="checkbox"
