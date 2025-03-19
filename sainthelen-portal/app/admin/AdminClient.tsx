@@ -552,116 +552,122 @@ export default function AdminClient() {
         hideCompleted={hideCompleted}
       />
       
-      {/* Toolbar */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0 mb-6">
-        <div className="flex flex-col md:flex-row items-start md:items-center md:space-x-4 space-y-2 md:space-y-0">
-          <div className="relative w-64">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
-            </div>
-            <input
-              type="text"
-              className="pl-10 focus:ring-sh-primary focus:border-sh-primary block w-full sm:text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md"
-              placeholder="Search..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id="hideCompleted"
-              className="h-4 w-4 text-sh-primary rounded border-gray-300 focus:ring-sh-primary"
-              checked={hideCompleted}
-              onChange={() => setHideCompleted(!hideCompleted)}
-            />
-            <label htmlFor="hideCompleted" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
-              Hide Completed
-            </label>
-          </div>
-        </div>
-
-        <div className="flex space-x-2">
-          <div className="flex mr-2 border border-gray-300 dark:border-gray-600 rounded-md overflow-hidden">
-            <button
-              onClick={() => handleSortChange('createdTime')}
-              className={`px-3 py-1.5 text-sm flex items-center ${
-                sortField === 'createdTime' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-              }`}
-            >
-              Date Added
-              {sortField === 'createdTime' && (
-                <span className="ml-1">
-                  {sortDirection === 'asc' ? <ArrowUpIcon className="h-3 w-3" /> : <ArrowDownIcon className="h-3 w-3" />}
-                </span>
-              )}
-            </button>
-            
-            <button
-              onClick={() => handleSortChange('name')}
-              className={`px-3 py-1.5 text-sm flex items-center border-l border-gray-300 dark:border-gray-600 ${
-                sortField === 'name' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-              }`}
-            >
-              Name
-              {sortField === 'name' && (
-                <span className="ml-1">
-                  {sortDirection === 'asc' ? <ArrowUpIcon className="h-3 w-3" /> : <ArrowDownIcon className="h-3 w-3" />}
-                </span>
-              )}
-            </button>
-            
-            <button
-              onClick={() => handleSortChange('date')}
-              className={`px-3 py-1.5 text-sm flex items-center border-l border-gray-300 dark:border-gray-600 ${
-                sortField === 'date' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-              }`}
-            >
-              Event Date
-              {sortField === 'date' && (
-                <span className="ml-1">
-                  {sortDirection === 'asc' ? <ArrowUpIcon className="h-3 w-3" /> : <ArrowDownIcon className="h-3 w-3" />}
-                </span>
-              )}
-            </button>
-          </div>
-
-          <Button
-            onClick={fetchAllRequests}
-            variant="outline"
-            className="flex items-center"
-            disabled={loadingData}
-            icon={<ArrowPathIcon className={`h-4 w-4 ${loadingData ? 'animate-spin' : ''}`} />}
-          >
-            Refresh
-          </Button>
-
-          {activeTab === 'announcements' && (
-            <>
-              <Button
-                onClick={handleSummarizeSelected}
-                variant="primary"
-                className="flex items-center"
-                disabled={loadingData || Object.keys(summarizeMap).filter(key => summarizeMap[key]).length === 0}
-                icon={<DocumentTextIcon className="h-4 w-4" />}
-              >
-                Summarize Selected
-              </Button>
-              
-              <Button
-                onClick={handleAddToCalendar}
-                variant="success"
-                className="flex items-center"
-                disabled={creatingEvents || Object.keys(calendarMap).filter(key => calendarMap[key]).length === 0}
-                icon={<CalendarIcon className="h-4 w-4" />}
-              >
-                Add To Calendar
-              </Button>
-            </>
-          )}
-        </div>
+      // Toolbar section with improved layout
+<div className="mb-6">
+  {/* Top row with Search and Hide Completed */}
+  <div className="flex flex-col md:flex-row gap-4 mb-4">
+    <div className="relative w-full md:w-64">
+      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+        <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
       </div>
+      <input
+        type="text"
+        className="pl-10 focus:ring-sh-primary focus:border-sh-primary block w-full sm:text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md"
+        placeholder="Search..."
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+      />
+    </div>
+    
+    <div className="flex items-center">
+      <input
+        type="checkbox"
+        id="hideCompleted"
+        className="h-4 w-4 text-sh-primary rounded border-gray-300 focus:ring-sh-primary"
+        checked={hideCompleted}
+        onChange={() => setHideCompleted(!hideCompleted)}
+      />
+      <label htmlFor="hideCompleted" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+        Hide Completed
+      </label>
+    </div>
+  </div>
+  
+  {/* Bottom row with sorting and action buttons */}
+  <div className="flex flex-wrap gap-2 justify-between items-center">
+    {/* Sort controls */}
+    <div className="border border-gray-300 dark:border-gray-600 rounded-md overflow-hidden">
+      <button
+        onClick={() => handleSortChange('createdTime')}
+        className={`px-3 py-1.5 text-sm flex items-center ${
+          sortField === 'createdTime' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+        }`}
+      >
+        Date Added
+        {sortField === 'createdTime' && (
+          <span className="ml-1">
+            {sortDirection === 'asc' ? <ArrowUpIcon className="h-3 w-3" /> : <ArrowDownIcon className="h-3 w-3" />}
+          </span>
+        )}
+      </button>
+      
+      <button
+        onClick={() => handleSortChange('name')}
+        className={`px-3 py-1.5 text-sm flex items-center border-l border-gray-300 dark:border-gray-600 ${
+          sortField === 'name' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+        }`}
+      >
+        Name
+        {sortField === 'name' && (
+          <span className="ml-1">
+            {sortDirection === 'asc' ? <ArrowUpIcon className="h-3 w-3" /> : <ArrowDownIcon className="h-3 w-3" />}
+          </span>
+        )}
+      </button>
+      
+      <button
+        onClick={() => handleSortChange('date')}
+        className={`px-3 py-1.5 text-sm flex items-center border-l border-gray-300 dark:border-gray-600 ${
+          sortField === 'date' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+        }`}
+      >
+        Event Date
+        {sortField === 'date' && (
+          <span className="ml-1">
+            {sortDirection === 'asc' ? <ArrowUpIcon className="h-3 w-3" /> : <ArrowDownIcon className="h-3 w-3" />}
+          </span>
+        )}
+      </button>
+    </div>
+
+    {/* Action buttons */}
+    <div className="flex gap-2">
+      <Button
+        onClick={fetchAllRequests}
+        variant="outline"
+        className="flex items-center"
+        disabled={loadingData}
+        icon={<ArrowPathIcon className={`h-4 w-4 ${loadingData ? 'animate-spin' : ''}`} />}
+      >
+        Refresh
+      </Button>
+
+      {activeTab === 'announcements' && (
+        <>
+          <Button
+            onClick={handleSummarizeSelected}
+            variant="primary"
+            className="flex items-center"
+            disabled={loadingData || Object.keys(summarizeMap).filter(key => summarizeMap[key]).length === 0}
+            icon={<DocumentTextIcon className="h-4 w-4" />}
+          >
+            Summarize
+          </Button>
+          
+          <Button
+            onClick={handleAddToCalendar}
+            variant="success"
+            className="flex items-center"
+            disabled={creatingEvents || Object.keys(calendarMap).filter(key => calendarMap[key]).length === 0}
+            icon={<CalendarIcon className="h-4 w-4" />}
+          >
+            Add To Calendar
+          </Button>
+        </>
+      )}
+    </div>
+  </div>
+</div>
 
       {/* Navigation Tabs */}
       <div className="mb-6 overflow-x-auto">
