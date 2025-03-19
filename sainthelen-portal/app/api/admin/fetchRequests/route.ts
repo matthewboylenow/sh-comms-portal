@@ -11,6 +11,8 @@ const baseId = process.env.AIRTABLE_BASE_ID || '';
 const announcementsTable = process.env.ANNOUNCEMENTS_TABLE_NAME || 'Announcements';
 const websiteUpdatesTable = process.env.WEBSITE_UPDATES_TABLE_NAME || 'Website Updates';
 const smsRequestsTable = process.env.SMS_REQUESTS_TABLE_NAME || 'SMS Requests';
+const avRequestsTable = process.env.AV_REQUESTS_TABLE_NAME || 'A/V Requests';
+const flyerReviewsTable = process.env.FLYER_REVIEW_TABLE_NAME || 'Flyer Reviews';
 
 const base = new Airtable({ apiKey: personalToken }).base(baseId);
 
@@ -31,6 +33,16 @@ export async function GET(request: NextRequest) {
       .select({ view: 'Grid view' })
       .all();
 
+    // 4) Fetch A/V Requests
+    const avRequestsRecords = await base(avRequestsTable)
+      .select({ view: 'Grid view' })
+      .all();
+
+    // 5) Fetch Flyer Reviews
+    const flyerReviewsRecords = await base(flyerReviewsTable)
+      .select({ view: 'Grid view' })
+      .all();
+
     // Build JSON
     const data = {
       announcements: announcementsRecords.map((r) => ({
@@ -42,6 +54,14 @@ export async function GET(request: NextRequest) {
         fields: r.fields,
       })),
       smsRequests: smsRequestsRecords.map((r) => ({
+        id: r.id,
+        fields: r.fields,
+      })),
+      avRequests: avRequestsRecords.map((r) => ({
+        id: r.id,
+        fields: r.fields,
+      })),
+      flyerReviews: flyerReviewsRecords.map((r) => ({
         id: r.id,
         fields: r.fields,
       })),

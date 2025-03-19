@@ -3,27 +3,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Airtable from 'airtable';
 
-// Force dynamic so Next.js doesn’t attempt static generation
+// Force dynamic so Next.js doesn't attempt static generation
 export const dynamic = 'force-dynamic';
 
 /**
- * ENV variables for your three tables:
- *   ANNOUNCEMENTS_TABLE_NAME
- *   WEBSITE_UPDATES_TABLE_NAME
- *   SMS_REQUESTS_TABLE_NAME
+ * ENV variables for all tables:
  */
 const AIRTABLE_PERSONAL_TOKEN = process.env.AIRTABLE_PERSONAL_TOKEN || '';
 const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID || '';
 const ANNOUNCEMENTS_TABLE = process.env.ANNOUNCEMENTS_TABLE_NAME || 'Announcements';
 const WEBSITE_UPDATES_TABLE = process.env.WEBSITE_UPDATES_TABLE_NAME || 'Website Updates';
 const SMS_REQUESTS_TABLE = process.env.SMS_REQUESTS_TABLE_NAME || 'SMS Requests';
+const AV_REQUESTS_TABLE = process.env.AV_REQUESTS_TABLE_NAME || 'A/V Requests';
+const FLYER_REVIEWS_TABLE = process.env.FLYER_REVIEW_TABLE_NAME || 'Flyer Reviews';
 
 const base = new Airtable({ apiKey: AIRTABLE_PERSONAL_TOKEN }).base(AIRTABLE_BASE_ID);
 
 /**
  * Request body shape:
  * {
- *   "table": "announcements" | "websiteUpdates" | "smsRequests",
+ *   "table": "announcements" | "websiteUpdates" | "smsRequests" | "avRequests" | "flyerReviews",
  *   "recordId": string,
  *   "completed": boolean
  * }
@@ -48,6 +47,10 @@ export async function POST(request: NextRequest) {
       tableName = WEBSITE_UPDATES_TABLE;
     } else if (table === 'smsRequests') {
       tableName = SMS_REQUESTS_TABLE;
+    } else if (table === 'avRequests') {
+      tableName = AV_REQUESTS_TABLE;
+    } else if (table === 'flyerReviews') {
+      tableName = FLYER_REVIEWS_TABLE;
     } else {
       throw new Error(`Unknown table type: ${table}`);
     }
@@ -63,11 +66,11 @@ export async function POST(request: NextRequest) {
     ]);
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
-    console.error('Error in markCompleted route:', error);
+  } catch (err: any) {
+    console.error('Error in markCompleted route:', err);
     return new NextResponse(
       JSON.stringify({
-        error: error.message || 'Failed to mark completed',
+        error: err.message || 'Failed to mark completed',
       }),
       { status: 500 }
     );

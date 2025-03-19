@@ -8,6 +8,8 @@ import DashboardStats from '../components/admin/DashboardStats';
 import AnnouncementCard from '../components/admin/AnnouncementCard';
 import WebsiteUpdateCard from '../components/admin/WebsiteUpdateCard';
 import SmsRequestCard from '../components/admin/SmsRequestCard';
+import AVRequestCard from '../components/admin/AVRequestCard';
+import FlyerReviewCard from '../components/admin/FlyerReviewCard';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent } from '../components/ui/Card';
 import {
@@ -19,7 +21,7 @@ import {
 } from '@heroicons/react/24/outline';
 
 /** Type Declarations */
-type TableName = 'announcements' | 'websiteUpdates' | 'smsRequests';
+type TableName = 'announcements' | 'websiteUpdates' | 'smsRequests' | 'avRequests' | 'flyerReviews';
 
 type AdminRecord = {
   id: string;
@@ -44,6 +46,8 @@ export default function AdminClient() {
   const [announcements, setAnnouncements] = useState<AdminRecord[]>([]);
   const [websiteUpdates, setWebsiteUpdates] = useState<AdminRecord[]>([]);
   const [smsRequests, setSmsRequests] = useState<AdminRecord[]>([]);
+  const [avRequests, setAvRequests] = useState<AdminRecord[]>([]);
+  const [flyerReviews, setFlyerReviews] = useState<AdminRecord[]>([]);
 
   // Summarize checkboxes
   const [summarizeMap, setSummarizeMap] = useState<Record<string, boolean>>({});
@@ -70,6 +74,9 @@ export default function AdminClient() {
   // Calendar results
   const [calendarResults, setCalendarResults] = useState<any[] | null>(null);
 
+  // Active tab
+  const [activeTab, setActiveTab] = useState<TableName>('announcements');
+
   // On load, if user is authenticated, fetch data
   useEffect(() => {
     if (status === 'authenticated') {
@@ -95,6 +102,28 @@ export default function AdminClient() {
     return [...records].sort((a, b) => {
       const aUrgent = !!a.fields['Urgent'];
       const bUrgent = !!b.fields['Urgent'];
+      if (aUrgent && !bUrgent) return -1;
+      if (!aUrgent && bUrgent) return 1;
+      return 0;
+    });
+  }
+
+  function sortAvRequests(records: AdminRecord[]): AdminRecord[] {
+    // Put livestream = true on top
+    return [...records].sort((a, b) => {
+      const aLivestream = !!a.fields['Needs Livestream'];
+      const bLivestream = !!b.fields['Needs Livestream'];
+      if (aLivestream && !bLivestream) return -1;
+      if (!aLivestream && bLivestream) return 1;
+      return 0;
+    });
+  }
+
+  function sortFlyerReviews(records: AdminRecord[]): AdminRecord[] {
+    // Put urgent = true on top
+    return [...records].sort((a, b) => {
+      const aUrgent = a.fields['Urgency'] === 'urgent';
+      const bUrgent = b.fields['Urgency'] === 'urgent';
       if (aUrgent && !bUrgent) return -1;
       if (!aUrgent && bUrgent) return 1;
       return 0;
@@ -128,10 +157,14 @@ export default function AdminClient() {
       // Sort if needed
       const sortedAnnouncements = sortAnnouncements(data.announcements || []);
       const sortedWebsiteUpdates = sortWebsiteUpdates(data.websiteUpdates || []);
+      const sortedAvRequests = sortAvRequests(data.avRequests || []);
+      const sortedFlyerReviews = sortFlyerReviews(data.flyerReviews || []);
 
       setAnnouncements(sortedAnnouncements);
       setWebsiteUpdates(sortedWebsiteUpdates);
       setSmsRequests(data.smsRequests || []);
+      setAvRequests(sortedAvRequests);
+      setFlyerReviews(sortedFlyerReviews);
     } catch (err: any) {
       console.error(err);
       setErrorMessage(err.message);
@@ -163,8 +196,24 @@ export default function AdminClient() {
               : item
           )
         );
-      } else {
+      } else if (tableName === 'smsRequests') {
         setSmsRequests((prev) => 
+          prev.map(item => 
+            item.id === recordId 
+              ? { ...item, fields: { ...item.fields, Completed: !currentValue } } 
+              : item
+          )
+        );
+      } else if (tableName === 'avRequests') {
+        setAvRequests((prev) => 
+          prev.map(item => 
+            item.id === recordId 
+              ? { ...item, fields: { ...item.fields, Completed: !currentValue } } 
+              : item
+          )
+        );
+      } else if (tableName === 'flyerReviews') {
+        setFlyerReviews((prev) => 
           prev.map(item => 
             item.id === recordId 
               ? { ...item, fields: { ...item.fields, Completed: !currentValue } } 
@@ -292,7 +341,7 @@ export default function AdminClient() {
 
   async function handleSummarizeSelected() {
     const selectedIds: string[] = [];
-    [...announcements, ...websiteUpdates, ...smsRequests].forEach((r) => {
+    [...announcements, ...websiteUpdates, ...smsRequests, ...avRequests, ...flyerReviews].forEach((r) => {
       if (summarizeMap[r.id]) {
         selectedIds.push(r.id);
       }
@@ -349,6 +398,16 @@ export default function AdminClient() {
       // Search in SMS specific fields
       if (fields['SMS Message'] && fields['SMS Message'].toLowerCase().includes(lowercaseQuery)) return true;
       
+      // Search in A/V request specific fields
+      if (fields['Event Name'] && fields['Event Name'].toLowerCase().includes(lowercaseQuery)) return true;
+      if (fields['Location'] && fields['Location'].toLowerCase().includes(lowercaseQuery)) return true;
+      if (fields['A/V Needs'] && fields['A/V Needs'].toLowerCase().includes(lowercaseQuery)) return true;
+      
+      // Search in Flyer Review specific fields
+      if (fields['Target Audience'] && fields['Target Audience'].toLowerCase().includes(lowercaseQuery)) return true;
+      if (fields['Feedback Needed'] && fields['Feedback Needed'].toLowerCase().includes(lowercaseQuery)) return true;
+      if (fields['Purpose'] && fields['Purpose'].toLowerCase().includes(lowercaseQuery)) return true;
+      
       return false;
     });
   }
@@ -358,12 +417,16 @@ export default function AdminClient() {
     let filteredAnnouncements = [...announcements];
     let filteredWebsiteUpdates = [...websiteUpdates];
     let filteredSmsRequests = [...smsRequests];
+    let filteredAvRequests = [...avRequests];
+    let filteredFlyerReviews = [...flyerReviews];
     
     // Apply hide completed filter
     if (hideCompleted) {
       filteredAnnouncements = filteredAnnouncements.filter(r => !r.fields.Completed);
       filteredWebsiteUpdates = filteredWebsiteUpdates.filter(r => !r.fields.Completed);
       filteredSmsRequests = filteredSmsRequests.filter(r => !r.fields.Completed);
+      filteredAvRequests = filteredAvRequests.filter(r => !r.fields.Completed);
+      filteredFlyerReviews = filteredFlyerReviews.filter(r => !r.fields.Completed);
     }
     
     // Apply search query
@@ -371,12 +434,16 @@ export default function AdminClient() {
       filteredAnnouncements = filterRecords(filteredAnnouncements, searchQuery);
       filteredWebsiteUpdates = filterRecords(filteredWebsiteUpdates, searchQuery);
       filteredSmsRequests = filterRecords(filteredSmsRequests, searchQuery);
+      filteredAvRequests = filterRecords(filteredAvRequests, searchQuery);
+      filteredFlyerReviews = filterRecords(filteredFlyerReviews, searchQuery);
     }
     
     return {
       filteredAnnouncements,
       filteredWebsiteUpdates,
-      filteredSmsRequests
+      filteredSmsRequests,
+      filteredAvRequests,
+      filteredFlyerReviews
     };
   }
 
@@ -416,7 +483,9 @@ export default function AdminClient() {
   const { 
     filteredAnnouncements, 
     filteredWebsiteUpdates, 
-    filteredSmsRequests 
+    filteredSmsRequests,
+    filteredAvRequests,
+    filteredFlyerReviews
   } = getFilteredRecords();
 
   return (
@@ -426,6 +495,8 @@ export default function AdminClient() {
         announcements={announcements}
         websiteUpdates={websiteUpdates}
         smsRequests={smsRequests}
+        avRequests={avRequests}
+        flyerReviews={flyerReviews}
         hideCompleted={hideCompleted}
       />
       
@@ -489,6 +560,64 @@ export default function AdminClient() {
           >
             Add To Calendar
           </Button>
+        </div>
+      </div>
+
+      {/* Navigation Tabs */}
+      <div className="mb-6">
+        <div className="border-b border-gray-200 dark:border-gray-700">
+          <nav className="-mb-px flex space-x-6 overflow-x-auto">
+            <button
+              onClick={() => setActiveTab('announcements')}
+              className={`whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'announcements'
+                  ? 'border-sh-primary text-sh-primary dark:border-blue-400 dark:text-blue-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+              }`}
+            >
+              Announcements {filteredAnnouncements.length > 0 && `(${filteredAnnouncements.length})`}
+            </button>
+            <button
+              onClick={() => setActiveTab('websiteUpdates')}
+              className={`whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'websiteUpdates'
+                  ? 'border-sh-primary text-sh-primary dark:border-blue-400 dark:text-blue-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+              }`}
+            >
+              Website Updates {filteredWebsiteUpdates.length > 0 && `(${filteredWebsiteUpdates.length})`}
+            </button>
+            <button
+              onClick={() => setActiveTab('smsRequests')}
+              className={`whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'smsRequests'
+                  ? 'border-sh-primary text-sh-primary dark:border-blue-400 dark:text-blue-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+              }`}
+            >
+              SMS Requests {filteredSmsRequests.length > 0 && `(${filteredSmsRequests.length})`}
+            </button>
+            <button
+              onClick={() => setActiveTab('avRequests')}
+              className={`whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'avRequests'
+                  ? 'border-sh-primary text-sh-primary dark:border-blue-400 dark:text-blue-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+              }`}
+            >
+              A/V Requests {filteredAvRequests.length > 0 && `(${filteredAvRequests.length})`}
+            </button>
+            <button
+              onClick={() => setActiveTab('flyerReviews')}
+              className={`whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'flyerReviews'
+                  ? 'border-sh-primary text-sh-primary dark:border-blue-400 dark:text-blue-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+              }`}
+            >
+              Flyer Reviews {filteredFlyerReviews.length > 0 && `(${filteredFlyerReviews.length})`}
+            </button>
+          </nav>
         </div>
       </div>
 
@@ -575,7 +704,9 @@ export default function AdminClient() {
       {!loadingData && 
         filteredAnnouncements.length === 0 && 
         filteredWebsiteUpdates.length === 0 && 
-        filteredSmsRequests.length === 0 && (
+        filteredSmsRequests.length === 0 &&
+        filteredAvRequests.length === 0 &&
+        filteredFlyerReviews.length === 0 && (
         <div className="flex flex-col items-center justify-center p-12 text-center">
           <div className="bg-gray-100 dark:bg-gray-800 rounded-full p-4 mb-4">
             <MagnifyingGlassIcon className="h-8 w-8 text-gray-400" />
@@ -595,60 +726,121 @@ export default function AdminClient() {
           </Button>
         </div>
       )}
-
+      
       {/* Announcements Section */}
-      {filteredAnnouncements.length > 0 && (
+            {activeTab === 'announcements' && (
         <section id="announcements" className="mb-8">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Announcements</h2>
           <div className="space-y-4">
-            {filteredAnnouncements.map((record) => (
-              <AnnouncementCard
-                key={record.id}
-                record={record}
-                summarizeMap={summarizeMap}
-                calendarMap={calendarMap}
-                onToggleSummarize={handleToggleSummarize}
-                onToggleCalendar={handleToggleCalendar}
-                onOverrideStatus={handleOverrideStatus}
-                onToggleCompleted={handleCompleted}
-              />
-            ))}
+            {filteredAnnouncements.length > 0 ? (
+              filteredAnnouncements.map((record) => (
+                <AnnouncementCard
+                  key={record.id}
+                  record={record}
+                  summarizeMap={summarizeMap}
+                  calendarMap={calendarMap}
+                  onToggleSummarize={handleToggleSummarize}
+                  onToggleCalendar={handleToggleCalendar}
+                  onOverrideStatus={handleOverrideStatus}
+                  onToggleCompleted={handleCompleted}
+                />
+              ))
+            ) : (
+              <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow">
+                <p className="text-gray-500 dark:text-gray-400">No announcements available</p>
+              </div>
+            )}
           </div>
         </section>
       )}
 
       {/* Website Updates Section */}
-      {filteredWebsiteUpdates.length > 0 && (
+      {activeTab === 'websiteUpdates' && (
         <section id="websiteUpdates" className="mb-8">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Website Updates</h2>
           <div className="space-y-4">
-            {filteredWebsiteUpdates.map((record) => (
-              <WebsiteUpdateCard
-                key={record.id}
-                record={record}
-                summarizeMap={summarizeMap}
-                onToggleSummarize={handleToggleSummarize}
-                onToggleCompleted={handleCompleted}
-              />
-            ))}
+            {filteredWebsiteUpdates.length > 0 ? (
+              filteredWebsiteUpdates.map((record) => (
+                <WebsiteUpdateCard
+                  key={record.id}
+                  record={record}
+                  summarizeMap={summarizeMap}
+                  onToggleSummarize={handleToggleSummarize}
+                  onToggleCompleted={handleCompleted}
+                />
+              ))
+            ) : (
+              <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow">
+                <p className="text-gray-500 dark:text-gray-400">No website updates available</p>
+              </div>
+            )}
           </div>
         </section>
       )}
 
       {/* SMS Requests Section */}
-      {filteredSmsRequests.length > 0 && (
+      {activeTab === 'smsRequests' && (
         <section id="smsRequests" className="mb-8">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">SMS Requests</h2>
           <div className="space-y-4">
-            {filteredSmsRequests.map((record) => (
-              <SmsRequestCard
-                key={record.id}
-                record={record}
-                summarizeMap={summarizeMap}
-                onToggleSummarize={handleToggleSummarize}
-                onToggleCompleted={handleCompleted}
-              />
-            ))}
+            {filteredSmsRequests.length > 0 ? (
+              filteredSmsRequests.map((record) => (
+                <SmsRequestCard
+                  key={record.id}
+                  record={record}
+                  summarizeMap={summarizeMap}
+                  onToggleSummarize={handleToggleSummarize}
+                  onToggleCompleted={handleCompleted}
+                />
+              ))
+            ) : (
+              <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow">
+                <p className="text-gray-500 dark:text-gray-400">No SMS requests available</p>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* A/V Requests Section */}
+      {activeTab === 'avRequests' && (
+        <section id="avRequests" className="mb-8">
+          <div className="space-y-4">
+            {filteredAvRequests.length > 0 ? (
+              filteredAvRequests.map((record) => (
+                <AVRequestCard
+                  key={record.id}
+                  record={record}
+                  summarizeMap={summarizeMap}
+                  onToggleSummarize={handleToggleSummarize}
+                  onToggleCompleted={handleCompleted}
+                />
+              ))
+            ) : (
+              <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow">
+                <p className="text-gray-500 dark:text-gray-400">No A/V requests available</p>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* Flyer Reviews Section */}
+      {activeTab === 'flyerReviews' && (
+        <section id="flyerReviews" className="mb-8">
+          <div className="space-y-4">
+            {filteredFlyerReviews.length > 0 ? (
+              filteredFlyerReviews.map((record) => (
+                <FlyerReviewCard
+                  key={record.id}
+                  record={record}
+                  summarizeMap={summarizeMap}
+                  onToggleSummarize={handleToggleSummarize}
+                  onToggleCompleted={handleCompleted}
+                />
+              ))
+            ) : (
+              <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow">
+                <p className="text-gray-500 dark:text-gray-400">No flyer reviews available</p>
+              </div>
+            )}
           </div>
         </section>
       )}

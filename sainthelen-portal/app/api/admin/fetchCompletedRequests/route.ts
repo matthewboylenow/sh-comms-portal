@@ -7,6 +7,8 @@ const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID || '';
 const ANNOUNCEMENTS_TABLE = process.env.ANNOUNCEMENTS_TABLE_NAME || 'Announcements';
 const WEBSITE_UPDATES_TABLE = process.env.WEBSITE_UPDATES_TABLE_NAME || 'Website Updates';
 const SMS_REQUESTS_TABLE = process.env.SMS_REQUESTS_TABLE_NAME || 'SMS Requests';
+const AV_REQUESTS_TABLE = process.env.AV_REQUESTS_TABLE_NAME || 'A/V Requests';
+const FLYER_REVIEWS_TABLE = process.env.FLYER_REVIEW_TABLE_NAME || 'Flyer Reviews';
 
 const base = new Airtable({ apiKey: AIRTABLE_PERSONAL_TOKEN }).base(AIRTABLE_BASE_ID);
 
@@ -36,10 +38,26 @@ export async function GET(request: NextRequest) {
       })
       .all();
 
+    // A/V Requests
+    const avRecs = await base(AV_REQUESTS_TABLE)
+      .select({
+        filterByFormula: '{Completed} = 1',
+      })
+      .all();
+
+    // Flyer Reviews
+    const flyerRecs = await base(FLYER_REVIEWS_TABLE)
+      .select({
+        filterByFormula: '{Completed} = 1',
+      })
+      .all();
+
     return NextResponse.json({
       announcements: annRecs.map((r) => ({ id: r.id, fields: r.fields })),
       websiteUpdates: webRecs.map((r) => ({ id: r.id, fields: r.fields })),
       smsRequests: smsRecs.map((r) => ({ id: r.id, fields: r.fields })),
+      avRequests: avRecs.map((r) => ({ id: r.id, fields: r.fields })),
+      flyerReviews: flyerRecs.map((r) => ({ id: r.id, fields: r.fields })),
     });
   } catch (error: any) {
     console.error('Error fetching completed requests:', error);
