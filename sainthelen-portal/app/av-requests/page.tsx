@@ -188,8 +188,8 @@ export default function AVRequestsFormPage() {
             <div>
               <h3 className="font-semibold text-gray-900 dark:text-white mb-1">About A/V and Livestream Requests</h3>
               <p className="text-gray-700 dark:text-gray-300 text-sm">
-                Please submit your A/V and livestream requests at least 2 weeks in advance to ensure we can properly 
-                prepare for your event. Our team will review your request and contact you to confirm the details.
+                Please submit your A/V and livestream requests as early as possible, ideally 1-2 weeks in advance to ensure we can properly 
+                prepare and staff your event. Our team will review your request and contact you to confirm the details.
                 Livestream requests require additional preparation time and may not be available for all events.
               </p>
             </div>

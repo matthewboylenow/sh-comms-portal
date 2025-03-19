@@ -131,7 +131,7 @@ export default function FlyerReviewFormPage() {
             <div>
               <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Benefits of Design Feedback</h3>
               <p className="text-gray-700 dark:text-gray-300 text-sm mb-2">
-                Our team can provide valuable feedback to help make your flyer more effective:
+                Our team can provide valuable feedback to help make your flyer more effective and to ensure that your flyer is successful:
               </p>
               <ul className="text-sm text-gray-700 dark:text-gray-300 list-disc list-inside space-y-1">
                 <li>Ensure alignment with Saint Helen brand guidelines</li>
@@ -155,7 +155,7 @@ export default function FlyerReviewFormPage() {
               <ul className="text-sm text-gray-700 dark:text-gray-300 list-disc list-inside space-y-1">
                 <li>Include a clear, bold headline that states the purpose</li>
                 <li>Feature essential details: who, what, when, where</li>
-                <li>Use high-quality, appropriate images</li>
+                <li>Use high-quality, appropriate images (that you have rights to use)</li>
                 <li>Keep text concise and easy to read</li>
                 <li>Include contact information or a QR code for more details</li>
                 <li>Use consistent fonts and colors that align with Saint Helen branding</li>

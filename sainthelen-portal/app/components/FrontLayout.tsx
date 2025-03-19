@@ -1,8 +1,9 @@
 // app/components/FrontLayout.tsx
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { 
   SunIcon, 
   MoonIcon, 
@@ -12,7 +13,8 @@ import {
   GlobeAltIcon, 
   ChatBubbleLeftRightIcon,
   VideoCameraIcon,
-  DocumentTextIcon
+  DocumentTextIcon,
+  ChevronDownIcon
 } from '@heroicons/react/24/outline';
 
 interface FrontLayoutProps {
@@ -23,6 +25,28 @@ interface FrontLayoutProps {
 export default function FrontLayout({ children, title = 'Saint Helen Communications Portal' }: FrontLayoutProps) {
   const [isDark, setIsDark] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+    }
+    
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // Close dropdown when route changes
+  useEffect(() => {
+    setDropdownOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     const htmlEl = document.documentElement;
@@ -55,6 +79,17 @@ export default function FrontLayout({ children, title = 'Saint Helen Communicati
     setMobileMenuOpen(!mobileMenuOpen);
   };
 
+  const formLinks = [
+    { name: 'Announcements', href: '/announcements', icon: MegaphoneIcon },
+    { name: 'Website Updates', href: '/website-updates', icon: GlobeAltIcon },
+    { name: 'SMS Requests', href: '/sms-requests', icon: ChatBubbleLeftRightIcon },
+    { name: 'A/V Requests', href: '/av-requests', icon: VideoCameraIcon },
+    { name: 'Flyer Review', href: '/flyer-review', icon: DocumentTextIcon }
+  ];
+
+  // Check if current path is one of our form pages
+  const isFormPage = formLinks.some(link => pathname === link.href);
+
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Top Navigation */}
@@ -82,26 +117,37 @@ export default function FrontLayout({ children, title = 'Saint Helen Communicati
               <InformationCircleIcon className="h-5 w-5 mr-1" />
               <span>Guidelines</span>
             </Link>
-            <Link href="/announcements" className="flex items-center text-white hover:text-gray-300 transition">
-              <MegaphoneIcon className="h-5 w-5 mr-1" />
-              <span>Announcements</span>
-            </Link>
-            <Link href="/website-updates" className="flex items-center text-white hover:text-gray-300 transition">
-              <GlobeAltIcon className="h-5 w-5 mr-1" />
-              <span>Website Updates</span>
-            </Link>
-            <Link href="/sms-requests" className="flex items-center text-white hover:text-gray-300 transition">
-              <ChatBubbleLeftRightIcon className="h-5 w-5 mr-1" />
-              <span>SMS Requests</span>
-            </Link>
-            <Link href="/av-requests" className="flex items-center text-white hover:text-gray-300 transition">
-              <VideoCameraIcon className="h-5 w-5 mr-1" />
-              <span>A/V Requests</span>
-            </Link>
-            <Link href="/flyer-review" className="flex items-center text-white hover:text-gray-300 transition">
-              <DocumentTextIcon className="h-5 w-5 mr-1" />
-              <span>Flyer Review</span>
-            </Link>
+            
+            {/* Request Services Dropdown */}
+            <div className="relative" ref={dropdownRef}>
+              <button 
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+                className={`flex items-center text-white hover:text-gray-300 transition ${isFormPage || dropdownOpen ? 'text-gray-300' : ''}`}
+              >
+                <span>Request Services</span>
+                <ChevronDownIcon className={`h-4 w-4 ml-1 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+              
+              {dropdownOpen && (
+                <div className="absolute left-0 mt-2 w-56 rounded-md shadow-lg bg-white dark:bg-gray-800 z-10">
+                  <div className="py-1 rounded-md bg-white dark:bg-gray-800 shadow-xs">
+                    {formLinks.map((link) => {
+                      const Icon = link.icon;
+                      return (
+                        <Link
+                          key={link.href}
+                          href={link.href}
+                          className="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        >
+                          <Icon className="h-5 w-5 mr-2 text-sh-primary dark:text-blue-400" />
+                          {link.name}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
           </nav>
 
           {/* Theme toggle and mobile menu button */}
@@ -148,46 +194,26 @@ export default function FrontLayout({ children, title = 'Saint Helen Communicati
                   <InformationCircleIcon className="h-5 w-5 mr-2" />
                   <span>Guidelines</span>
                 </Link>
-                <Link 
-                  href="/announcements" 
-                  className="flex items-center text-white hover:bg-sh-secondary dark:hover:bg-gray-700 px-3 py-2 rounded"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <MegaphoneIcon className="h-5 w-5 mr-2" />
-                  <span>Announcements</span>
-                </Link>
-                <Link 
-                  href="/website-updates" 
-                  className="flex items-center text-white hover:bg-sh-secondary dark:hover:bg-gray-700 px-3 py-2 rounded"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <GlobeAltIcon className="h-5 w-5 mr-2" />
-                  <span>Website Updates</span>
-                </Link>
-                <Link 
-                  href="/sms-requests" 
-                  className="flex items-center text-white hover:bg-sh-secondary dark:hover:bg-gray-700 px-3 py-2 rounded"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <ChatBubbleLeftRightIcon className="h-5 w-5 mr-2" />
-                  <span>SMS Requests</span>
-                </Link>
-                <Link 
-                  href="/av-requests" 
-                  className="flex items-center text-white hover:bg-sh-secondary dark:hover:bg-gray-700 px-3 py-2 rounded"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <VideoCameraIcon className="h-5 w-5 mr-2" />
-                  <span>A/V Requests</span>
-                </Link>
-                <Link 
-                  href="/flyer-review" 
-                  className="flex items-center text-white hover:bg-sh-secondary dark:hover:bg-gray-700 px-3 py-2 rounded"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <DocumentTextIcon className="h-5 w-5 mr-2" />
-                  <span>Flyer Review</span>
-                </Link>
+                
+                {/* Mobile Request Services Group */}
+                <div className="pt-2 pb-1 border-t border-sh-secondary">
+                  <p className="px-3 py-1 text-sm text-gray-300">Request Services</p>
+                </div>
+                
+                {formLinks.map((link) => {
+                  const Icon = link.icon;
+                  return (
+                    <Link 
+                      key={link.href}
+                      href={link.href} 
+                      className="flex items-center text-white hover:bg-sh-secondary dark:hover:bg-gray-700 px-3 py-2 rounded"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <Icon className="h-5 w-5 mr-2" />
+                      <span>{link.name}</span>
+                    </Link>
+                  );
+                })}
               </div>
             </div>
           </div>

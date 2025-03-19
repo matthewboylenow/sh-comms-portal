@@ -110,7 +110,7 @@ export default function HomePage() {
               <FrontCardContent className="p-6">
                 <h4 className="font-bold text-lg mb-2 text-gray-900 dark:text-white">Bulletin & Email Blast</h4>
                 <p className="text-gray-600 dark:text-gray-300">
-                  Bulletin is finalized on <strong>Fridays</strong>. Email blasts are sent <strong>Wednesday nights at 8 PM</strong>. We recommend submitting 1–2 weeks in advance.
+                  Bulletin is typically finalized on <strong>Fridays</strong>. Email blasts are typically sent <strong>Wednesday evenings.</strong>. We recommend submitting 1–2 weeks in advance.
                 </p>
               </FrontCardContent>
             </FrontCard>
@@ -128,7 +128,7 @@ export default function HomePage() {
               <FrontCardContent className="p-6">
                 <h4 className="font-bold text-lg mb-2 text-gray-900 dark:text-white">A/V & Flyer Reviews</h4>
                 <p className="text-gray-600 dark:text-gray-300">
-                  A/V requests take <strong>1-2 weeks</strong> to process. Flyer reviews are completed <strong>within 3-5 business days</strong> (1-2 days for urgent requests).
+                  A/V should be submitted as early as possible, ideally <strong>1-2 weeks</strong> prior to the event. Flyer reviews are completed <strong>within 3-5 business days</strong> (1-2 days for urgent requests).
                 </p>
               </FrontCardContent>
             </FrontCard>
@@ -263,7 +263,7 @@ export default function HomePage() {
               </FrontCardHeader>
               <FrontCardContent className="flex flex-col items-center">
                 <p className="mb-6 text-gray-600 dark:text-gray-300">
-                  Request audio/visual support or livestreaming for your parish event or meeting.
+                  Request audio/visual support or livestreaming for your event or meeting.
                 </p>
                 <Link
                   href="/av-requests"
