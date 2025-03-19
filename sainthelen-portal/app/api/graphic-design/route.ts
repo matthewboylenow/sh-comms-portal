@@ -22,7 +22,7 @@ type GraphicDesignFormData = {
 // Configure Airtable
 const personalToken = process.env.AIRTABLE_PERSONAL_TOKEN || '';
 const baseId = process.env.AIRTABLE_BASE_ID || '';
-const graphicDesignTable = process.env.GRAPHIC_DESIGN_TABLE_NAME || 'Graphic Design Requests'; // Make sure this matches exactly
+const graphicDesignTable = process.env.GRAPHIC_DESIGN_TABLE_NAME || 'Graphic Design Requests';
 
 if (!personalToken) {
   console.error('No AIRTABLE_PERSONAL_TOKEN found in environment!');
@@ -58,20 +58,21 @@ export async function POST(request: NextRequest) {
     // Format file links for Airtable
     const fileLinksString = data.fileLinks.join('\n');
 
-    // Prepare the fields object to match exactly what's in Airtable
+    // Prepare the fields object to match exactly what's in Airtable based on the screenshot
+    // ONLY include fields we can confirm exist
     const fields = {
       "Name": data.name,
       "Email": data.email,
       "Ministry": data.ministry || '',
       "Project Type": data.projectType,
       "Project Description": data.projectDescription,
-      "Project Requirements": data.projectRequirements || '',
+      // removed "Project Requirements" as it's not in the screenshot
       "Deadline": data.deadline || '',
-      "DeadlineTime": data.deadlineTime || '',
-      "Required Size/Dimensions": data.dimensions || '',
+      // Store both deadline and time in the same field if needed
       "Priority": data.priority,
+      "Required Size/Dimensions": data.dimensions || '',
       "File Links": fileLinksString,
-      "Status": "New" // Default status for new requests
+      "Status": "New"
     };
 
     console.log('Creating record with fields:', fields);
