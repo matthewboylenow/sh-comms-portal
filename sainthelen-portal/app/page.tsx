@@ -13,7 +13,8 @@ import {
   GlobeAltIcon,
   ChatBubbleLeftRightIcon,
   VideoCameraIcon,
-  DocumentTextIcon
+  DocumentTextIcon,
+  PencilSquareIcon
 } from '@heroicons/react/24/outline';
 
 export default function HomePage() {
@@ -290,6 +291,26 @@ export default function HomePage() {
                   className="bg-sh-primary hover:bg-sh-secondary text-white px-6 py-2 rounded transition"
                 >
                   Submit Flyer for Review
+                </Link>
+              </FrontCardContent>
+            </FrontCard>
+
+            <FrontCard className="text-center">
+              <FrontCardHeader>
+                <FrontCardTitle className="flex items-center justify-center">
+                  <PencilSquareIcon className="h-5 w-5 mr-2 text-sh-primary" />
+                  Graphic Design
+                </FrontCardTitle>
+              </FrontCardHeader>
+              <FrontCardContent className="flex flex-col items-center">
+                <p className="mb-6 text-gray-600 dark:text-gray-300">
+                  Request professional graphic design services for ministry materials, social media, posters, and more.
+                </p>
+                <Link
+                  href="/graphic-design"
+                  className="bg-sh-primary hover:bg-sh-secondary text-white px-6 py-2 rounded transition"
+                >
+                  Request Graphic Design
                 </Link>
               </FrontCardContent>
             </FrontCard>

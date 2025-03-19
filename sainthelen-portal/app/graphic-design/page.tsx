@@ -12,10 +12,11 @@ export default function GraphicDesignFormPage() {
   const [ministry, setMinistry] = useState('');
   const [projectType, setProjectType] = useState('');
   const [projectDescription, setProjectDescription] = useState('');
+  const [projectRequirements, setProjectRequirements] = useState('');
   const [deadline, setDeadline] = useState('');
-  const [priority, setPriority] = useState('Medium');
-  const [sizeDimensions, setSizeDimensions] = useState('');
-  const [brandColors, setBrandColors] = useState<string[]>([]);
+  const [deadlineTime, setDeadlineTime] = useState('');
+  const [dimensions, setDimensions] = useState('');
+  const [priority, setPriority] = useState('Standard');
   const [fileLinks, setFileLinks] = useState<string[]>([]);
 
   const [uploadingFiles, setUploadingFiles] = useState(false);
@@ -23,14 +24,7 @@ export default function GraphicDesignFormPage() {
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Handle brand colors selection
-  const handleColorChange = (color: string) => {
-    setBrandColors((prev) =>
-      prev.includes(color) ? prev.filter((c) => c !== color) : [...prev, color]
-    );
-  };
-
-  // Handle file uploads via the S3 route
+  // Handle file uploads
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     if (!e.target.files) return;
     setErrorMessage('');
@@ -51,21 +45,18 @@ export default function GraphicDesignFormPage() {
             fileType: file.type,
           }),
         });
-        if (!res.ok) {
-          throw new Error('Failed to get S3 upload URL');
-        }
+
+        if (!res.ok) throw new Error('Failed to get S3 upload URL');
         const { uploadUrl, objectUrl } = await res.json();
 
-        // Upload file
+        // Upload file to S3
         const uploadRes = await fetch(uploadUrl, {
           method: 'PUT',
           headers: { 'Content-Type': file.type },
           body: file,
         });
-        if (!uploadRes.ok) {
-          throw new Error(`Failed to upload file: ${file.name}`);
-        }
 
+        if (!uploadRes.ok) throw new Error(`Failed to upload file: ${file.name}`);
         uploadedUrls.push(objectUrl);
       }
 
@@ -78,6 +69,7 @@ export default function GraphicDesignFormPage() {
     }
   }
 
+  // Submit form
   async function handleSubmitForm(e: React.FormEvent) {
     e.preventDefault();
     setSubmittingForm(true);
@@ -94,10 +86,11 @@ export default function GraphicDesignFormPage() {
           ministry,
           projectType,
           projectDescription,
+          projectRequirements,
           deadline,
+          deadlineTime,
+          dimensions,
           priority,
-          sizeDimensions,
-          brandColors,
           fileLinks,
         }),
       });
@@ -115,10 +108,11 @@ export default function GraphicDesignFormPage() {
       setMinistry('');
       setProjectType('');
       setProjectDescription('');
+      setProjectRequirements('');
       setDeadline('');
-      setPriority('Medium');
-      setSizeDimensions('');
-      setBrandColors([]);
+      setDeadlineTime('');
+      setDimensions('');
+      setPriority('Standard');
       setFileLinks([]);
     } catch (err: any) {
       console.error('Form submission error:', err);
@@ -131,18 +125,24 @@ export default function GraphicDesignFormPage() {
   return (
     <FrontLayout title="Request Graphic Design">
       <div className="max-w-3xl mx-auto my-8 px-4 sm:px-6 lg:px-8">
-        {/* Info Card */}
-        <FrontCard className="mb-6 border-l-4 border-l-blue-500">
+        {/* Introduction Card */}
+        <FrontCard className="mb-6 border-l-4 border-l-indigo-500">
           <FrontCardContent className="flex items-start gap-3">
             <div className="flex-shrink-0">
-              <InformationCircleIcon className="h-6 w-6 text-blue-500" />
+              <InformationCircleIcon className="h-6 w-6 text-indigo-500" />
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900 dark:text-white mb-1">About Graphic Design Requests</h3>
-              <p className="text-gray-700 dark:text-gray-300 text-sm">
-                Our communications team can create various graphic designs for your ministry including flyers, social media graphics, 
-                bulletin ads, and more. Please provide as much detail as possible about your request, including deadlines and any specific brand colors or elements needed. For best results, submit requests at least 5 business days before your deadline.
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-1">About Graphic Design Services</h3>
+              <p className="text-gray-700 dark:text-gray-300 text-sm mb-2">
+                Our Graphic Design team can help create professional visual materials for your ministry or event. Common requests include:
               </p>
+              <ul className="text-sm text-gray-700 dark:text-gray-300 list-disc list-inside space-y-1">
+                <li>Social media graphics for Instagram, Facebook, etc.</li>
+                <li>Posters and flyers for physical distribution</li>
+                <li>Digital signage for church screens</li>
+                <li>Logos and branding for ministries</li>
+                <li>Email headers and graphics</li>
+              </ul>
             </div>
           </FrontCardContent>
         </FrontCard>
@@ -162,7 +162,7 @@ export default function GraphicDesignFormPage() {
 
         <FrontCard>
           <FrontCardHeader>
-            <FrontCardTitle>Graphic Design Request Details</FrontCardTitle>
+            <FrontCardTitle>Graphic Design Request</FrontCardTitle>
           </FrontCardHeader>
           <FrontCardContent>
             <form onSubmit={handleSubmitForm} className="space-y-6">
@@ -227,101 +227,15 @@ export default function GraphicDesignFormPage() {
                     onChange={(e) => setProjectType(e.target.value)}
                     required
                   >
-                    <option value="">Select project type</option>
+                    <option value="">Select a project type</option>
+                    <option value="Social Media">Social Media</option>
+                    <option value="Poster">Poster</option>
                     <option value="Flyer">Flyer</option>
-                    <option value="Social Media Graphic">Social Media Graphic</option>
-                    <option value="Bulletin Ad">Bulletin Ad</option>
-                    <option value="Banner">Banner</option>
+                    <option value="Digital Screens">Digital Screens</option>
+                    <option value="Logo">Logo</option>
+                    <option value="Email Graphic">Email Graphic</option>
                     <option value="Other">Other</option>
                   </select>
-                </div>
-
-                {/* Size/Dimensions */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Required Size/Dimensions
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary dark:bg-gray-700 dark:text-white"
-                    value={sizeDimensions}
-                    onChange={(e) => setSizeDimensions(e.target.value)}
-                    placeholder="e.g., 8.5x11 inches, 1200x630 pixels for Facebook"
-                  />
-                </div>
-
-                {/* Deadline */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Deadline
-                  </label>
-                  <input
-                    type="date"
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary dark:bg-gray-700 dark:text-white"
-                    value={deadline}
-                    onChange={(e) => setDeadline(e.target.value)}
-                  />
-                </div>
-
-                {/* Priority */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Priority <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary dark:bg-gray-700 dark:text-white"
-                    value={priority}
-                    onChange={(e) => setPriority(e.target.value)}
-                    required
-                  >
-                    <option value="Low">Low</option>
-                    <option value="Medium">Medium</option>
-                    <option value="High">High</option>
-                    <option value="Urgent">Urgent</option>
-                  </select>
-                </div>
-
-                {/* Brand Colors */}
-                <div>
-                  <span className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Saint Helen Brand Colors to Include:</span>
-                  <div className="space-y-2">
-                    <div className="flex items-center">
-                      <input
-                        id="color-primary-blue"
-                        type="checkbox"
-                        className="h-4 w-4 text-sh-primary focus:ring-sh-primary border-gray-300 rounded"
-                        checked={brandColors.includes('Primary Blue')}
-                        onChange={() => handleColorChange('Primary Blue')}
-                      />
-                      <label htmlFor="color-primary-blue" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
-                        Primary Blue
-                      </label>
-                    </div>
-                    <div className="flex items-center">
-                      <input
-                        id="color-dark-brown"
-                        type="checkbox"
-                        className="h-4 w-4 text-sh-primary focus:ring-sh-primary border-gray-300 rounded"
-                        checked={brandColors.includes('Dark Brown')}
-                        onChange={() => handleColorChange('Dark Brown')}
-                      />
-                      <label htmlFor="color-dark-brown" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
-                        Dark Brown
-                      </label>
-                    </div>
-                    <div className="flex items-center">
-                      <input
-                        id="color-sage"
-                        type="checkbox"
-                        className="h-4 w-4 text-sh-primary focus:ring-sh-primary border-gray-300 rounded"
-                        checked={brandColors.includes('Sage')}
-                        onChange={() => handleColorChange('Sage')}
-                      />
-                      <label htmlFor="color-sage" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
-                        Sage
-                      </label>
-                    </div>
-                  </div>
                 </div>
 
                 {/* Project Description */}
@@ -335,19 +249,108 @@ export default function GraphicDesignFormPage() {
                     value={projectDescription}
                     onChange={(e) => setProjectDescription(e.target.value)}
                     required
-                    placeholder="Please describe what you're looking for, including all text that should be included, any specific imagery needed, and the overall look and feel you want."
+                    placeholder="Please describe what you need designed, including the purpose, audience, and key information to include."
                   />
+                </div>
+
+                {/* Project Requirements */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Specific Requirements
+                  </label>
+                  <textarea
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary dark:bg-gray-700 dark:text-white"
+                    rows={3}
+                    value={projectRequirements}
+                    onChange={(e) => setProjectRequirements(e.target.value)}
+                    placeholder="Any specific fonts, colors, text, or other elements that must be included in the design."
+                  />
+                </div>
+
+                {/* Dimensions */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Dimensions (if applicable)
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary dark:bg-gray-700 dark:text-white"
+                    value={dimensions}
+                    onChange={(e) => setDimensions(e.target.value)}
+                    placeholder="e.g., 1080x1080px for Instagram, 8.5x11 inches for a flyer"
+                  />
+                </div>
+
+                {/* Deadline */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Deadline Date <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary dark:bg-gray-700 dark:text-white"
+                      value={deadline}
+                      onChange={(e) => setDeadline(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Deadline Time
+                    </label>
+                    <input
+                      type="time"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary dark:bg-gray-700 dark:text-white"
+                      value={deadlineTime}
+                      onChange={(e) => setDeadlineTime(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                {/* Priority */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Priority
+                  </label>
+                  <div className="mt-1 space-y-2">
+                    <div className="flex items-center">
+                      <input
+                        id="priority-standard"
+                        name="priority"
+                        type="radio"
+                        value="Standard"
+                        checked={priority === 'Standard'}
+                        onChange={() => setPriority('Standard')}
+                        className="h-4 w-4 text-sh-primary focus:ring-sh-primary border-gray-300"
+                      />
+                      <label htmlFor="priority-standard" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+                        Standard (7-10 business days)
+                      </label>
+                    </div>
+                    <div className="flex items-center">
+                      <input
+                        id="priority-urgent"
+                        name="priority"
+                        type="radio"
+                        value="Urgent"
+                        checked={priority === 'Urgent'}
+                        onChange={() => setPriority('Urgent')}
+                        className="h-4 w-4 text-sh-primary focus:ring-sh-primary border-gray-300"
+                      />
+                      <label htmlFor="priority-urgent" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+                        Urgent (3-5 business days)
+                      </label>
+                    </div>
+                  </div>
                 </div>
               </div>
 
               {/* File Upload */}
               <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Attach Files (optional)
+                  Attach Files (logos, reference images, etc.)
                 </label>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-                  Upload any reference images, logos, or content that should be included in the design.
-                </p>
                 <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-md">
                   <div className="space-y-1 text-center">
                     <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
@@ -377,7 +380,7 @@ export default function GraphicDesignFormPage() {
                       <p className="pl-1">or drag and drop</p>
                     </div>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                      PNG, JPG, PDF, DOCX up to 10MB
+                      PNG, JPG, PDF, AI, PSD up to 10MB
                     </p>
                   </div>
                 </div>
@@ -413,7 +416,7 @@ export default function GraphicDesignFormPage() {
                   className="w-full bg-sh-primary text-white px-4 py-2 rounded-md hover:bg-sh-secondary transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sh-primary disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={submittingForm || uploadingFiles}
                 >
-                  {submittingForm ? 'Submitting...' : 'Submit Graphic Design Request'}
+                  {submittingForm ? 'Submitting...' : 'Submit Design Request'}
                 </button>
               </div>
             </form>
