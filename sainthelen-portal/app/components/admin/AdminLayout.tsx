@@ -16,7 +16,8 @@ import {
   SunIcon,
   ArrowRightOnRectangleIcon,
   VideoCameraIcon, 
-  DocumentTextIcon
+  DocumentTextIcon,
+  PencilSquareIcon
 } from '@heroicons/react/24/outline';
 
 interface AdminLayoutProps {
@@ -168,6 +169,14 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
               >
                 <DocumentTextIcon className="h-5 w-5 mr-3 flex-shrink-0" />
                 {!collapsed && <span>Flyer Reviews</span>}
+              </Link>
+
+              <Link 
+                href="/admin#graphicDesign" 
+                className="flex items-center px-4 py-2 text-sm font-medium text-white rounded-md hover:bg-sh-secondary dark:hover:bg-gray-700"
+              >
+                <PencilSquareIcon className="h-5 w-5 mr-3 flex-shrink-0" />
+                {!collapsed && <span>Graphic Design</span>}
               </Link>
 
               <Link 

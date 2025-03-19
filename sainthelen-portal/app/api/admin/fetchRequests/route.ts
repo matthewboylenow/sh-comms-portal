@@ -13,6 +13,7 @@ const websiteUpdatesTable = process.env.WEBSITE_UPDATES_TABLE_NAME || 'Website U
 const smsRequestsTable = process.env.SMS_REQUESTS_TABLE_NAME || 'SMS Requests';
 const avRequestsTable = process.env.AV_REQUESTS_TABLE_NAME || 'A/V Requests';
 const flyerReviewsTable = process.env.FLYER_REVIEW_TABLE_NAME || 'Flyer Reviews';
+const graphicDesignTable = process.env.GRAPHIC_DESIGN_TABLE_NAME || 'Graphic Design Requests';
 
 const base = new Airtable({ apiKey: personalToken }).base(baseId);
 
@@ -42,6 +43,11 @@ export async function GET(request: NextRequest) {
     const flyerReviewsRecords = await base(flyerReviewsTable)
       .select({ view: 'Grid view' })
       .all();
+      
+    // 6) Fetch Graphic Design Requests
+    const graphicDesignRecords = await base(graphicDesignTable)
+      .select({ view: 'Grid view' })
+      .all();
 
     // Build JSON
     const data = {
@@ -62,6 +68,10 @@ export async function GET(request: NextRequest) {
         fields: r.fields,
       })),
       flyerReviews: flyerReviewsRecords.map((r) => ({
+        id: r.id,
+        fields: r.fields,
+      })),
+      graphicDesign: graphicDesignRecords.map((r) => ({
         id: r.id,
         fields: r.fields,
       })),

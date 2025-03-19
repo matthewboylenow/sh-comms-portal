@@ -10,6 +10,7 @@ import WebsiteUpdateCard from '../components/admin/WebsiteUpdateCard';
 import SmsRequestCard from '../components/admin/SmsRequestCard';
 import AVRequestCard from '../components/admin/AVRequestCard';
 import FlyerReviewCard from '../components/admin/FlyerReviewCard';
+import GraphicDesignCard from '../components/admin/GraphicDesignCard';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent } from '../components/ui/Card';
 import {
@@ -23,7 +24,7 @@ import {
 } from '@heroicons/react/24/outline';
 
 /** Type Declarations */
-type TableName = 'announcements' | 'websiteUpdates' | 'smsRequests' | 'avRequests' | 'flyerReviews';
+type TableName = 'announcements' | 'websiteUpdates' | 'smsRequests' | 'avRequests' | 'flyerReviews' | 'graphicDesign';
 type SortDirection = 'asc' | 'desc';
 type SortField = 'createdTime' | 'name' | 'date';
 
@@ -67,6 +68,7 @@ export default function AdminClient() {
   const [smsRequests, setSmsRequests] = useState<AdminRecord[]>([]);
   const [avRequests, setAvRequests] = useState<AdminRecord[]>([]);
   const [flyerReviews, setFlyerReviews] = useState<AdminRecord[]>([]);
+  const [graphicDesign, setGraphicDesign] = useState<AdminRecord[]>([]);
 
   // Sort state
   const [sortField, setSortField] = useState<SortField>('createdTime');
@@ -144,6 +146,9 @@ export default function AdminClient() {
         } else if (activeTab === 'smsRequests') {
           aDateStr = a.fields['Requested Date'] || '';
           bDateStr = b.fields['Requested Date'] || '';
+        } else if (activeTab === 'graphicDesign') {
+          aDateStr = a.fields['Deadline'] || '';
+          bDateStr = b.fields['Deadline'] || '';
         }
         
         const aDate = parseDate(aDateStr);
@@ -192,6 +197,7 @@ export default function AdminClient() {
       setSmsRequests(data.smsRequests || []);
       setAvRequests(data.avRequests || []);
       setFlyerReviews(data.flyerReviews || []);
+      setGraphicDesign(data.graphicDesign || []);
     } catch (err: any) {
       console.error(err);
       setErrorMessage(err.message);
@@ -259,6 +265,14 @@ export default function AdminClient() {
               : item
           )
         );
+      } else if (tableName === 'graphicDesign') {
+        setGraphicDesign((prev) => 
+          prev.map(item => 
+            item.id === recordId 
+              ? { ...item, fields: { ...item.fields, Completed: !currentValue } } 
+              : item
+          )
+        );
       }
 
       // Update in Airtable
@@ -300,6 +314,33 @@ export default function AdminClient() {
       
       if (!res.ok) {
         throw new Error('Failed to update override status');
+      }
+    } catch (err: any) {
+      console.error(err);
+      setErrorMessage(err.message);
+      // Revert UI if the API call failed
+      fetchAllRequests();
+    }
+  }
+
+  async function handleUpdateStatus(recordId: string, newStatus: string) {
+    try {
+      // Optimistic UI update
+      setGraphicDesign((prev) => 
+        prev.map(item => 
+          item.id === recordId 
+            ? { ...item, fields: { ...item.fields, Status: newStatus } } 
+            : item
+        )
+      );
+      const res = await fetch('/api/admin/updateDesignStatus', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recordId, status: newStatus }),
+      });
+      
+      if (!res.ok) {
+        throw new Error('Failed to update design status');
       }
     } catch (err: any) {
       console.error(err);
@@ -447,6 +488,11 @@ export default function AdminClient() {
       if (fields['Feedback Needed'] && fields['Feedback Needed'].toLowerCase().includes(lowercaseQuery)) return true;
       if (fields['Purpose'] && fields['Purpose'].toLowerCase().includes(lowercaseQuery)) return true;
       
+      // Search in Graphic Design specific fields
+      if (fields['Project Type'] && fields['Project Type'].toLowerCase().includes(lowercaseQuery)) return true;
+      if (fields['Project Description'] && fields['Project Description'].toLowerCase().includes(lowercaseQuery)) return true;
+      if (fields['Status'] && fields['Status'].toLowerCase().includes(lowercaseQuery)) return true;
+      
       return false;
     });
   }
@@ -458,6 +504,7 @@ export default function AdminClient() {
     let filteredSmsRequests = [...smsRequests];
     let filteredAvRequests = [...avRequests];
     let filteredFlyerReviews = [...flyerReviews];
+    let filteredGraphicDesign = [...graphicDesign];
     
     // Apply hide completed filter
     if (hideCompleted) {
@@ -466,6 +513,7 @@ export default function AdminClient() {
       filteredSmsRequests = filteredSmsRequests.filter(r => !r.fields.Completed);
       filteredAvRequests = filteredAvRequests.filter(r => !r.fields.Completed);
       filteredFlyerReviews = filteredFlyerReviews.filter(r => !r.fields.Completed);
+      filteredGraphicDesign = filteredGraphicDesign.filter(r => !r.fields.Completed);
     }
     
     // Apply search query
@@ -475,6 +523,7 @@ export default function AdminClient() {
       filteredSmsRequests = filterRecords(filteredSmsRequests, searchQuery);
       filteredAvRequests = filterRecords(filteredAvRequests, searchQuery);
       filteredFlyerReviews = filterRecords(filteredFlyerReviews, searchQuery);
+      filteredGraphicDesign = filterRecords(filteredGraphicDesign, searchQuery);
     }
     
     // Apply sorting based on active tab
@@ -488,6 +537,8 @@ export default function AdminClient() {
       filteredAvRequests = sortRecords(filteredAvRequests);
     } else if (activeTab === 'flyerReviews') {
       filteredFlyerReviews = sortRecords(filteredFlyerReviews);
+    } else if (activeTab === 'graphicDesign') {
+      filteredGraphicDesign = sortRecords(filteredGraphicDesign);
     }
     
     return {
@@ -495,7 +546,8 @@ export default function AdminClient() {
       filteredWebsiteUpdates,
       filteredSmsRequests,
       filteredAvRequests,
-      filteredFlyerReviews
+      filteredFlyerReviews,
+      filteredGraphicDesign
     };
   }
 
@@ -537,7 +589,8 @@ export default function AdminClient() {
     filteredWebsiteUpdates, 
     filteredSmsRequests,
     filteredAvRequests,
-    filteredFlyerReviews
+    filteredFlyerReviews,
+    filteredGraphicDesign
   } = getFilteredRecords();
 
   return (
@@ -549,137 +602,138 @@ export default function AdminClient() {
         smsRequests={smsRequests}
         avRequests={avRequests}
         flyerReviews={flyerReviews}
+        graphicDesign={graphicDesign}
         hideCompleted={hideCompleted}
       />
       
-{/* Simplified toolbar with intuitive layout */}
-<div className="mb-8">
-  {/* Primary toolbar with search and important actions */}
-  <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-4">
-    <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-      {/* Search field - expanded on mobile, reasonable width on desktop */}
-      <div className="relative flex-grow lg:max-w-sm">
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+      {/* Simplified toolbar with intuitive layout */}
+      <div className="mb-8">
+        {/* Primary toolbar with search and important actions */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-4">
+          <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+            {/* Search field - expanded on mobile, reasonable width on desktop */}
+            <div className="relative flex-grow lg:max-w-sm">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+              </div>
+              <input
+                type="text"
+                className="pl-10 pr-4 py-2 w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-sh-primary focus:border-sh-primary"
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+
+            {/* Main action buttons - horizontal on all screens */}
+            <div className="flex flex-wrap gap-2">
+              <Button
+                onClick={fetchAllRequests}
+                variant="outline"
+                className="flex items-center"
+                disabled={loadingData}
+                icon={<ArrowPathIcon className={`h-4 w-4 ${loadingData ? 'animate-spin' : ''}`} />}
+              >
+                Refresh
+              </Button>
+
+              {activeTab === 'announcements' && (
+                <>
+                  <Button
+                    onClick={handleSummarizeSelected}
+                    variant="primary"
+                    className="flex items-center"
+                    disabled={loadingData || Object.keys(summarizeMap).filter(key => summarizeMap[key]).length === 0}
+                    icon={<DocumentTextIcon className="h-4 w-4" />}
+                  >
+                    Summarize
+                  </Button>
+                  
+                  <Button
+                    onClick={handleAddToCalendar}
+                    variant="success"
+                    className="flex items-center"
+                    disabled={creatingEvents || Object.keys(calendarMap).filter(key => calendarMap[key]).length === 0}
+                    icon={<CalendarIcon className="h-4 w-4" />}
+                  >
+                    Calendar
+                  </Button>
+                </>
+              )}
+            </div>
+
+            {/* Hide completed toggle with visual switch */}
+            <div className="flex items-center ml-auto">
+              <div className="relative inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  id="hideCompleted" 
+                  className="sr-only peer" 
+                  checked={hideCompleted}
+                  onChange={() => setHideCompleted(!hideCompleted)}
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-sh-primary rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-sh-primary"></div>
+                <span className="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300">Hide Completed</span>
+              </div>
+            </div>
+          </div>
         </div>
-        <input
-          type="text"
-          className="pl-10 pr-4 py-2 w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-sh-primary focus:border-sh-primary"
-          placeholder="Search..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-      </div>
 
-      {/* Main action buttons - horizontal on all screens */}
-      <div className="flex flex-wrap gap-2">
-        <Button
-          onClick={fetchAllRequests}
-          variant="outline"
-          className="flex items-center"
-          disabled={loadingData}
-          icon={<ArrowPathIcon className={`h-4 w-4 ${loadingData ? 'animate-spin' : ''}`} />}
-        >
-          Refresh
-        </Button>
-
-        {activeTab === 'announcements' && (
-          <>
-            <Button
-              onClick={handleSummarizeSelected}
-              variant="primary"
-              className="flex items-center"
-              disabled={loadingData || Object.keys(summarizeMap).filter(key => summarizeMap[key]).length === 0}
-              icon={<DocumentTextIcon className="h-4 w-4" />}
+        {/* Secondary toolbar with sorting options */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow py-2 px-4 flex items-center">
+          <span className="text-sm text-gray-500 dark:text-gray-400 mr-3">Sort by:</span>
+          
+          <div className="flex bg-gray-100 dark:bg-gray-700 rounded-md">
+            <button
+              onClick={() => handleSortChange('createdTime')}
+              className={`px-3 py-1.5 text-sm rounded-l-md flex items-center ${
+                sortField === 'createdTime' 
+                  ? 'bg-sh-primary text-white' 
+                  : 'hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300'
+              }`}
             >
-              Summarize
-            </Button>
+              Date Added
+              {sortField === 'createdTime' && (
+                <span className="ml-1">
+                  {sortDirection === 'asc' ? <ArrowUpIcon className="h-3 w-3" /> : <ArrowDownIcon className="h-3 w-3" />}
+                </span>
+              )}
+            </button>
             
-            <Button
-              onClick={handleAddToCalendar}
-              variant="success"
-              className="flex items-center"
-              disabled={creatingEvents || Object.keys(calendarMap).filter(key => calendarMap[key]).length === 0}
-              icon={<CalendarIcon className="h-4 w-4" />}
+            <button
+              onClick={() => handleSortChange('name')}
+              className={`px-3 py-1.5 text-sm flex items-center ${
+                sortField === 'name' 
+                  ? 'bg-sh-primary text-white' 
+                  : 'hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300'
+              }`}
             >
-              Calendar
-            </Button>
-          </>
-        )}
-      </div>
-
-      {/* Hide completed toggle with visual switch */}
-      <div className="flex items-center ml-auto">
-        <div className="relative inline-flex items-center cursor-pointer">
-          <input 
-            type="checkbox" 
-            id="hideCompleted" 
-            className="sr-only peer" 
-            checked={hideCompleted}
-            onChange={() => setHideCompleted(!hideCompleted)}
-          />
-          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-sh-primary rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-sh-primary"></div>
-          <span className="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300">Hide Completed</span>
+              Name
+              {sortField === 'name' && (
+                <span className="ml-1">
+                  {sortDirection === 'asc' ? <ArrowUpIcon className="h-3 w-3" /> : <ArrowDownIcon className="h-3 w-3" />}
+                </span>
+              )}
+            </button>
+            
+            <button
+              onClick={() => handleSortChange('date')}
+              className={`px-3 py-1.5 text-sm rounded-r-md flex items-center ${
+                sortField === 'date' 
+                  ? 'bg-sh-primary text-white' 
+                  : 'hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300'
+              }`}
+            >
+              Event Date
+              {sortField === 'date' && (
+                <span className="ml-1">
+                  {sortDirection === 'asc' ? <ArrowUpIcon className="h-3 w-3" /> : <ArrowDownIcon className="h-3 w-3" />}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
       </div>
-    </div>
-  </div>
-
-  {/* Secondary toolbar with sorting options */}
-  <div className="bg-white dark:bg-gray-800 rounded-lg shadow py-2 px-4 flex items-center">
-    <span className="text-sm text-gray-500 dark:text-gray-400 mr-3">Sort by:</span>
-    
-    <div className="flex bg-gray-100 dark:bg-gray-700 rounded-md">
-      <button
-        onClick={() => handleSortChange('createdTime')}
-        className={`px-3 py-1.5 text-sm rounded-l-md flex items-center ${
-          sortField === 'createdTime' 
-            ? 'bg-sh-primary text-white' 
-            : 'hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300'
-        }`}
-      >
-        Date Added
-        {sortField === 'createdTime' && (
-          <span className="ml-1">
-            {sortDirection === 'asc' ? <ArrowUpIcon className="h-3 w-3" /> : <ArrowDownIcon className="h-3 w-3" />}
-          </span>
-        )}
-      </button>
-      
-      <button
-        onClick={() => handleSortChange('name')}
-        className={`px-3 py-1.5 text-sm flex items-center ${
-          sortField === 'name' 
-            ? 'bg-sh-primary text-white' 
-            : 'hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300'
-        }`}
-      >
-        Name
-        {sortField === 'name' && (
-          <span className="ml-1">
-            {sortDirection === 'asc' ? <ArrowUpIcon className="h-3 w-3" /> : <ArrowDownIcon className="h-3 w-3" />}
-          </span>
-        )}
-      </button>
-      
-      <button
-        onClick={() => handleSortChange('date')}
-        className={`px-3 py-1.5 text-sm rounded-r-md flex items-center ${
-          sortField === 'date' 
-            ? 'bg-sh-primary text-white' 
-            : 'hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300'
-        }`}
-      >
-        Event Date
-        {sortField === 'date' && (
-          <span className="ml-1">
-            {sortDirection === 'asc' ? <ArrowUpIcon className="h-3 w-3" /> : <ArrowDownIcon className="h-3 w-3" />}
-          </span>
-        )}
-      </button>
-    </div>
-  </div>
-</div>
 
       {/* Navigation Tabs */}
       <div className="mb-6 overflow-x-auto">
@@ -734,6 +788,16 @@ export default function AdminClient() {
               }`}
             >
               Flyer Reviews {filteredFlyerReviews.length > 0 && `(${filteredFlyerReviews.length})`}
+            </button>
+            <button
+              onClick={() => setActiveTab('graphicDesign')}
+              className={`whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'graphicDesign'
+                  ? 'border-sh-primary text-sh-primary dark:border-blue-400 dark:text-blue-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+              }`}
+            >
+              Graphic Design {filteredGraphicDesign.length > 0 && `(${filteredGraphicDesign.length})`}
             </button>
           </nav>
         </div>
@@ -824,7 +888,8 @@ export default function AdminClient() {
         filteredWebsiteUpdates.length === 0 && 
         filteredSmsRequests.length === 0 &&
         filteredAvRequests.length === 0 &&
-        filteredFlyerReviews.length === 0 && (
+        filteredFlyerReviews.length === 0 &&
+        filteredGraphicDesign.length === 0 && (
         <div className="flex flex-col items-center justify-center p-12 text-center">
           <div className="bg-gray-100 dark:bg-gray-800 rounded-full p-4 mb-4">
             <MagnifyingGlassIcon className="h-8 w-8 text-gray-400" />
@@ -949,6 +1014,28 @@ export default function AdminClient() {
             ) : (
               <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow">
                 <p className="text-gray-500 dark:text-gray-400">No flyer reviews available</p>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* Graphic Design Section */}
+      {activeTab === 'graphicDesign' && (
+        <section id="graphicDesign" className="mb-8">
+          <div className="space-y-4">
+            {filteredGraphicDesign.length > 0 ? (
+              filteredGraphicDesign.map((record) => (
+                <GraphicDesignCard
+                  key={record.id}
+                  record={record}
+                  onToggleCompleted={handleCompleted}
+                  onUpdateStatus={handleUpdateStatus}
+                />
+              ))
+            ) : (
+              <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow">
+                <p className="text-gray-500 dark:text-gray-400">No graphic design requests available</p>
               </div>
             )}
           </div>

@@ -14,7 +14,8 @@ import {
   ChatBubbleLeftRightIcon,
   VideoCameraIcon,
   DocumentTextIcon,
-  ChevronDownIcon
+  ChevronDownIcon,
+  PencilSquareIcon
 } from '@heroicons/react/24/outline';
 
 interface FrontLayoutProps {
@@ -84,7 +85,8 @@ export default function FrontLayout({ children, title = 'Saint Helen Communicati
     { name: 'Website Updates', href: '/website-updates', icon: GlobeAltIcon },
     { name: 'SMS Requests', href: '/sms-requests', icon: ChatBubbleLeftRightIcon },
     { name: 'A/V Requests', href: '/av-requests', icon: VideoCameraIcon },
-    { name: 'Flyer Review', href: '/flyer-review', icon: DocumentTextIcon }
+    { name: 'Flyer Review', href: '/flyer-review', icon: DocumentTextIcon },
+    { name: 'Graphic Design', href: '/graphic-design', icon: PencilSquareIcon }
   ];
 
   // Check if current path is one of our form pages
