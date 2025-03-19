@@ -552,45 +552,90 @@ export default function AdminClient() {
         hideCompleted={hideCompleted}
       />
       
-      // Toolbar section with improved layout
-<div className="mb-6">
-  {/* Top row with Search and Hide Completed */}
-  <div className="flex flex-col md:flex-row gap-4 mb-4">
-    <div className="relative w-full md:w-64">
-      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-        <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+{/* Simplified toolbar with intuitive layout */}
+<div className="mb-8">
+  {/* Primary toolbar with search and important actions */}
+  <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-4">
+    <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+      {/* Search field - expanded on mobile, reasonable width on desktop */}
+      <div className="relative flex-grow lg:max-w-sm">
+        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+        </div>
+        <input
+          type="text"
+          className="pl-10 pr-4 py-2 w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-sh-primary focus:border-sh-primary"
+          placeholder="Search..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
       </div>
-      <input
-        type="text"
-        className="pl-10 focus:ring-sh-primary focus:border-sh-primary block w-full sm:text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md"
-        placeholder="Search..."
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
-      />
-    </div>
-    
-    <div className="flex items-center">
-      <input
-        type="checkbox"
-        id="hideCompleted"
-        className="h-4 w-4 text-sh-primary rounded border-gray-300 focus:ring-sh-primary"
-        checked={hideCompleted}
-        onChange={() => setHideCompleted(!hideCompleted)}
-      />
-      <label htmlFor="hideCompleted" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
-        Hide Completed
-      </label>
+
+      {/* Main action buttons - horizontal on all screens */}
+      <div className="flex flex-wrap gap-2">
+        <Button
+          onClick={fetchAllRequests}
+          variant="outline"
+          className="flex items-center"
+          disabled={loadingData}
+          icon={<ArrowPathIcon className={`h-4 w-4 ${loadingData ? 'animate-spin' : ''}`} />}
+        >
+          Refresh
+        </Button>
+
+        {activeTab === 'announcements' && (
+          <>
+            <Button
+              onClick={handleSummarizeSelected}
+              variant="primary"
+              className="flex items-center"
+              disabled={loadingData || Object.keys(summarizeMap).filter(key => summarizeMap[key]).length === 0}
+              icon={<DocumentTextIcon className="h-4 w-4" />}
+            >
+              Summarize
+            </Button>
+            
+            <Button
+              onClick={handleAddToCalendar}
+              variant="success"
+              className="flex items-center"
+              disabled={creatingEvents || Object.keys(calendarMap).filter(key => calendarMap[key]).length === 0}
+              icon={<CalendarIcon className="h-4 w-4" />}
+            >
+              Calendar
+            </Button>
+          </>
+        )}
+      </div>
+
+      {/* Hide completed toggle with visual switch */}
+      <div className="flex items-center ml-auto">
+        <div className="relative inline-flex items-center cursor-pointer">
+          <input 
+            type="checkbox" 
+            id="hideCompleted" 
+            className="sr-only peer" 
+            checked={hideCompleted}
+            onChange={() => setHideCompleted(!hideCompleted)}
+          />
+          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-sh-primary rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-sh-primary"></div>
+          <span className="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300">Hide Completed</span>
+        </div>
+      </div>
     </div>
   </div>
-  
-  {/* Bottom row with sorting and action buttons */}
-  <div className="flex flex-wrap gap-2 justify-between items-center">
-    {/* Sort controls */}
-    <div className="border border-gray-300 dark:border-gray-600 rounded-md overflow-hidden">
+
+  {/* Secondary toolbar with sorting options */}
+  <div className="bg-white dark:bg-gray-800 rounded-lg shadow py-2 px-4 flex items-center">
+    <span className="text-sm text-gray-500 dark:text-gray-400 mr-3">Sort by:</span>
+    
+    <div className="flex bg-gray-100 dark:bg-gray-700 rounded-md">
       <button
         onClick={() => handleSortChange('createdTime')}
-        className={`px-3 py-1.5 text-sm flex items-center ${
-          sortField === 'createdTime' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+        className={`px-3 py-1.5 text-sm rounded-l-md flex items-center ${
+          sortField === 'createdTime' 
+            ? 'bg-sh-primary text-white' 
+            : 'hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300'
         }`}
       >
         Date Added
@@ -603,8 +648,10 @@ export default function AdminClient() {
       
       <button
         onClick={() => handleSortChange('name')}
-        className={`px-3 py-1.5 text-sm flex items-center border-l border-gray-300 dark:border-gray-600 ${
-          sortField === 'name' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+        className={`px-3 py-1.5 text-sm flex items-center ${
+          sortField === 'name' 
+            ? 'bg-sh-primary text-white' 
+            : 'hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300'
         }`}
       >
         Name
@@ -617,8 +664,10 @@ export default function AdminClient() {
       
       <button
         onClick={() => handleSortChange('date')}
-        className={`px-3 py-1.5 text-sm flex items-center border-l border-gray-300 dark:border-gray-600 ${
-          sortField === 'date' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+        className={`px-3 py-1.5 text-sm rounded-r-md flex items-center ${
+          sortField === 'date' 
+            ? 'bg-sh-primary text-white' 
+            : 'hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300'
         }`}
       >
         Event Date
@@ -628,43 +677,6 @@ export default function AdminClient() {
           </span>
         )}
       </button>
-    </div>
-
-    {/* Action buttons */}
-    <div className="flex gap-2">
-      <Button
-        onClick={fetchAllRequests}
-        variant="outline"
-        className="flex items-center"
-        disabled={loadingData}
-        icon={<ArrowPathIcon className={`h-4 w-4 ${loadingData ? 'animate-spin' : ''}`} />}
-      >
-        Refresh
-      </Button>
-
-      {activeTab === 'announcements' && (
-        <>
-          <Button
-            onClick={handleSummarizeSelected}
-            variant="primary"
-            className="flex items-center"
-            disabled={loadingData || Object.keys(summarizeMap).filter(key => summarizeMap[key]).length === 0}
-            icon={<DocumentTextIcon className="h-4 w-4" />}
-          >
-            Summarize
-          </Button>
-          
-          <Button
-            onClick={handleAddToCalendar}
-            variant="success"
-            className="flex items-center"
-            disabled={creatingEvents || Object.keys(calendarMap).filter(key => calendarMap[key]).length === 0}
-            icon={<CalendarIcon className="h-4 w-4" />}
-          >
-            Add To Calendar
-          </Button>
-        </>
-      )}
     </div>
   </div>
 </div>
