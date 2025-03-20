@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
           'Event Dates and Times': dateTimeEntriesFormatted,
           'Description': data.description,
           'Location': data.location,
-          'Needs Livestream': data.needsLivestream ? 'Yes' : 'No',
+          'Needs Livestream': data.needsLivestream,
           'A/V Needs': data.avNeeds,
           'Expected Attendees': data.expectedAttendees || '',
           'Additional Notes': data.additionalNotes || '',
