@@ -1,0 +1,22 @@
+{
+  "name": "Saint Helen Communications Portal",
+  "short_name": "SH Comms",
+  "description": "Communications portal for Saint Helen Parish",
+  "start_url": "/admin",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#20336B",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/images/Saint-Helen-Logo-White.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/images/Saint-Helen-Logo-White.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

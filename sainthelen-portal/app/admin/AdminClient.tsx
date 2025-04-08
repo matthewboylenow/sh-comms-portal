@@ -3,6 +3,7 @@
 
 import { useSession, signIn } from 'next-auth/react';
 import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import AdminLayout from '../components/admin/AdminLayout';
 import DashboardStats from '../components/admin/DashboardStats';
 import AnnouncementCard from '../components/admin/AnnouncementCard';
@@ -606,33 +607,33 @@ export default function AdminClient() {
         hideCompleted={hideCompleted}
       />
       
-      {/* Simplified toolbar with intuitive layout */}
+      {/* Modern toolbar with intuitive layout */}
       <div className="mb-8">
         {/* Primary toolbar with search and important actions */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-4">
-          <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-5 mb-5 transition-all">
+          <div className="flex flex-col lg:flex-row lg:items-center gap-5">
             {/* Search field - expanded on mobile, reasonable width on desktop */}
             <div className="relative flex-grow lg:max-w-sm">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
               </div>
               <input
                 type="text"
-                className="pl-10 pr-4 py-2 w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-sh-primary focus:border-sh-primary"
-                placeholder="Search..."
+                className="pl-11 pr-4 py-3 w-full bg-gray-50 dark:bg-slate-700 border-0 shadow-inner rounded-xl focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 dark:text-white transition-all"
+                placeholder="Search communications..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
 
             {/* Main action buttons - horizontal on all screens */}
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-3 my-3 lg:my-0">
               <Button
                 onClick={fetchAllRequests}
                 variant="outline"
-                className="flex items-center"
+                className="rounded-xl h-11"
                 disabled={loadingData}
-                icon={<ArrowPathIcon className={`h-4 w-4 ${loadingData ? 'animate-spin' : ''}`} />}
+                icon={<ArrowPathIcon className={`h-5 w-5 ${loadingData ? 'animate-spin' : ''}`} />}
               >
                 Refresh
               </Button>
@@ -642,9 +643,9 @@ export default function AdminClient() {
                   <Button
                     onClick={handleSummarizeSelected}
                     variant="primary"
-                    className="flex items-center"
+                    className="rounded-xl h-11"
                     disabled={loadingData || Object.keys(summarizeMap).filter(key => summarizeMap[key]).length === 0}
-                    icon={<DocumentTextIcon className="h-4 w-4" />}
+                    icon={<DocumentTextIcon className="h-5 w-5" />}
                   >
                     Summarize
                   </Button>
@@ -652,9 +653,9 @@ export default function AdminClient() {
                   <Button
                     onClick={handleAddToCalendar}
                     variant="success"
-                    className="flex items-center"
+                    className="rounded-xl h-11"
                     disabled={creatingEvents || Object.keys(calendarMap).filter(key => calendarMap[key]).length === 0}
-                    icon={<CalendarIcon className="h-4 w-4" />}
+                    icon={<CalendarIcon className="h-5 w-5" />}
                   >
                     Calendar
                   </Button>
@@ -663,7 +664,7 @@ export default function AdminClient() {
             </div>
 
             {/* Hide completed toggle with visual switch */}
-            <div className="flex items-center ml-auto">
+            <div className="flex items-center ml-auto p-1.5 bg-gray-50 dark:bg-slate-700 rounded-xl">
               <div className="relative inline-flex items-center cursor-pointer">
                 <input 
                   type="checkbox" 
@@ -672,7 +673,7 @@ export default function AdminClient() {
                   checked={hideCompleted}
                   onChange={() => setHideCompleted(!hideCompleted)}
                 />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-sh-primary rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-sh-primary"></div>
+                <div className="w-12 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer dark:bg-slate-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
                 <span className="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300">Hide Completed</span>
               </div>
             </div>
@@ -680,189 +681,213 @@ export default function AdminClient() {
         </div>
 
         {/* Secondary toolbar with sorting options */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow py-2 px-4 flex items-center">
-          <span className="text-sm text-gray-500 dark:text-gray-400 mr-3">Sort by:</span>
+        <div className="bg-white dark:bg-slate-800 backdrop-blur-lg rounded-xl shadow-md py-3 px-5 flex flex-wrap items-center gap-3 transition-all">
+          <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Sort by:</span>
           
-          <div className="flex bg-gray-100 dark:bg-gray-700 rounded-md">
+          <div className="flex bg-gray-50 dark:bg-slate-700 rounded-xl p-1">
             <button
               onClick={() => handleSortChange('createdTime')}
-              className={`px-3 py-1.5 text-sm rounded-l-md flex items-center ${
+              className={`px-4 py-2 text-sm rounded-lg flex items-center transition-all ${
                 sortField === 'createdTime' 
-                  ? 'bg-sh-primary text-white' 
-                  : 'hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300'
+                  ? 'bg-blue-600 text-white shadow-md' 
+                  : 'hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-300'
               }`}
             >
               Date Added
               {sortField === 'createdTime' && (
-                <span className="ml-1">
-                  {sortDirection === 'asc' ? <ArrowUpIcon className="h-3 w-3" /> : <ArrowDownIcon className="h-3 w-3" />}
+                <span className="ml-1.5">
+                  {sortDirection === 'asc' ? <ArrowUpIcon className="h-3.5 w-3.5" /> : <ArrowDownIcon className="h-3.5 w-3.5" />}
                 </span>
               )}
             </button>
             
             <button
               onClick={() => handleSortChange('name')}
-              className={`px-3 py-1.5 text-sm flex items-center ${
+              className={`px-4 py-2 text-sm rounded-lg flex items-center mx-1 transition-all ${
                 sortField === 'name' 
-                  ? 'bg-sh-primary text-white' 
-                  : 'hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300'
+                  ? 'bg-blue-600 text-white shadow-md' 
+                  : 'hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-300'
               }`}
             >
               Name
               {sortField === 'name' && (
-                <span className="ml-1">
-                  {sortDirection === 'asc' ? <ArrowUpIcon className="h-3 w-3" /> : <ArrowDownIcon className="h-3 w-3" />}
+                <span className="ml-1.5">
+                  {sortDirection === 'asc' ? <ArrowUpIcon className="h-3.5 w-3.5" /> : <ArrowDownIcon className="h-3.5 w-3.5" />}
                 </span>
               )}
             </button>
             
             <button
               onClick={() => handleSortChange('date')}
-              className={`px-3 py-1.5 text-sm rounded-r-md flex items-center ${
+              className={`px-4 py-2 text-sm rounded-lg flex items-center transition-all ${
                 sortField === 'date' 
-                  ? 'bg-sh-primary text-white' 
-                  : 'hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300'
+                  ? 'bg-blue-600 text-white shadow-md' 
+                  : 'hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-300'
               }`}
             >
               Event Date
               {sortField === 'date' && (
-                <span className="ml-1">
-                  {sortDirection === 'asc' ? <ArrowUpIcon className="h-3 w-3" /> : <ArrowDownIcon className="h-3 w-3" />}
+                <span className="ml-1.5">
+                  {sortDirection === 'asc' ? <ArrowUpIcon className="h-3.5 w-3.5" /> : <ArrowDownIcon className="h-3.5 w-3.5" />}
                 </span>
               )}
             </button>
           </div>
+          
+          <div className="ml-auto text-sm text-gray-500 dark:text-gray-400 flex items-center">
+            <span className="hidden md:inline">Showing</span> 
+            <span className="ml-1 font-medium text-blue-600 dark:text-blue-400">
+              {
+                activeTab === 'announcements' ? filteredAnnouncements.length :
+                activeTab === 'websiteUpdates' ? filteredWebsiteUpdates.length :
+                activeTab === 'smsRequests' ? filteredSmsRequests.length :
+                activeTab === 'avRequests' ? filteredAvRequests.length :
+                activeTab === 'flyerReviews' ? filteredFlyerReviews.length :
+                filteredGraphicDesign.length
+              }
+            </span> 
+            <span className="ml-1 hidden md:inline">items</span>
+          </div>
         </div>
       </div>
 
-      {/* Navigation Tabs */}
-      <div className="mb-6 overflow-x-auto">
-        <div className="border-b border-gray-200 dark:border-gray-700 min-w-max">
-          <nav className="-mb-px flex space-x-6">
-            <button
-              onClick={() => setActiveTab('announcements')}
-              className={`whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'announcements'
-                  ? 'border-sh-primary text-sh-primary dark:border-blue-400 dark:text-blue-400'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
-              }`}
-            >
-              Announcements {filteredAnnouncements.length > 0 && `(${filteredAnnouncements.length})`}
-            </button>
-            <button
-              onClick={() => setActiveTab('websiteUpdates')}
-              className={`whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'websiteUpdates'
-                  ? 'border-sh-primary text-sh-primary dark:border-blue-400 dark:text-blue-400'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
-              }`}
-            >
-              Website Updates {filteredWebsiteUpdates.length > 0 && `(${filteredWebsiteUpdates.length})`}
-            </button>
-            <button
-              onClick={() => setActiveTab('smsRequests')}
-              className={`whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'smsRequests'
-                  ? 'border-sh-primary text-sh-primary dark:border-blue-400 dark:text-blue-400'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
-              }`}
-            >
-              SMS Requests {filteredSmsRequests.length > 0 && `(${filteredSmsRequests.length})`}
-            </button>
-            <button
-              onClick={() => setActiveTab('avRequests')}
-              className={`whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'avRequests'
-                  ? 'border-sh-primary text-sh-primary dark:border-blue-400 dark:text-blue-400'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
-              }`}
-            >
-              A/V Requests {filteredAvRequests.length > 0 && `(${filteredAvRequests.length})`}
-            </button>
-            <button
-              onClick={() => setActiveTab('flyerReviews')}
-              className={`whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'flyerReviews'
-                  ? 'border-sh-primary text-sh-primary dark:border-blue-400 dark:text-blue-400'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
-              }`}
-            >
-              Flyer Reviews {filteredFlyerReviews.length > 0 && `(${filteredFlyerReviews.length})`}
-            </button>
-            <button
-              onClick={() => setActiveTab('graphicDesign')}
-              className={`whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'graphicDesign'
-                  ? 'border-sh-primary text-sh-primary dark:border-blue-400 dark:text-blue-400'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
-              }`}
-            >
-              Graphic Design {filteredGraphicDesign.length > 0 && `(${filteredGraphicDesign.length})`}
-            </button>
+      {/* Modern Navigation Tabs */}
+      <div className="mb-8 overflow-x-auto">
+        <div className="min-w-max">
+          <nav className="flex space-x-2 bg-white dark:bg-slate-800 p-2 rounded-xl shadow-md">
+            {[
+              { id: 'announcements', label: 'Announcements', count: filteredAnnouncements.length, icon: <MegaphoneIcon className="h-4 w-4" /> },
+              { id: 'websiteUpdates', label: 'Website Updates', count: filteredWebsiteUpdates.length, icon: <GlobeAltIcon className="h-4 w-4" /> },
+              { id: 'smsRequests', label: 'SMS Requests', count: filteredSmsRequests.length, icon: <ChatBubbleLeftRightIcon className="h-4 w-4" /> },
+              { id: 'avRequests', label: 'A/V Requests', count: filteredAvRequests.length, icon: <VideoCameraIcon className="h-4 w-4" /> },
+              { id: 'flyerReviews', label: 'Flyer Reviews', count: filteredFlyerReviews.length, icon: <DocumentTextIcon className="h-4 w-4" /> },
+              { id: 'graphicDesign', label: 'Graphic Design', count: filteredGraphicDesign.length, icon: <PencilSquareIcon className="h-4 w-4" /> }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as TableName)}
+                className={`whitespace-nowrap py-2 px-4 rounded-lg font-medium text-sm flex items-center transition-all ${
+                  activeTab === tab.id
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-700'
+                }`}
+              >
+                <span className="mr-1.5">{tab.icon}</span>
+                {tab.label}
+                {tab.count > 0 && (
+                  <span className={`ml-1.5 px-1.5 py-0.5 rounded-full text-xs ${
+                    activeTab === tab.id 
+                      ? 'bg-white/20 text-white'
+                      : 'bg-gray-200 dark:bg-slate-600 text-gray-800 dark:text-gray-300'
+                  }`}>
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            ))}
           </nav>
         </div>
       </div>
 
       {/* Error messages */}
       {errorMessage && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300 p-4 rounded-md mb-6">
-          {errorMessage}
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg mb-6 overflow-hidden">
+          <div className="bg-red-500 h-2"></div>
+          <div className="p-5 flex items-start">
+            <div className="flex-shrink-0 bg-red-100 dark:bg-red-900/30 p-2 rounded-full mr-4">
+              <svg className="h-6 w-6 text-red-600 dark:text-red-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-medium text-red-800 dark:text-red-300 mb-1">Error</h3>
+              <p className="text-red-700 dark:text-red-300">{errorMessage}</p>
+            </div>
+          </div>
         </div>
       )}
       
       {/* Success messages */}
       {successMessage && (
-        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-300 p-4 rounded-md mb-6">
-          {successMessage}
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg mb-6 overflow-hidden">
+          <div className="bg-green-500 h-2"></div>
+          <div className="p-5 flex items-start">
+            <div className="flex-shrink-0 bg-green-100 dark:bg-green-900/30 p-2 rounded-full mr-4">
+              <svg className="h-6 w-6 text-green-600 dark:text-green-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-medium text-green-800 dark:text-green-300 mb-1">Success</h3>
+              <p className="text-green-700 dark:text-green-300">{successMessage}</p>
+            </div>
+          </div>
         </div>
       )}
 
       {/* Claude Summary */}
       {summary && (
-        <Card className="mb-6">
-          <CardContent className="p-4">
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-3">Generated Summary</h3>
-            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-md whitespace-pre-wrap text-sm">
+        <div className="mb-6 bg-white dark:bg-slate-800 rounded-xl shadow-lg overflow-hidden">
+          <div className="bg-gradient-to-r from-purple-500 to-indigo-600 px-6 py-4 flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <h3 className="text-lg font-medium text-white">Generated Summary</h3>
+          </div>
+          <div className="p-6">
+            <div className="bg-gray-50 dark:bg-slate-700 p-5 rounded-lg whitespace-pre-wrap text-sm shadow-inner border border-gray-100 dark:border-slate-600">
               {summary}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
       
       {/* Calendar Results */}
       {calendarResults && calendarResults.length > 0 && (
-        <Card className="mb-6">
-          <CardContent className="p-4">
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-3">Calendar Events Created</h3>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-gray-800">
+        <div className="mb-6 bg-white dark:bg-slate-800 rounded-xl shadow-lg overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-500 to-cyan-600 px-6 py-4 flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <h3 className="text-lg font-medium text-white">Calendar Events Created</h3>
+          </div>
+          <div className="p-6">
+            <div className="overflow-x-auto bg-gray-50 dark:bg-slate-700 rounded-lg shadow-inner">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-600">
+                <thead>
                   <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Event</th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                    <th scope="col" className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Event</th>
+                    <th scope="col" className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800">
+                <tbody className="divide-y divide-gray-200 dark:divide-slate-600">
                   {calendarResults.map((result, index) => (
-                    <tr key={index} className={index % 2 === 0 ? 'bg-white dark:bg-gray-900' : 'bg-gray-50 dark:bg-gray-800'}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                        Event #{index + 1} (ID: {result.eventId})
+                    <tr key={index}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-white">
+                        Event #{index + 1} <span className="text-gray-500 dark:text-gray-400 text-xs">(ID: {result.eventId})</span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm flex space-x-3">
                         <a 
                           href={result.editUrl} 
                           target="_blank" 
                           rel="noopener noreferrer"
-                          className="text-blue-600 dark:text-blue-400 hover:underline mr-4"
+                          className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors flex items-center"
                         >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
                           Edit
                         </a>
                         <a 
                           href={result.eventUrl} 
                           target="_blank" 
                           rel="noopener noreferrer"
-                          className="text-blue-600 dark:text-blue-400 hover:underline"
+                          className="px-3 py-1 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors flex items-center"
                         >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
                           View
                         </a>
                       </td>
@@ -871,18 +896,22 @@ export default function AdminClient() {
                 </tbody>
               </table>
             </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Loading indicator */}
-      {loadingData && (
-        <div className="flex justify-center items-center p-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-4 border-sh-primary border-t-transparent"></div>
+          </div>
         </div>
       )}
 
-      {/* No results message */}
+      {/* Loading indicator - modern pulse effect */}
+      {loadingData && (
+        <div className="flex flex-col justify-center items-center p-12">
+          <div className="relative">
+            <div className="h-16 w-16 rounded-full border-4 border-blue-200 dark:border-blue-900"></div>
+            <div className="absolute top-0 left-0 h-16 w-16 rounded-full border-t-4 border-blue-600 dark:border-blue-400 animate-spin"></div>
+          </div>
+          <p className="mt-4 text-gray-500 dark:text-gray-400">Loading data...</p>
+        </div>
+      )}
+
+      {/* No results message - styled */}
       {!loadingData && 
         filteredAnnouncements.length === 0 && 
         filteredWebsiteUpdates.length === 0 && 
@@ -890,13 +919,16 @@ export default function AdminClient() {
         filteredAvRequests.length === 0 &&
         filteredFlyerReviews.length === 0 &&
         filteredGraphicDesign.length === 0 && (
-        <div className="flex flex-col items-center justify-center p-12 text-center">
-          <div className="bg-gray-100 dark:bg-gray-800 rounded-full p-4 mb-4">
-            <MagnifyingGlassIcon className="h-8 w-8 text-gray-400" />
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-12 text-center flex flex-col items-center justify-center">
+          <div className="bg-gray-50 dark:bg-slate-700 rounded-full p-6 mb-6 relative">
+            <div className="absolute inset-0 bg-blue-500/10 dark:bg-blue-500/20 rounded-full animate-pulse" style={{ animationDuration: '3s' }}></div>
+            <MagnifyingGlassIcon className="h-12 w-12 text-gray-400 dark:text-gray-500 relative z-10" />
           </div>
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1">No items found</h3>
-          <p className="text-gray-500 dark:text-gray-400 mb-4">
-            {searchQuery ? 'Try adjusting your search or filters' : 'There are no items to display'}
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No items found</h3>
+          <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-md">
+            {searchQuery ? 
+              "Your search didn't match any items. Try adjusting your search terms or filters." : 
+              "There are no items to display at this time."}
           </p>
           <Button
             onClick={() => {
@@ -904,6 +936,8 @@ export default function AdminClient() {
               setHideCompleted(false);
             }}
             variant="outline"
+            className="rounded-xl px-6 py-3"
+            icon={<AdjustmentsHorizontalIcon className="h-5 w-5 mr-2" />}
           >
             Reset Filters
           </Button>

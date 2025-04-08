@@ -1,12 +1,13 @@
 {
   "name": "sainthelen-portal",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "analyze": "ANALYZE=true next build"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.33.1",
@@ -18,6 +19,7 @@
     "@tailwindcss/typography": "^0.5.16",
     "airtable": "^0.12.2",
     "cd": "^0.3.3",
+    "framer-motion": "^12.6.3",
     "next": "14.0.0",
     "next-auth": "^4.24.11",
     "react": "18.2.0",
