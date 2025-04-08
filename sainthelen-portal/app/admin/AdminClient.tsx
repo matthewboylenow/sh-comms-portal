@@ -22,6 +22,11 @@ import {
   CalendarIcon,
   ArrowUpIcon,
   ArrowDownIcon,
+  MegaphoneIcon,
+  GlobeAltIcon,
+  ChatBubbleLeftRightIcon,
+  VideoCameraIcon,
+  PencilSquareIcon
 } from '@heroicons/react/24/outline';
 
 /** Type Declarations */
