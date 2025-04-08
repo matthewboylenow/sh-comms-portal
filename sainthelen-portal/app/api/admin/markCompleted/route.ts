@@ -2,6 +2,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import Airtable from 'airtable';
+import { createNotification } from '../../notifications/route';
 
 // Force dynamic so Next.js doesn't attempt static generation
 export const dynamic = 'force-dynamic';
@@ -55,6 +56,14 @@ export async function POST(request: NextRequest) {
       throw new Error(`Unknown table type: ${table}`);
     }
 
+    // Get record details before updating
+    const record = await base(tableName).find(recordId);
+    const fields = record.fields as Record<string, any>;
+    
+    // Determine request type and title for the notification
+    const requestType = table.charAt(0).toUpperCase() + table.slice(1, -1); // e.g. "announcements" -> "Announcement"
+    const requestTitle = fields.Title || fields.Subject || fields.Name || `${requestType} Request`;
+    
     // Update "Completed" in Airtable
     await base(tableName).update([
       {
@@ -64,6 +73,19 @@ export async function POST(request: NextRequest) {
         },
       },
     ]);
+    
+    // Create notification for the requester if they have an email
+    if (fields.RequesterEmail) {
+      await createNotification({
+        userEmail: fields.RequesterEmail,
+        type: completed ? 'success' : 'info',
+        message: completed 
+          ? `Your ${requestType} request "${requestTitle}" has been completed` 
+          : `Your ${requestType} request "${requestTitle}" is now in progress`,
+        relatedRecordId: recordId,
+        relatedRecordType: tableName
+      });
+    }
 
     return NextResponse.json({ success: true });
   } catch (err: any) {

@@ -80,17 +80,10 @@ export default function FrontLayout({ children, title = 'Saint Helen Communicati
     setMobileMenuOpen(!mobileMenuOpen);
   };
 
-  const formLinks = [
-    { name: 'Announcements', href: '/announcements', icon: MegaphoneIcon },
-    { name: 'Website Updates', href: '/website-updates', icon: GlobeAltIcon },
-    { name: 'SMS Requests', href: '/sms-requests', icon: ChatBubbleLeftRightIcon },
-    { name: 'A/V Requests', href: '/av-requests', icon: VideoCameraIcon },
-    { name: 'Flyer Review', href: '/flyer-review', icon: DocumentTextIcon },
-    { name: 'Graphic Design', href: '/graphic-design', icon: PencilSquareIcon }
-  ];
+  // Removed form links as requested
 
-  // Check if current path is one of our form pages
-  const isFormPage = formLinks.some(link => pathname === link.href);
+  // No form pages anymore
+  const isFormPage = false;
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -120,36 +113,7 @@ export default function FrontLayout({ children, title = 'Saint Helen Communicati
               <span>Guidelines</span>
             </Link>
             
-            {/* Request Services Dropdown */}
-            <div className="relative" ref={dropdownRef}>
-              <button 
-                onClick={() => setDropdownOpen(!dropdownOpen)}
-                className={`flex items-center text-white hover:text-gray-300 transition ${isFormPage || dropdownOpen ? 'text-gray-300' : ''}`}
-              >
-                <span>Request Services</span>
-                <ChevronDownIcon className={`h-4 w-4 ml-1 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
-              </button>
-              
-              {dropdownOpen && (
-                <div className="absolute left-0 mt-2 w-56 rounded-md shadow-lg bg-white dark:bg-gray-800 z-10">
-                  <div className="py-1 rounded-md bg-white dark:bg-gray-800 shadow-xs">
-                    {formLinks.map((link) => {
-                      const Icon = link.icon;
-                      return (
-                        <Link
-                          key={link.href}
-                          href={link.href}
-                          className="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                        >
-                          <Icon className="h-5 w-5 mr-2 text-sh-primary dark:text-blue-400" />
-                          {link.name}
-                        </Link>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
+            {/* No longer needed Request Services Dropdown */}
           </nav>
 
           {/* Theme toggle and mobile menu button */}
@@ -197,25 +161,7 @@ export default function FrontLayout({ children, title = 'Saint Helen Communicati
                   <span>Guidelines</span>
                 </Link>
                 
-                {/* Mobile Request Services Group */}
-                <div className="pt-2 pb-1 border-t border-sh-secondary">
-                  <p className="px-3 py-1 text-sm text-gray-300">Request Services</p>
-                </div>
-                
-                {formLinks.map((link) => {
-                  const Icon = link.icon;
-                  return (
-                    <Link 
-                      key={link.href}
-                      href={link.href} 
-                      className="flex items-center text-white hover:bg-sh-secondary dark:hover:bg-gray-700 px-3 py-2 rounded"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      <Icon className="h-5 w-5 mr-2" />
-                      <span>{link.name}</span>
-                    </Link>
-                  );
-                })}
+                {/* Mobile menu links removed as requested */}
               </div>
             </div>
           </div>
