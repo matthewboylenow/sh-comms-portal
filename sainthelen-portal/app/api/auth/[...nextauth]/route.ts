@@ -1,9 +1,10 @@
 // app/api/auth/[...nextauth]/route.ts
 import NextAuth from 'next-auth';
 import AzureADProvider from 'next-auth/providers/azure-ad';
+import type { NextAuthOptions } from 'next-auth';
 
-// For App Router, we wrap NextAuth in a custom handler
-const handler = NextAuth({
+// Export authOptions for use in other routes
+export const authOptions: NextAuthOptions = {
   providers: [
     AzureADProvider({
       clientId: process.env.AZURE_AD_CLIENT_ID || '',
@@ -25,6 +26,9 @@ const handler = NextAuth({
     //   return false;
     // },
   },
-});
+};
+
+// For App Router, we wrap NextAuth in a custom handler
+const handler = NextAuth(authOptions);
 
 export { handler as GET, handler as POST };
