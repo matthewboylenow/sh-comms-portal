@@ -300,7 +300,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
       </AnimatePresence>
 
       {/* Main content */}
-      <div className="flex flex-col flex-1 overflow-hidden md:ml-[4.5rem] transition-all duration-300" style={{ marginLeft: collapsed ? '4.5rem' : '16rem' }}>
+      <div className={`flex flex-col flex-1 overflow-hidden transition-all duration-300 ${isMobile ? '' : (collapsed ? 'ml-[4.5rem]' : 'ml-16')}`}>
         {/* Top navigation */}
         <header className="bg-white dark:bg-slate-800 shadow-sm z-10 relative">
           <div className="px-4 h-16 flex items-center justify-between">
