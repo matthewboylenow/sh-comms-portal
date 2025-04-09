@@ -6,6 +6,15 @@ module.exports = {
   ],
   darkMode: 'class', // enable class-based dark mode
   theme: {
+    container: {
+      center: true,
+      padding: {
+        DEFAULT: '0rem',
+        sm: '2rem',
+        lg: '4rem',
+        xl: '5rem',
+      },
+    },
     extend: {
       colors: {
         // Saint Helen Branding

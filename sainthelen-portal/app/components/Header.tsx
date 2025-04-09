@@ -61,7 +61,8 @@ export default function Header() {
   };
 
   return (
-    <header className="w-full flex items-center justify-between bg-sh-primary px-4 py-3">
+    <header className="w-full flex items-center justify-between bg-sh-primary py-3">
+      <div className="container mx-auto flex items-center justify-between px-0">
       {/* Logo + Text */}
       <div className="flex items-center space-x-3">
         {/* Logo */}
@@ -201,6 +202,7 @@ export default function Header() {
             </div>
           )}
         </div>
+      </div>
       </div>
     </header>
   );
