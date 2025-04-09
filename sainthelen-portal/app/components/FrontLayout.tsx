@@ -89,7 +89,7 @@ export default function FrontLayout({ children, title = 'Saint Helen Communicati
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Top Navigation */}
       <header className="bg-sh-primary dark:bg-sh-primary text-white">
-        <div className="container mx-auto flex items-center justify-between px-0 h-16">
+        <div className="container mx-auto flex items-center justify-between h-16">
           {/* Logo and title */}
           <div className="flex items-center">
             <Link href="/" className="flex items-center">
@@ -143,7 +143,7 @@ export default function FrontLayout({ children, title = 'Saint Helen Communicati
         {mobileMenuOpen && (
           <div className="md:hidden">
             <div className="bg-sh-primary dark:bg-sh-primary py-2 shadow-inner">
-              <div className="container mx-auto space-y-2 px-0">
+              <div className="container mx-auto space-y-2">
                 <Link 
                   href="/" 
                   className="flex items-center text-white hover:bg-sh-secondary dark:hover:bg-gray-700 px-3 py-2 rounded"
@@ -177,7 +177,7 @@ export default function FrontLayout({ children, title = 'Saint Helen Communicati
             className="w-full h-full object-cover opacity-40"
           />
         </div>
-        <div className="container relative mx-auto py-24 px-0 sm:py-32 text-center">
+        <div className="container relative mx-auto py-24 sm:py-32 text-center">
           <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">
             Saint Helen Communications Portal
           </h1>
@@ -190,7 +190,7 @@ export default function FrontLayout({ children, title = 'Saint Helen Communicati
       {/* Page title - only shown if not on homepage */}
       {title !== 'Saint Helen Communications Portal' && (
         <div className="bg-white dark:bg-gray-800 shadow">
-          <div className="container mx-auto py-6 px-0">
+          <div className="container mx-auto py-6">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{title}</h1>
           </div>
         </div>
@@ -203,7 +203,7 @@ export default function FrontLayout({ children, title = 'Saint Helen Communicati
 
       {/* Footer */}
       <footer className="bg-sh-primary dark:bg-sh-primary text-white">
-        <div className="container mx-auto px-0 py-6">
+        <div className="container mx-auto py-6">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="mb-4 md:mb-0">
               <p className="text-sm">© {new Date().getFullYear()} Saint Helen Church, Westfield, NJ</p>
