@@ -2,21 +2,20 @@
 'use client';
 
 import { SessionProvider } from 'next-auth/react';
-import React from 'react';
 import { NotificationProvider } from './context/NotificationContext';
+import { PushNotificationProvider } from './context/PushNotificationContext';
+import { ThemeProvider } from 'next-themes';
 
-interface ProvidersProps {
-  children: React.ReactNode;
-}
-
-export default function Providers({ children }: ProvidersProps) {
-  // We wrap the entire subtree in SessionProvider so
-  // any component can call useSession() without error.
+export default function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <SessionProvider>
-      <NotificationProvider>
-        {children}
-      </NotificationProvider>
-    </SessionProvider>
+    <ThemeProvider attribute="class">
+      <SessionProvider>
+        <NotificationProvider>
+          <PushNotificationProvider>
+            {children}
+          </PushNotificationProvider>
+        </NotificationProvider>
+      </SessionProvider>
+    </ThemeProvider>
   );
 }

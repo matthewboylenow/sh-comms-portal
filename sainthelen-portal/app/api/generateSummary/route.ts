@@ -186,8 +186,10 @@ ${announcementsText}
     console.log('Anthropic response object keys:', Object.keys(response));
 
     let summaryText: string;
-    if (typeof response.content === 'string') {
-      summaryText = response.content;
+    if (response.content && Array.isArray(response.content)) {
+      summaryText = response.content
+        .map(block => typeof block.text === 'string' ? block.text : '')
+        .join('');
     } else {
       summaryText = JSON.stringify(response.content, null, 2);
     }

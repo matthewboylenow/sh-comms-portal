@@ -156,13 +156,11 @@ Please output each announcement in the required format. Avoid arrays or JSON—j
 
     // If Claude returns an array or object, flatten it:
     let summaryText: string;
-    if (typeof response.content === 'string') {
-      summaryText = response.content;
-    } else if (Array.isArray(response.content)) {
-      // flatten
+    if (response.content && Array.isArray(response.content)) {
+      // flatten content blocks
       summaryText = response.content
         .map((item: any) => (item?.text ? item.text : JSON.stringify(item)))
-        .join('\n');
+        .join('');
     } else {
       summaryText = JSON.stringify(response.content, null, 2);
     }

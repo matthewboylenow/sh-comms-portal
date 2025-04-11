@@ -86,9 +86,21 @@ export async function createNotification(params: {
   message: string;
   relatedRecordId?: string;
   relatedRecordType?: string;
+  shouldSendPush?: boolean;
+  pushTitle?: string;
+  pushUrl?: string;
 }) {
   try {
-    const { userEmail, type, message, relatedRecordId, relatedRecordType } = params;
+    const { 
+      userEmail, 
+      type, 
+      message, 
+      relatedRecordId, 
+      relatedRecordType,
+      shouldSendPush = true,
+      pushTitle,
+      pushUrl
+    } = params;
     
     // Create notification record
     const record = await base(NOTIFICATIONS_TABLE).create({
@@ -100,6 +112,27 @@ export async function createNotification(params: {
       isRead: false,
       createdAt: new Date().toISOString()
     });
+    
+    // Send push notification if requested
+    if (shouldSendPush) {
+      try {
+        await fetch('/api/push/send', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            title: pushTitle || 'New Notification',
+            message,
+            url: pushUrl || '/admin',
+            userEmails: [userEmail]
+          }),
+        });
+      } catch (pushError) {
+        console.error('Error sending push notification:', pushError);
+        // Continue even if push notification fails
+      }
+    }
     
     return record.id;
   } catch (error) {

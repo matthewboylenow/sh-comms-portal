@@ -93,12 +93,10 @@ Please provide ONLY the formatted description text with no additional commentary
 
     // Extract the response text
     let formattedDescription = '';
-    if (typeof response.content === 'string') {
-      formattedDescription = response.content;
-    } else if (Array.isArray(response.content)) {
+    if (response.content && Array.isArray(response.content)) {
       formattedDescription = response.content
         .map((item: any) => (item?.text ? item.text : ''))
-        .join('\n');
+        .join('');
     } else {
       formattedDescription = JSON.stringify(response.content);
     }
