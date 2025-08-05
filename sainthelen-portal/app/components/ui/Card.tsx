@@ -8,7 +8,7 @@ interface CardProps {
 
 export const Card = ({ children, className = '' }: CardProps) => {
   return (
-    <div className={`bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm rounded-2xl shadow-soft border border-white/20 dark:border-gray-700/30 overflow-hidden text-gray-900 dark:text-gray-100 hover:shadow-soft-lg transition-all duration-300 ${className}`}>
+    <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden text-gray-900 dark:text-gray-100 transition-all duration-200 ${className}`}>
       {children}
     </div>
   );
@@ -19,7 +19,7 @@ export const CardHeader = ({
   className = '' 
 }: CardProps) => {
   return (
-    <div className={`px-6 py-5 border-b border-gray-100/50 dark:border-gray-700/50 ${className}`}>
+    <div className={`px-6 py-4 border-b border-gray-200 dark:border-gray-700 ${className}`}>
       {children}
     </div>
   );
@@ -52,7 +52,7 @@ export const CardContent = ({
   className = '' 
 }: CardProps) => {
   return (
-    <div className={`px-6 py-5 text-gray-900 dark:text-gray-100 ${className}`}>
+    <div className={`px-6 py-4 text-gray-900 dark:text-gray-100 ${className}`}>
       {children}
     </div>
   );
@@ -63,7 +63,7 @@ export const CardFooter = ({
   className = '' 
 }: CardProps) => {
   return (
-    <div className={`px-6 py-4 bg-gray-50/50 dark:bg-gray-900/50 border-t border-gray-100/50 dark:border-gray-700/50 ${className}`}>
+    <div className={`px-6 py-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 ${className}`}>
       {children}
     </div>
   );

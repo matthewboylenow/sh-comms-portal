@@ -36,12 +36,6 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: 'Saint Helen Communications Portal',
   description: 'A Next.js 14 + Tailwind Portal for Saint Helen Parish',
-  manifest: '/manifest.json',
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'black-translucent',
-    title: 'SH Comms Portal'
-  }
 };
 
 export const viewport = {
@@ -65,13 +59,6 @@ export default function RootLayout({
     >
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="SH Comms Portal" />
-        <meta name="application-name" content="SH Comms Portal" />
-        <meta name="theme-color" content="#20336B" />
-        <meta name="msapplication-TileColor" content="#20336B" />
-        <meta name="msapplication-navbutton-color" content="#20336B" />
         
         {/* Apple iOS icons */}
         <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
@@ -95,25 +82,6 @@ export default function RootLayout({
         <link rel="apple-touch-startup-image" href="/images/splash/apple-splash-750-1334.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
         <link rel="apple-touch-startup-image" href="/images/splash/apple-splash-640-1136.png" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
         
-        {/* Web Push Notification support */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              if ('serviceWorker' in navigator) {
-                window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js').then(
-                    function(registration) {
-                      console.log('ServiceWorker registration successful with scope: ', registration.scope);
-                    },
-                    function(err) {
-                      console.log('ServiceWorker registration failed: ', err);
-                    }
-                  );
-                });
-              }
-            `,
-          }}
-        />
       </head>
       <body className="min-h-screen flex flex-col bg-white dark:bg-[#121212] transition-colors duration-300">
         {/* Wrap everything in the SessionProvider */}

@@ -20,7 +20,8 @@ import {
   DocumentTextIcon,
   PencilSquareIcon,
   ChartBarIcon,
-  BellIcon
+  BellIcon,
+  BuildingOffice2Icon
 } from '@heroicons/react/24/outline';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -103,42 +104,42 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white font-inter">
+    <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white font-inter">
       {/* Desktop Sidebar */}
       <AnimatePresence initial={false}>
         <motion.div 
-          className={`fixed z-20 h-full bg-gradient-to-b from-sh-primary to-blue-900 shadow-xl hidden md:block ${isMobile ? 'hidden' : 'block'}`}
+          className={`fixed z-20 h-full bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 shadow-sm hidden md:block ${isMobile ? 'hidden' : 'block'}`}
           animate={collapsed ? 'collapsed' : 'expanded'}
           variants={sidebarVariants}
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         >
           {/* Sidebar header with logo */}
-          <div className="flex h-16 items-center justify-between px-4">
+          <div className="flex h-16 items-center justify-between px-4 border-b border-gray-200 dark:border-gray-800">
             {!collapsed && (
-              <Link href="/admin" className="text-white font-bold flex items-center space-x-2">
+              <Link href="/admin" className="text-gray-900 dark:text-gray-100 font-bold flex items-center space-x-2">
                 <span className="text-xl tracking-tight">Saint Helen</span>
               </Link>
             )}
             <button 
               onClick={toggleSidebar}
-              className="p-1.5 rounded-lg text-white bg-blue-800 hover:bg-blue-700 transition-colors"
+              className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200"
             >
               {collapsed ? 
-                <ChevronDoubleRightIcon className="h-5 w-5" /> : 
-                <ChevronDoubleLeftIcon className="h-5 w-5" />
+                <ChevronDoubleRightIcon className="h-4 w-4" /> : 
+                <ChevronDoubleLeftIcon className="h-4 w-4" />
               }
             </button>
           </div>
 
           {/* Sidebar main navigation */}
           <div className="py-6 flex flex-col h-[calc(100%-4rem)] justify-between">
-            <nav className="px-2 space-y-1">
+            <nav className="px-3 space-y-1">
               {/* Dashboard link */}
               <Link 
                 href="/admin" 
-                className="flex items-center px-3 py-3 text-white rounded-lg hover:bg-blue-800 transition-colors group"
+                className="flex items-center px-3 py-2.5 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-all duration-200 group"
               >
-                <div className="flex items-center justify-center w-10 h-10 bg-blue-800 group-hover:bg-blue-700 rounded-lg flex-shrink-0">
+                <div className="flex items-center justify-center w-8 h-8 text-gray-500 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-200">
                   <HomeIcon className="h-5 w-5" />
                 </div>
                 {!collapsed && <span className="ml-3 font-medium">Dashboard</span>}
@@ -147,9 +148,9 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
               {/* Completed Items */}
               <Link 
                 href="/admin/completed" 
-                className="flex items-center px-3 py-3 text-white rounded-lg hover:bg-blue-800 transition-colors group"
+                className="flex items-center px-3 py-2.5 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-all duration-200 group"
               >
-                <div className="flex items-center justify-center w-10 h-10 bg-blue-800 group-hover:bg-blue-700 rounded-lg flex-shrink-0">
+                <div className="flex items-center justify-center w-8 h-8 text-gray-500 dark:text-gray-400 group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors duration-200">
                   <CheckCircleIcon className="h-5 w-5" />
                 </div>
                 {!collapsed && <span className="ml-3 font-medium">Completed Items</span>}
@@ -158,24 +159,35 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
               {/* Analytics */}
               <Link 
                 href="/admin/analytics" 
-                className="flex items-center px-3 py-3 text-white rounded-lg hover:bg-blue-800 transition-colors group"
+                className="flex items-center px-3 py-2.5 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-all duration-200 group"
               >
-                <div className="flex items-center justify-center w-10 h-10 bg-blue-800 group-hover:bg-blue-700 rounded-lg flex-shrink-0">
+                <div className="flex items-center justify-center w-8 h-8 text-gray-500 dark:text-gray-400 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors duration-200">
                   <ChartBarIcon className="h-5 w-5" />
                 </div>
                 {!collapsed && <span className="ml-3 font-medium">Analytics</span>}
               </Link>
+
+              {/* Ministries */}
+              <Link 
+                href="/admin/ministries" 
+                className="flex items-center px-3 py-2.5 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-all duration-200 group"
+              >
+                <div className="flex items-center justify-center w-8 h-8 text-gray-500 dark:text-gray-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200">
+                  <BuildingOffice2Icon className="h-5 w-5" />
+                </div>
+                {!collapsed && <span className="ml-3 font-medium">Ministries</span>}
+              </Link>
             </nav>
 
             {/* Sidebar footer */}
-            <div className="mt-auto border-t border-blue-800 p-4">
-              <div className="flex flex-col space-y-2">
+            <div className="mt-auto border-t border-gray-200 dark:border-gray-800 pt-4 px-3">
+              <div className="flex flex-col space-y-1">
                 {/* Toggle theme button */}
                 <button
                   onClick={handleToggleTheme}
-                  className="flex items-center p-3 text-white rounded-lg hover:bg-blue-800 transition-colors group"
+                  className="flex items-center px-3 py-2.5 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-all duration-200 group"
                 >
-                  <div className="flex items-center justify-center w-10 h-10 bg-blue-800 group-hover:bg-blue-700 rounded-lg flex-shrink-0">
+                  <div className="flex items-center justify-center w-8 h-8 text-gray-500 dark:text-gray-400 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors duration-200">
                     {isDark ? <SunIcon className="h-5 w-5" /> : <MoonIcon className="h-5 w-5" />}
                   </div>
                   {!collapsed && (
@@ -188,9 +200,9 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
                 {/* Sign out button */}
                 <button
                   onClick={handleSignOut}
-                  className="flex items-center p-3 text-white rounded-lg hover:bg-blue-800 transition-colors group"
+                  className="flex items-center px-3 py-2.5 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 transition-all duration-200 group"
                 >
-                  <div className="flex items-center justify-center w-10 h-10 bg-blue-800 group-hover:bg-blue-700 rounded-lg flex-shrink-0">
+                  <div className="flex items-center justify-center w-8 h-8 text-gray-500 dark:text-gray-400 group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors duration-200">
                     <ArrowRightOnRectangleIcon className="h-5 w-5" />
                   </div>
                   {!collapsed && <span className="ml-3 font-medium">Sign Out</span>}
@@ -213,34 +225,34 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
       <AnimatePresence>
         {isMobile && mobileMenuOpen && (
           <motion.div 
-            className="fixed inset-y-0 left-0 w-64 bg-gradient-to-b from-sh-primary to-blue-900 shadow-xl z-30"
+            className="fixed inset-y-0 left-0 w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 shadow-lg z-30"
             initial="closed"
             animate="open"
             exit="closed"
             variants={mobileMenuVariants}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
           >
-            <div className="flex h-16 items-center justify-between px-4 border-b border-blue-800">
-              <Link href="/admin" className="text-white font-bold flex items-center space-x-2">
+            <div className="flex h-16 items-center justify-between px-4 border-b border-gray-200 dark:border-gray-800">
+              <Link href="/admin" className="text-gray-900 dark:text-gray-100 font-bold flex items-center space-x-2">
                 <span className="text-xl tracking-tight">Saint Helen</span>
               </Link>
               <button 
                 onClick={toggleMobileMenu}
-                className="p-1.5 rounded-lg text-white bg-blue-800 hover:bg-blue-700 transition-colors"
+                className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200"
               >
-                <ChevronDoubleLeftIcon className="h-5 w-5" />
+                <ChevronDoubleLeftIcon className="h-4 w-4" />
               </button>
             </div>
 
             <div className="py-6 flex flex-col h-[calc(100%-4rem)] justify-between">
-              <nav className="px-2 space-y-1">
+              <nav className="px-3 space-y-1">
                 {/* Mobile navigation - same as desktop but without collapsing */}
                 <Link 
                   href="/admin" 
-                  className="flex items-center px-3 py-3 text-white rounded-lg hover:bg-blue-800 transition-colors group"
+                  className="flex items-center px-3 py-2.5 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-all duration-200 group"
                   onClick={toggleMobileMenu}
                 >
-                  <div className="flex items-center justify-center w-10 h-10 bg-blue-800 group-hover:bg-blue-700 rounded-lg flex-shrink-0">
+                  <div className="flex items-center justify-center w-8 h-8 text-gray-500 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-200">
                     <HomeIcon className="h-5 w-5" />
                   </div>
                   <span className="ml-3 font-medium">Dashboard</span>
@@ -248,10 +260,10 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
 
                 <Link 
                   href="/admin/completed" 
-                  className="flex items-center px-3 py-3 text-white rounded-lg hover:bg-blue-800 transition-colors group"
+                  className="flex items-center px-3 py-2.5 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-all duration-200 group"
                   onClick={toggleMobileMenu}
                 >
-                  <div className="flex items-center justify-center w-10 h-10 bg-blue-800 group-hover:bg-blue-700 rounded-lg flex-shrink-0">
+                  <div className="flex items-center justify-center w-8 h-8 text-gray-500 dark:text-gray-400 group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors duration-200">
                     <CheckCircleIcon className="h-5 w-5" />
                   </div>
                   <span className="ml-3 font-medium">Completed Items</span>
@@ -259,23 +271,34 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
 
                 <Link 
                   href="/admin/analytics" 
-                  className="flex items-center px-3 py-3 text-white rounded-lg hover:bg-blue-800 transition-colors group"
+                  className="flex items-center px-3 py-2.5 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-all duration-200 group"
                   onClick={toggleMobileMenu}
                 >
-                  <div className="flex items-center justify-center w-10 h-10 bg-blue-800 group-hover:bg-blue-700 rounded-lg flex-shrink-0">
+                  <div className="flex items-center justify-center w-8 h-8 text-gray-500 dark:text-gray-400 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors duration-200">
                     <ChartBarIcon className="h-5 w-5" />
                   </div>
                   <span className="ml-3 font-medium">Analytics</span>
                 </Link>
+
+                <Link 
+                  href="/admin/ministries" 
+                  className="flex items-center px-3 py-2.5 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-all duration-200 group"
+                  onClick={toggleMobileMenu}
+                >
+                  <div className="flex items-center justify-center w-8 h-8 text-gray-500 dark:text-gray-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200">
+                    <BuildingOffice2Icon className="h-5 w-5" />
+                  </div>
+                  <span className="ml-3 font-medium">Ministries</span>
+                </Link>
               </nav>
 
-              <div className="mt-auto border-t border-blue-800 p-4">
-                <div className="flex flex-col space-y-2">
+              <div className="mt-auto border-t border-gray-200 dark:border-gray-800 pt-4 px-3">
+                <div className="flex flex-col space-y-1">
                   <button
                     onClick={handleToggleTheme}
-                    className="flex items-center p-3 text-white rounded-lg hover:bg-blue-800 transition-colors group"
+                    className="flex items-center px-3 py-2.5 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-all duration-200 group"
                   >
-                    <div className="flex items-center justify-center w-10 h-10 bg-blue-800 group-hover:bg-blue-700 rounded-lg flex-shrink-0">
+                    <div className="flex items-center justify-center w-8 h-8 text-gray-500 dark:text-gray-400 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors duration-200">
                       {isDark ? <SunIcon className="h-5 w-5" /> : <MoonIcon className="h-5 w-5" />}
                     </div>
                     <span className="ml-3 font-medium">
@@ -285,9 +308,9 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
                   
                   <button
                     onClick={handleSignOut}
-                    className="flex items-center p-3 text-white rounded-lg hover:bg-blue-800 transition-colors group"
+                    className="flex items-center px-3 py-2.5 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 transition-all duration-200 group"
                   >
-                    <div className="flex items-center justify-center w-10 h-10 bg-blue-800 group-hover:bg-blue-700 rounded-lg flex-shrink-0">
+                    <div className="flex items-center justify-center w-8 h-8 text-gray-500 dark:text-gray-400 group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors duration-200">
                       <ArrowRightOnRectangleIcon className="h-5 w-5" />
                     </div>
                     <span className="ml-3 font-medium">Sign Out</span>
@@ -302,13 +325,13 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
       {/* Main content */}
       <div className={`flex flex-col flex-1 overflow-hidden transition-all duration-300 ${isMobile ? '' : (collapsed ? 'ml-[4.5rem]' : 'ml-64')}`}>
         {/* Top navigation */}
-        <header className="bg-white dark:bg-slate-800 shadow-sm z-10 relative">
+        <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 z-10 relative">
           <div className="px-4 h-16 flex items-center justify-between">
             <div className="flex items-center">
               {/* Mobile menu button */}
               <button
                 onClick={toggleMobileMenu}
-                className="md:hidden p-2 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 mr-3"
+                className="md:hidden p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-all duration-200 mr-3"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
@@ -325,7 +348,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
               <div className="relative">
                 <button 
                   onClick={() => setNotificationCenter(!notificationCenter)}
-                  className="relative p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full mr-2"
+                  className="relative p-2.5 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white rounded-xl transition-all duration-200 mr-2"
                 >
                   <BellIcon className="h-6 w-6" />
                   {notificationContext.unreadCount > 0 && (
@@ -336,7 +359,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
                 </button>
                 
                 {notificationCenter && (
-                  <div className="absolute right-0 mt-2 w-80 rounded-md shadow-lg py-1 bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 z-50">
+                  <div className="absolute right-0 mt-2 w-80 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 z-50">
                     <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
                       <h3 className="text-sm font-medium text-gray-700 dark:text-gray-200">Notifications</h3>
                       <button 
@@ -427,15 +450,15 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
               <div className="relative">
                 <button 
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex text-sm rounded-full bg-blue-100 dark:bg-blue-900 p-1 hover:ring-2 hover:ring-blue-300 dark:hover:ring-blue-700 transition-all"
+                  className="flex text-sm rounded-full bg-gray-100 dark:bg-gray-800 p-1 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200"
                 >
-                  <div className="h-8 w-8 rounded-full bg-gradient-to-r from-blue-500 to-blue-700 text-white flex items-center justify-center">
+                  <div className="h-8 w-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-medium">
                     {session?.user?.name?.charAt(0) || 'U'}
                   </div>
                 </button>
                 
                 {userMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 z-50">
+                  <div className="absolute right-0 mt-2 w-48 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 z-50">
                     <div className="px-4 py-2 text-sm text-gray-700 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700">
                       <p className="font-medium">{session?.user?.name}</p>
                       <p className="text-gray-500 dark:text-gray-400 truncate">{session?.user?.email}</p>
@@ -556,7 +579,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
         </header>
 
         {/* Page content with nice glass effect */}
-        <main className="flex-1 overflow-y-auto p-6 pb-24 bg-slate-50 dark:bg-slate-900">
+        <main className="flex-1 overflow-y-auto p-6 pb-24 bg-gray-50 dark:bg-gray-900">
           <div className="max-w-7xl mx-auto">
             <div className="mb-8">
               {children}

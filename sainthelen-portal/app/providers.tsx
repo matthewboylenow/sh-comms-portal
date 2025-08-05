@@ -3,7 +3,6 @@
 
 import { SessionProvider } from 'next-auth/react';
 import { NotificationProvider } from './context/NotificationContext';
-import { PushNotificationProvider } from './context/PushNotificationContext';
 import { ThemeProvider } from 'next-themes';
 
 export default function Providers({ children }: { children: React.ReactNode }) {
@@ -11,9 +10,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     <ThemeProvider attribute="class">
       <SessionProvider>
         <NotificationProvider>
-          <PushNotificationProvider>
-            {children}
-          </PushNotificationProvider>
+          {children}
         </NotificationProvider>
       </SessionProvider>
     </ThemeProvider>

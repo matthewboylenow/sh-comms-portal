@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { SunIcon, MoonIcon, UserCircleIcon, BellIcon } from '@heroicons/react/24/solid';
 import { useNotificationContext } from '../context/NotificationContext';
 import { useSession } from 'next-auth/react';
-import PushNotificationToggle from './admin/PushNotificationToggle';
 
 export default function Header() {
   const { data: session } = useSession();
@@ -82,8 +81,6 @@ export default function Header() {
 
       {/* Right side actions */}
       <div className="flex items-center space-x-3">
-        {/* Push Notification Toggle - only show if logged in */}
-        {session?.user && <PushNotificationToggle />}
         
         {/* Dark Mode Toggle Button */}
         <button

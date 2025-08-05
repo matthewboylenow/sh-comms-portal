@@ -130,20 +130,20 @@ export default function DashboardStats({
     <div className="mb-8">
       {/* Total pending stats */}
       <motion.div 
-        className="mb-6 p-6 bg-gradient-to-r from-sh-primary to-blue-700 rounded-xl shadow-lg text-white"
+        className="mb-8 p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700"
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5 }}
       >
-        <div className="flex flex-col md:flex-row items-center justify-between">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold mb-1">Communications Dashboard</h2>
-            <p className="text-blue-100">{hideCompleted ? 'Showing pending items only' : 'Showing all items'}</p>
+            <h2 className="text-2xl font-bold mb-1 text-gray-900 dark:text-white">Communications Dashboard</h2>
+            <p className="text-gray-600 dark:text-gray-400">{hideCompleted ? 'Showing pending items only' : 'Showing all items'}</p>
           </div>
-          <div className="mt-4 md:mt-0 bg-white/10 backdrop-blur-sm rounded-lg p-4">
+          <div className="mt-4 md:mt-0 bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
             <div className="text-center">
-              <p className="text-sm text-blue-100">TOTAL PENDING</p>
-              <p className="text-4xl font-bold">{totalPending}</p>
+              <p className="text-sm font-medium text-blue-600 dark:text-blue-400">TOTAL PENDING</p>
+              <p className="text-3xl font-bold text-blue-700 dark:text-blue-300">{totalPending}</p>
             </div>
           </div>
         </div>
@@ -159,26 +159,26 @@ export default function DashboardStats({
             animate="visible"
             variants={cardVariants}
           >
-            <a href={stat.link} className="block h-full">
-              <Card className="border-0 shadow hover:shadow-md transition-all transform hover:-translate-y-1 duration-200 h-full">
+            <a href={stat.link} className="block h-full group">
+              <Card className="border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-200 h-full group-hover:-translate-y-1">
                 <CardContent className="p-0 h-full">
                   <div className="flex flex-col h-full">
-                    <div className={`h-28 w-full ${stat.bgColor} rounded-t-lg flex items-center justify-center`}>
-                      <div className="bg-white dark:bg-gray-800 p-3 rounded-full shadow-md">
-                        <div className={`h-12 w-12 bg-gradient-to-r ${stat.color} rounded-full flex items-center justify-center text-white`}>
-                          {stat.icon}
-                        </div>
+                    <div className={`h-20 w-full ${stat.bgColor} rounded-t-xl flex items-center justify-center`}>
+                      <div className={`h-10 w-10 ${stat.textColor} flex items-center justify-center`}>
+                        {stat.icon}
                       </div>
                     </div>
                     <div className="p-4 text-center flex-grow">
-                      <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{stat.title}</h3>
+                      <h3 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">{stat.title}</h3>
                       <div className="flex items-center justify-center">
-                        <p className={`text-4xl font-bold ${stat.textColor}`}>{stat.count}</p>
+                        <p className={`text-2xl font-bold ${stat.textColor}`}>{stat.count}</p>
                         {stat.urgent > 0 && (
-                          <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300">
-                            <ExclamationTriangleIcon className="h-3 w-3 mr-0.5" />
-                            {stat.urgentLabel || stat.urgent}
-                          </span>
+                          <div className="ml-2 flex flex-col">
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-xs font-medium bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300">
+                              <ExclamationTriangleIcon className="h-3 w-3 mr-0.5" />
+                              {stat.urgentLabel || stat.urgent}
+                            </span>
+                          </div>
                         )}
                       </div>
                     </div>
