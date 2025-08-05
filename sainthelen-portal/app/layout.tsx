@@ -13,6 +13,7 @@ const franklin = Libre_Franklin({
   weight: ['400', '700'],
   display: 'swap',
   variable: '--font-franklin',
+  fallback: ['system-ui', 'sans-serif'],
 });
 
 const baskerville = Libre_Baskerville({
@@ -20,6 +21,7 @@ const baskerville = Libre_Baskerville({
   weight: ['400', '700'],
   display: 'swap',
   variable: '--font-baskerville',
+  fallback: ['serif', 'Times New Roman'],
 });
 
 // Add Inter for modern UI elements in the admin interface
