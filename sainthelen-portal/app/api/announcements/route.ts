@@ -1,10 +1,45 @@
 // app/api/announcements/route.ts
 
 import { NextRequest, NextResponse } from 'next/server';
-import Airtable from 'airtable'; // npm install airtable
 import { Client } from '@microsoft/microsoft-graph-client';
 import { TokenCredentialAuthenticationProvider } from '@microsoft/microsoft-graph-client/authProviders/azureTokenCredentials';
 import { ClientSecretCredential } from '@azure/identity';
+import { getApprovalCoordinator } from '../../config/ministries';
+import { getAirtableBaseSafe, getAirtableBase, TABLE_NAMES } from '../../lib/airtable';
+
+export const dynamic = 'force-dynamic';
+
+async function getMinistryByName(name: string) {
+  try {
+    const base = getAirtableBaseSafe();
+    if (!base) {
+      console.warn('Ministries base not configured, returning null');
+      return null;
+    }
+    const records = await base(TABLE_NAMES.MINISTRIES)
+      .select({
+        filterByFormula: `LOWER({Name}) = LOWER("${name.replace(/"/g, '""')}")`,
+        maxRecords: 1
+      })
+      .all();
+
+    if (records.length > 0) {
+      const record = records[0];
+      return {
+        id: record.id,
+        name: record.fields.Name as string,
+        requiresApproval: record.fields['Requires Approval'] === true,
+        approvalCoordinator: record.fields['Approval Coordinator'] as string || 'adult-discipleship',
+        description: record.fields.Description as string || '',
+        active: record.fields.Active !== false
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error('Error fetching ministry:', error);
+    return null;
+  }
+}
 
 type AnnouncementFormData = {
   name: string;
@@ -16,22 +51,11 @@ type AnnouncementFormData = {
   platforms?: string[]; // e.g. ["Email Blast", "Bulletin", "Church Screens"]
   announcementBody: string;
   addToCalendar?: boolean;
+  isExternalEvent?: boolean;
   fileLinks?: string[];
 };
 
-// 1) Configure Airtable using personal token
-const personalToken = process.env.AIRTABLE_PERSONAL_TOKEN || '';
-const baseId = process.env.AIRTABLE_BASE_ID || '';
-const announcementsTable = process.env.ANNOUNCEMENTS_TABLE_NAME || 'Announcements';
-
-if (!personalToken) {
-  console.error('No AIRTABLE_PERSONAL_TOKEN found in environment!');
-}
-if (!baseId) {
-  console.error('No AIRTABLE_BASE_ID found in environment!');
-}
-
-const base = new Airtable({ apiKey: personalToken }).base(baseId);
+// 1) Configure Airtable using centralized utility
 
 // 2) Setup Microsoft Graph
 function getGraphClient() {
@@ -55,16 +79,17 @@ export async function POST(request: NextRequest) {
     const data = (await request.json()) as AnnouncementFormData;
     console.log('Announcements form submission:', data);
 
+    // Check if ministry requires approval
+    const ministry = data.ministry ? await getMinistryByName(data.ministry) : null;
+    const requiresApproval = ministry?.requiresApproval || false;
+    const approvalStatus = requiresApproval ? 'pending' : 'approved';
+
     // 1) Write to Airtable
     const fileLinksString = data.fileLinks?.length ? data.fileLinks.join('\n') : '';
     const addToCalendarValue = data.addToCalendar ? 'Yes' : 'No';
 
-    // Double-check the base and table variables are not empty
-    if (!personalToken || !baseId) {
-      throw new Error('Airtable token or base ID is missing/invalid.');
-    }
-
-    const record = await base(announcementsTable).create([
+    const base = getAirtableBase();
+    const record = await base(TABLE_NAMES.ANNOUNCEMENTS).create([
       {
         fields: {
           Name: data.name,
@@ -76,7 +101,12 @@ export async function POST(request: NextRequest) {
           Platforms: data.platforms || [],
           'Announcement Body': data.announcementBody,
           'Add to Events Calendar': addToCalendarValue,
+          'External Event': data.isExternalEvent ? 'Yes' : 'No',
           'File Links': fileLinksString,
+          'Approval Status': approvalStatus,
+          'Requires Approval': requiresApproval ? 'Yes' : 'No',
+          'Ministry ID': ministry?.id || '',
+          'Submitted At': new Date().toISOString(),
         },
       },
     ]);
@@ -87,6 +117,11 @@ export async function POST(request: NextRequest) {
     const client = getGraphClient();
     const fromAddress = process.env.MAILBOX_TO_SEND_FROM || '';
     const subject = 'Saint Helen Announcement Received';
+    
+    const approvalText = requiresApproval 
+      ? `<p style="background-color: #fef3c7; padding: 12px; border-radius: 6px; border-left: 4px solid #f59e0b;"><strong>Approval Required:</strong> This announcement requires approval from the Coordinator of Adult Discipleship before being published. You will receive an email notification once it has been reviewed.</p>`
+      : `<p style="background-color: #d1fae5; padding: 12px; border-radius: 6px; border-left: 4px solid #10b981;"><strong>Status:</strong> Your announcement has been received and will be processed by our communications team.</p>`;
+
     const htmlContent = `
       <p>Hello ${data.name},</p>
       <p>We received your announcement request:</p>
@@ -95,9 +130,11 @@ export async function POST(request: NextRequest) {
         <li><strong>Event Date:</strong> ${data.eventDate || 'N/A'} ${data.eventTime || ''}</li>
         <li><strong>Promotion Start:</strong> ${data.promotionStart || 'N/A'}</li>
         <li><strong>Add to Calendar:</strong> ${addToCalendarValue}</li>
+        <li><strong>External Event:</strong> ${data.isExternalEvent ? 'Yes' : 'No'}</li>
         <li><strong>File Links:</strong><br/>${fileLinksString.replace(/\n/g, '<br/>')}</li>
       </ul>
-      <p>We will review it soon. Thank you!</p>
+      ${approvalText}
+      <p>Thank you!</p>
       <p>Saint Helen Communications</p>
     `;
 
@@ -114,6 +151,46 @@ export async function POST(request: NextRequest) {
     });
 
     console.log('Email sent via MS Graph:', sendMailResponse);
+
+    // 3) Send notification to approval coordinator if required
+    if (requiresApproval && ministry?.approvalCoordinator) {
+      const coordinator = getApprovalCoordinator(ministry.approvalCoordinator);
+      if (coordinator?.email) {
+        const coordinatorSubject = 'Adult Discipleship Announcement Requires Approval';
+        const coordinatorHtmlContent = `
+          <p>Hello,</p>
+          <p>A new announcement submission requires your approval:</p>
+          <ul>
+            <li><strong>Submitted by:</strong> ${data.name} (${data.email})</li>
+            <li><strong>Ministry:</strong> ${data.ministry}</li>
+            <li><strong>Event Date:</strong> ${data.eventDate || 'N/A'} ${data.eventTime || ''}</li>
+            <li><strong>Promotion Start:</strong> ${data.promotionStart || 'N/A'}</li>
+            <li><strong>External Event:</strong> ${data.isExternalEvent ? 'Yes' : 'No'}</li>
+          </ul>
+          <div style="background-color: #f3f4f6; padding: 16px; border-radius: 6px; margin: 16px 0;">
+            <h4>Announcement Body:</h4>
+            <p>${data.announcementBody.replace(/\n/g, '<br/>')}</p>
+          </div>
+          ${fileLinksString ? `<p><strong>Attached Files:</strong><br/>${fileLinksString.replace(/\n/g, '<br/>')}</p>` : ''}
+          <p>Please review this submission in the admin portal to approve or reject it.</p>
+          <p>Saint Helen Communications Portal</p>
+        `;
+
+        await client.api(`/users/${fromAddress}/sendMail`).post({
+          message: {
+            subject: coordinatorSubject,
+            body: { contentType: 'html', content: coordinatorHtmlContent },
+            from: { emailAddress: { address: fromAddress } },
+            toRecipients: [
+              { emailAddress: { address: coordinator.email } },
+            ],
+          },
+          saveToSentItems: true,
+        });
+
+        console.log('Approval notification sent to coordinator:', coordinator.email);
+      }
+    }
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

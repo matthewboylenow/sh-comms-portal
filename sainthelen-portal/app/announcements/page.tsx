@@ -6,23 +6,47 @@ import FrontLayout from '../components/FrontLayout';
 import { FrontCard, FrontCardContent, FrontCardHeader, FrontCardTitle } from '../components/ui/FrontCard';
 import { Button } from '../components/ui/Button';
 import { ExclamationCircleIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
+import MinistryAutocomplete from '../components/ui/MinistryAutocomplete';
+
+interface Ministry {
+  id: string;
+  name: string;
+  aliases?: string[];
+  requiresApproval: boolean;
+  approvalCoordinator?: string;
+  description?: string;
+  active: boolean;
+}
 
 export default function AnnouncementsFormPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [ministry, setMinistry] = useState('');
+  const [selectedMinistry, setSelectedMinistry] = useState<Ministry | undefined>();
+  const [requiresApproval, setRequiresApproval] = useState(false);
   const [eventDate, setEventDate] = useState('');
   const [eventTime, setEventTime] = useState('');
   const [promotionStart, setPromotionStart] = useState('');
   const [platforms, setPlatforms] = useState<string[]>([]);
   const [announcementBody, setAnnouncementBody] = useState('');
   const [addToCalendar, setAddToCalendar] = useState(false);
+  const [isExternalEvent, setIsExternalEvent] = useState(false);
   const [fileLinks, setFileLinks] = useState<string[]>([]);
 
   const [uploadingFiles, setUploadingFiles] = useState(false);
   const [submittingForm, setSubmittingForm] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+
+  // Handle ministry selection
+  const handleMinistryChange = (value: string, ministryObj?: Ministry) => {
+    setMinistry(value);
+    setSelectedMinistry(ministryObj);
+  };
+
+  const handleApprovalStatusChange = (requiresApproval: boolean, ministryObj?: Ministry) => {
+    setRequiresApproval(requiresApproval);
+  };
 
   // Handle checkboxes for "Platforms"
   const handlePlatformChange = (platform: string) => {
@@ -104,6 +128,7 @@ export default function AnnouncementsFormPage() {
           platforms,
           announcementBody,
           addToCalendar,
+          isExternalEvent,
           fileLinks,
         }),
       });
@@ -113,17 +138,24 @@ export default function AnnouncementsFormPage() {
         throw new Error(error || 'Submission failed');
       }
 
-      setSuccessMessage('Announcement submitted successfully!');
+      const successMsg = requiresApproval 
+        ? 'Announcement submitted successfully! It will require approval from the Coordinator of Adult Discipleship before being published.'
+        : 'Announcement submitted successfully!';
+      setSuccessMessage(successMsg);
+      
       // Reset form (if desired)
       setName('');
       setEmail('');
       setMinistry('');
+      setSelectedMinistry(undefined);
+      setRequiresApproval(false);
       setEventDate('');
       setEventTime('');
       setPromotionStart('');
       setPlatforms([]);
       setAnnouncementBody('');
       setAddToCalendar(false);
+      setIsExternalEvent(false);
       setFileLinks([]);
     } catch (err: any) {
       console.error('Form submission error:', err);
@@ -206,13 +238,47 @@ export default function AnnouncementsFormPage() {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Ministry/Organization
                 </label>
-                <input
-                  type="text"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary dark:bg-gray-700 dark:text-white"
+                <MinistryAutocomplete
                   value={ministry}
-                  onChange={(e) => setMinistry(e.target.value)}
+                  onChange={handleMinistryChange}
+                  onApprovalStatusChange={handleApprovalStatusChange}
+                  placeholder="Start typing ministry name..."
                 />
               </div>
+
+              {/* External Event Checkbox */}
+              <div>
+                <label className="inline-flex items-center">
+                  <input
+                    type="checkbox"
+                    className="rounded border-gray-300 dark:border-gray-600 text-sh-primary focus:ring-sh-primary dark:bg-gray-700"
+                    checked={isExternalEvent}
+                    onChange={(e) => setIsExternalEvent(e.target.checked)}
+                  />
+                  <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                    This is an external event or ministry outside of Saint Helen
+                  </span>
+                </label>
+              </div>
+
+              {/* External Event Warning */}
+              {isExternalEvent && (
+                <div className="p-4 bg-amber-50/80 dark:bg-amber-900/30 backdrop-blur-sm border border-amber-200/50 dark:border-amber-800/50 rounded-2xl shadow-soft">
+                  <div className="flex items-start gap-3">
+                    <InformationCircleIcon className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                    <div className="text-sm">
+                      <p className="font-semibold text-amber-800 dark:text-amber-300">
+                        External Event Notice
+                      </p>
+                      <p className="text-amber-700 dark:text-amber-400 mt-1 leading-relaxed">
+                        Priority is given to events directly affiliated with Saint Helen and Saint Helen Ministries. 
+                        We may not have available space for external events, however we will make every effort to 
+                        include where appropriate.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Event Date / Time */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

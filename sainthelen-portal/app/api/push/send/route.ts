@@ -17,15 +17,7 @@ const PUSH_SUBSCRIPTIONS_TABLE = 'PushSubscriptions'; // Table name in Airtable
 const VAPID_PUBLIC_KEY = 'BNbKpVjn7a0DrH-EkSQ_Gl00-UwEn2Cn12U2WGIAVr5R15bXCLwXB7TXqFkyGciKoQYNXktnjVlEQWI1FKsnnSc';
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || 'replace-this-with-your-private-key-in-env';
 
-// Configure Airtable
-const base = new Airtable({ apiKey: AIRTABLE_PERSONAL_TOKEN }).base(AIRTABLE_BASE_ID);
-
-// Configure Web Push
-webpush.setVapidDetails(
-  'mailto:admin@sainthelen.org', // Replace with your email
-  VAPID_PUBLIC_KEY,
-  VAPID_PRIVATE_KEY
-);
+// Configure Airtable and Web Push inside functions to avoid build-time execution
 
 /**
  * POST /api/push/send
@@ -33,6 +25,18 @@ webpush.setVapidDetails(
  */
 export async function POST(request: NextRequest) {
   try {
+    // Configure Web Push (moved here to avoid build-time execution)
+    if (VAPID_PRIVATE_KEY && VAPID_PRIVATE_KEY !== 'replace-this-with-your-private-key-in-env') {
+      webpush.setVapidDetails(
+        'mailto:admin@sainthelen.org',
+        VAPID_PUBLIC_KEY,
+        VAPID_PRIVATE_KEY
+      );
+    }
+
+    // Configure Airtable
+    const base = new Airtable({ apiKey: AIRTABLE_PERSONAL_TOKEN }).base(AIRTABLE_BASE_ID);
+
     // Get authenticated user (only admins should be able to send notifications)
     const session = await getServerSession(authOptions);
     if (!session || !session.user?.email) {

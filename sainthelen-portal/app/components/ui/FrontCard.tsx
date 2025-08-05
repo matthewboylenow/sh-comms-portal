@@ -8,7 +8,7 @@ interface FrontCardProps {
 
 export const FrontCard = ({ children, className = '' }: FrontCardProps) => {
   return (
-    <div className={`bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-100 dark:border-gray-700 overflow-hidden text-gray-900 dark:text-gray-100 ${className}`}>
+    <div className={`bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm rounded-2xl shadow-soft border border-white/20 dark:border-gray-700/30 overflow-hidden text-gray-900 dark:text-gray-100 hover:shadow-soft-lg transition-all duration-300 ${className}`}>
       {children}
     </div>
   );
@@ -19,7 +19,7 @@ export const FrontCardHeader = ({
   className = '' 
 }: FrontCardProps) => {
   return (
-    <div className={`px-5 py-4 border-b border-gray-100 dark:border-gray-700 ${className}`}>
+    <div className={`px-6 py-5 border-b border-gray-100/50 dark:border-gray-700/50 ${className}`}>
       {children}
     </div>
   );
@@ -30,7 +30,7 @@ export const FrontCardTitle = ({
   className = '' 
 }: FrontCardProps) => {
   return (
-    <h3 className={`text-lg font-semibold text-gray-900 dark:text-white ${className}`}>
+    <h3 className={`text-xl font-bold text-gray-900 dark:text-white ${className}`}>
       {children}
     </h3>
   );
@@ -41,7 +41,7 @@ export const FrontCardContent = ({
   className = '' 
 }: FrontCardProps) => {
   return (
-    <div className={`px-5 py-4 text-gray-900 dark:text-gray-100 ${className}`}>
+    <div className={`px-6 py-5 text-gray-900 dark:text-gray-100 ${className}`}>
       {children}
     </div>
   );
@@ -52,7 +52,7 @@ export const FrontCardFooter = ({
   className = '' 
 }: FrontCardProps) => {
   return (
-    <div className={`px-5 py-3 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-700 ${className}`}>
+    <div className={`px-6 py-4 bg-gray-50/50 dark:bg-gray-900/50 border-t border-gray-100/50 dark:border-gray-700/50 ${className}`}>
       {children}
     </div>
   );

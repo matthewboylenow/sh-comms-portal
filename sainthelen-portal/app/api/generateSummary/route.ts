@@ -188,7 +188,8 @@ ${announcementsText}
     let summaryText: string;
     if (response.content && Array.isArray(response.content)) {
       summaryText = response.content
-        .map(block => typeof block.text === 'string' ? block.text : '')
+        .map(block => (block as any).text || '')
+        .filter(text => typeof text === 'string')
         .join('');
     } else {
       summaryText = JSON.stringify(response.content, null, 2);

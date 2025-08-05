@@ -22,21 +22,21 @@ export const Button = ({
   disabled = false,
   icon,
 }: ButtonProps) => {
-  const baseStyles = 'inline-flex items-center justify-center rounded-lg font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none';
+  const baseStyles = 'inline-flex items-center justify-center rounded-2xl font-semibold transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none';
   
   const variantStyles = {
-    primary: 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white shadow-md hover:shadow-lg dark:from-blue-600 dark:to-blue-700 dark:hover:from-blue-500 dark:hover:to-blue-600',
-    secondary: 'bg-gray-100 text-gray-900 hover:bg-gray-200 shadow-sm hover:shadow dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600',
-    outline: 'border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:border-gray-500',
-    danger: 'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white shadow-md hover:shadow-lg dark:from-red-600 dark:to-red-700 dark:hover:from-red-500 dark:hover:to-red-600',
-    success: 'bg-gradient-to-r from-green-600 to-green-700 hover:from-green-500 hover:to-green-600 text-white shadow-md hover:shadow-lg dark:from-green-600 dark:to-green-700 dark:hover:from-green-500 dark:hover:to-green-600',
-    glass: 'bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border border-white/20 dark:border-white/10 text-gray-800 dark:text-white shadow-sm hover:shadow hover:bg-white dark:hover:bg-slate-700'
+    primary: 'bg-gradient-to-r from-sh-primary to-sh-primary-light hover:from-sh-primary-light hover:to-sh-primary text-white shadow-soft hover:shadow-soft-lg transform hover:-translate-y-0.5 transition-all duration-300',
+    secondary: 'bg-gradient-to-r from-sh-sage to-sh-sage-dark hover:from-sh-sage-dark hover:to-sh-sage text-white shadow-soft hover:shadow-soft-lg transform hover:-translate-y-0.5 transition-all duration-300',
+    outline: 'border-2 border-sh-primary/20 text-sh-primary hover:bg-sh-primary/5 hover:border-sh-primary/40 dark:border-sh-primary-light/30 dark:text-sh-primary-light dark:hover:bg-sh-primary-light/10 backdrop-blur-sm',
+    danger: 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-soft hover:shadow-soft-lg transform hover:-translate-y-0.5 transition-all duration-300',
+    success: 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-soft hover:shadow-soft-lg transform hover:-translate-y-0.5 transition-all duration-300',
+    glass: 'bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm border border-white/30 dark:border-gray-700/30 text-gray-800 dark:text-white shadow-soft hover:shadow-soft-lg hover:bg-white/80 dark:hover:bg-gray-800/80'
   };
   
   const sizeStyles = {
-    sm: 'text-xs px-3 py-1.5',
-    md: 'text-sm px-4 py-2.5',
-    lg: 'text-base px-6 py-3',
+    sm: 'text-sm px-4 py-2',
+    md: 'text-base px-6 py-3',
+    lg: 'text-lg px-8 py-4',
   };
 
   return (

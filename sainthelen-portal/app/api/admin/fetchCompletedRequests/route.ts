@@ -1,42 +1,35 @@
 // app/api/admin/fetchCompletedRequests/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import Airtable from 'airtable';
+import { getAirtableBase, TABLE_NAMES } from '../../../lib/airtable';
 
 // Force dynamic so Next.js doesn't attempt static generation
 export const dynamic = 'force-dynamic';
 
-const AIRTABLE_PERSONAL_TOKEN = process.env.AIRTABLE_PERSONAL_TOKEN || '';
-const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID || '';
-const ANNOUNCEMENTS_TABLE = process.env.ANNOUNCEMENTS_TABLE_NAME || 'Announcements';
-const WEBSITE_UPDATES_TABLE = process.env.WEBSITE_UPDATES_TABLE_NAME || 'Website Updates';
-const SMS_REQUESTS_TABLE = process.env.SMS_REQUESTS_TABLE_NAME || 'SMS Requests';
-const AV_REQUESTS_TABLE = process.env.AV_REQUESTS_TABLE_NAME || 'A/V Requests';
-const FLYER_REVIEWS_TABLE = process.env.FLYER_REVIEW_TABLE_NAME || 'Flyer Reviews';
-const GRAPHIC_DESIGN_TABLE = process.env.GRAPHIC_DESIGN_TABLE_NAME || 'Graphic Design Requests';
-
-const base = new Airtable({ apiKey: AIRTABLE_PERSONAL_TOKEN }).base(AIRTABLE_BASE_ID);
+// Base will be initialized in functions to avoid build-time execution
 
 /**
  * Returns only records where Completed = true
  */
 export async function GET(request: NextRequest) {
   try {
+    const base = getAirtableBase();
+    
     // Announcements
-    const annRecs = await base(ANNOUNCEMENTS_TABLE)
+    const annRecs = await base(TABLE_NAMES.ANNOUNCEMENTS)
       .select({
         filterByFormula: '{Completed} = TRUE()',
       })
       .all();
 
     // Website Updates
-    const webRecs = await base(WEBSITE_UPDATES_TABLE)
+    const webRecs = await base(TABLE_NAMES.WEBSITE_UPDATES)
       .select({
         filterByFormula: '{Completed} = TRUE()',
       })
       .all();
 
     // SMS Requests
-    const smsRecs = await base(SMS_REQUESTS_TABLE)
+    const smsRecs = await base(TABLE_NAMES.SMS_REQUESTS)
       .select({
         filterByFormula: '{Completed} = TRUE()',
       })
@@ -45,7 +38,7 @@ export async function GET(request: NextRequest) {
     // A/V Requests - With error handling if Completed column doesn't exist yet
     let avRecs;
     try {
-      avRecs = await base(AV_REQUESTS_TABLE)
+      avRecs = await base(TABLE_NAMES.AV_REQUESTS)
         .select({
           filterByFormula: '{Completed} = TRUE()',
         })
@@ -58,7 +51,7 @@ export async function GET(request: NextRequest) {
     // Flyer Reviews - With error handling if Completed column doesn't exist yet
     let flyerRecs;
     try {
-      flyerRecs = await base(FLYER_REVIEWS_TABLE)
+      flyerRecs = await base('Flyer Reviews')
         .select({
           filterByFormula: '{Completed} = TRUE()',
         })
@@ -71,7 +64,7 @@ export async function GET(request: NextRequest) {
     // Graphic Design Requests
     let graphicRecs;
     try {
-      graphicRecs = await base(GRAPHIC_DESIGN_TABLE)
+      graphicRecs = await base(TABLE_NAMES.GRAPHIC_DESIGN)
         .select({
           filterByFormula: '{Completed} = TRUE()',
         })

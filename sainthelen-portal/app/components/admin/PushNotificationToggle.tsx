@@ -2,7 +2,7 @@
 'use client';
 
 import React from 'react';
-import { usePushNotifications } from '@/app/context/PushNotificationContext';
+import { usePushNotifications } from '../../context/PushNotificationContext';
 import { Switch } from '@headlessui/react';
 
 export default function PushNotificationToggle() {
