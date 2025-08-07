@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
       Email: data.email,
       'Announcement Body': data.announcementBody,
       'Approval Status': approvalStatus,
-      'Requires Approval': requiresApproval ? 'Yes' : 'No',
+      'Requires Approval': requiresApproval,
       'Submitted At': new Date().toISOString(),
     };
 
