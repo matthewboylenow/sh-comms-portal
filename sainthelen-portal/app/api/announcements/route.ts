@@ -86,29 +86,33 @@ export async function POST(request: NextRequest) {
 
     // 1) Write to Airtable
     const fileLinksString = data.fileLinks?.length ? data.fileLinks.join('\n') : '';
-    const addToCalendarValue = data.addToCalendar ? 'Yes' : 'No';
+
+    // Build fields object dynamically, only including fields that have values
+    const fields: Record<string, any> = {
+      Name: data.name,
+      Email: data.email,
+      'Announcement Body': data.announcementBody,
+      'Approval Status': approvalStatus,
+      'Requires Approval': requiresApproval ? 'Yes' : 'No',
+      'Submitted At': new Date().toISOString(),
+    };
+
+    // Only add optional fields if they have values
+    if (data.ministry) fields.Ministry = data.ministry;
+    if (data.eventDate) fields['Date of Event'] = data.eventDate;
+    if (data.eventTime) fields['Time of Event'] = data.eventTime;
+    if (data.promotionStart) fields['Promotion Start Date'] = data.promotionStart;
+    if (data.platforms && data.platforms.length > 0) fields.Platforms = data.platforms;
+    if (data.addToCalendar !== undefined) fields['Add to Events Calendar'] = data.addToCalendar ? 'Yes' : 'No';
+    if (data.isExternalEvent !== undefined) fields['Is External Event'] = data.isExternalEvent ? 'Yes' : 'No';
+    if (fileLinksString) fields['File Links'] = fileLinksString;
+    if (ministry?.id) fields['Ministry ID'] = ministry.id;
 
     const base = getAirtableBase();
+    console.log('Creating Airtable record with fields:', Object.keys(fields));
+    
     const record = await base(TABLE_NAMES.ANNOUNCEMENTS).create([
-      {
-        fields: {
-          Name: data.name,
-          Email: data.email,
-          Ministry: data.ministry || '',
-          'Date of Event': data.eventDate || '',
-          'Time of Event': data.eventTime || '',
-          'Promotion Start Date': data.promotionStart || '',
-          Platforms: data.platforms || [],
-          'Announcement Body': data.announcementBody,
-          'Add to Events Calendar': addToCalendarValue,
-          'External Event': data.isExternalEvent ? 'Yes' : 'No',
-          'File Links': fileLinksString,
-          'Approval Status': approvalStatus,
-          'Requires Approval': requiresApproval ? 'Yes' : 'No',
-          'Ministry ID': ministry?.id || '',
-          'Submitted At': new Date().toISOString(),
-        },
-      },
+      { fields },
     ]);
 
     console.log('Airtable record created:', record);
@@ -129,7 +133,7 @@ export async function POST(request: NextRequest) {
         <li><strong>Ministry:</strong> ${data.ministry || 'N/A'}</li>
         <li><strong>Event Date:</strong> ${data.eventDate || 'N/A'} ${data.eventTime || ''}</li>
         <li><strong>Promotion Start:</strong> ${data.promotionStart || 'N/A'}</li>
-        <li><strong>Add to Calendar:</strong> ${addToCalendarValue}</li>
+        <li><strong>Add to Calendar:</strong> ${data.addToCalendar ? 'Yes' : 'No'}</li>
         <li><strong>External Event:</strong> ${data.isExternalEvent ? 'Yes' : 'No'}</li>
         <li><strong>File Links:</strong><br/>${fileLinksString.replace(/\n/g, '<br/>')}</li>
       </ul>
@@ -195,8 +199,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('Announcements submission error:', error);
+    
+    // Handle specific Airtable field errors
+    let errorMessage = error.message || 'Submission failed';
+    if (error.message && error.message.includes('unknown field name')) {
+      errorMessage = `Field configuration error: ${error.message}. Please contact the administrator.`;
+    }
+    
     return new NextResponse(
-      JSON.stringify({ error: error.message || 'Submission failed' }),
+      JSON.stringify({ error: errorMessage }),
       { status: 500 }
     );
   }

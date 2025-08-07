@@ -25,6 +25,15 @@ const base = new Airtable({ apiKey: AIRTABLE_PERSONAL_TOKEN }).base(AIRTABLE_BAS
  */
 export async function GET(request: NextRequest) {
   try {
+    // Check if Airtable is configured
+    if (!AIRTABLE_PERSONAL_TOKEN || !AIRTABLE_BASE_ID) {
+      console.error('Airtable configuration missing');
+      return new NextResponse(
+        JSON.stringify({ success: false, error: 'Notifications service not configured' }), 
+        { status: 503 }
+      );
+    }
+
     // Get authenticated user
     const session = await getServerSession(authOptions);
     if (!session || !session.user?.email) {
@@ -33,6 +42,7 @@ export async function GET(request: NextRequest) {
 
     // Get user's email for filtering
     const userEmail = session.user.email;
+    console.log(`Fetching notifications for user: ${userEmail}`);
 
     // Query notifications table for records belonging to this user
     const records = await base(NOTIFICATIONS_TABLE)

@@ -28,7 +28,7 @@ export default function WebsiteUpdateCard({
 }: WebsiteUpdateCardProps) {
   const [expanded, setExpanded] = useState(false);
   const f = record.fields;
-  const isUrgent = !!f['Urgent'];
+  const isUrgent = f['Urgent'] === 'Yes';
   
   return (
     <Card className={`mb-4 ${isUrgent ? 'border-l-4 border-l-red-500' : ''}`}>

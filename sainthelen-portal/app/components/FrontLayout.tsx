@@ -4,6 +4,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   SunIcon, 
   MoonIcon, 
@@ -88,84 +89,158 @@ export default function FrontLayout({ children, title = 'Saint Helen Communicati
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-925 dark:via-gray-900 dark:to-gray-850">
       {/* Top Navigation */}
-      <header className="bg-sh-primary/95 dark:bg-sh-primary-dark/95 backdrop-blur-sm text-white border-b border-white/10">
-        <div className="container mx-auto flex items-center justify-between h-16">
+      <header className="bg-sh-primary/95 dark:bg-sh-primary-dark/95 backdrop-blur-sm text-white border-b border-white/10 sticky top-0 z-50">
+        <div className="container mx-auto flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
           {/* Logo and title */}
-          <div className="flex items-center">
-            <Link href="/" className="flex items-center">
-              <img 
+          <motion.div 
+            className="flex items-center"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Link href="/" className="flex items-center group">
+              <motion.img 
                 src="/images/Saint-Helen-Logo-White.png" 
                 alt="Saint Helen Logo" 
-                className="h-8 w-auto"
+                className="h-8 w-auto transition-transform duration-200 group-hover:scale-105"
+                whileHover={{ scale: 1.05 }}
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
               />
-              <span className="text-xl font-bold ml-3 bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent">Communications Portal</span>
+              <span className="text-xl font-bold ml-3 bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent">
+                Communications Portal
+              </span>
             </Link>
-          </div>
+          </motion.div>
 
           {/* Desktop navigation */}
-          <nav className="hidden md:flex space-x-6">
-            <Link href="/" className="flex items-center text-white/90 hover:text-white transition-all duration-200 px-3 py-2 rounded-lg hover:bg-white/10">
-              <HomeIcon className="h-5 w-5 mr-2" />
-              <span className="font-medium">Home</span>
-            </Link>
-            <Link href="/guidelines" className="flex items-center text-white/90 hover:text-white transition-all duration-200 px-3 py-2 rounded-lg hover:bg-white/10">
-              <InformationCircleIcon className="h-5 w-5 mr-2" />
-              <span className="font-medium">Guidelines</span>
-            </Link>
-            
-            {/* No longer needed Request Services Dropdown */}
+          <nav className="hidden md:flex space-x-2">
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.1 }}
+            >
+              <Link 
+                href="/" 
+                className={`flex items-center text-white/90 hover:text-white transition-all duration-200 px-4 py-2.5 rounded-xl hover:bg-white/10 group ${
+                  pathname === '/' ? 'bg-white/15 text-white' : ''
+                }`}
+              >
+                <HomeIcon className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform duration-200" />
+                <span className="font-medium">Home</span>
+              </Link>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.2 }}
+            >
+              <Link 
+                href="/guidelines" 
+                className={`flex items-center text-white/90 hover:text-white transition-all duration-200 px-4 py-2.5 rounded-xl hover:bg-white/10 group ${
+                  pathname === '/guidelines' ? 'bg-white/15 text-white' : ''
+                }`}
+              >
+                <InformationCircleIcon className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform duration-200" />
+                <span className="font-medium">Guidelines</span>
+              </Link>
+            </motion.div>
           </nav>
 
           {/* Theme toggle and mobile menu button */}
-          <div className="flex items-center">
-            <button
+          <div className="flex items-center space-x-2">
+            <motion.button
               onClick={handleToggleTheme}
-              className="p-2 rounded-lg hover:bg-white/10 transition-all duration-200"
+              className="p-2.5 rounded-xl hover:bg-white/10 transition-all duration-200 group"
               aria-label="Toggle Dark Mode"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
-              {isDark ? <SunIcon className="h-5 w-5" /> : <MoonIcon className="h-5 w-5" />}
-            </button>
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.div
+                  key={isDark ? 'sun' : 'moon'}
+                  initial={{ y: -20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: 20, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {isDark ? (
+                    <SunIcon className="h-5 w-5 group-hover:text-amber-300 transition-colors duration-200" />
+                  ) : (
+                    <MoonIcon className="h-5 w-5 group-hover:text-blue-200 transition-colors duration-200" />
+                  )}
+                </motion.div>
+              </AnimatePresence>
+            </motion.button>
 
             {/* Mobile menu button */}
-            <button
+            <motion.button
               onClick={toggleMobileMenu}
-              className="md:hidden ml-2 p-2 rounded-full hover:bg-sh-secondary dark:hover:bg-gray-700 transition"
+              className="md:hidden p-2.5 rounded-xl hover:bg-white/10 transition-all duration-200"
               aria-label="Toggle Mobile Menu"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
+              <motion.div
+                animate={{ rotate: mobileMenuOpen ? 180 : 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </motion.div>
+            </motion.button>
           </div>
         </div>
 
         {/* Mobile menu */}
-        {mobileMenuOpen && (
-          <div className="md:hidden">
-            <div className="bg-sh-primary dark:bg-sh-primary py-2 shadow-inner">
-              <div className="container mx-auto space-y-2">
-                <Link 
-                  href="/" 
-                  className="flex items-center text-white hover:bg-sh-secondary dark:hover:bg-gray-700 px-3 py-2 rounded"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <HomeIcon className="h-5 w-5 mr-2" />
-                  <span>Home</span>
-                </Link>
-                <Link 
-                  href="/guidelines" 
-                  className="flex items-center text-white hover:bg-sh-secondary dark:hover:bg-gray-700 px-3 py-2 rounded"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <InformationCircleIcon className="h-5 w-5 mr-2" />
-                  <span>Guidelines</span>
-                </Link>
-                
-                {/* Mobile menu links removed as requested */}
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <motion.div 
+              className="md:hidden"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3, ease: 'easeInOut' }}
+            >
+              <div className="bg-sh-primary/90 dark:bg-sh-primary/90 backdrop-blur-sm border-t border-white/10">
+                <div className="container mx-auto px-4 py-3 space-y-1">
+                  <motion.div
+                    initial={{ x: -20, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ duration: 0.2, delay: 0.1 }}
+                  >
+                    <Link 
+                      href="/" 
+                      className={`flex items-center text-white/90 hover:text-white hover:bg-white/10 px-4 py-3 rounded-xl transition-all duration-200 group ${
+                        pathname === '/' ? 'bg-white/15 text-white' : ''
+                      }`}
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <HomeIcon className="h-5 w-5 mr-3 group-hover:scale-110 transition-transform duration-200" />
+                      <span className="font-medium">Home</span>
+                    </Link>
+                  </motion.div>
+                  <motion.div
+                    initial={{ x: -20, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ duration: 0.2, delay: 0.2 }}
+                  >
+                    <Link 
+                      href="/guidelines" 
+                      className={`flex items-center text-white/90 hover:text-white hover:bg-white/10 px-4 py-3 rounded-xl transition-all duration-200 group ${
+                        pathname === '/guidelines' ? 'bg-white/15 text-white' : ''
+                      }`}
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <InformationCircleIcon className="h-5 w-5 mr-3 group-hover:scale-110 transition-transform duration-200" />
+                      <span className="font-medium">Guidelines</span>
+                    </Link>
+                  </motion.div>
+                </div>
               </div>
-            </div>
-          </div>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </header>
 
       {/* Hero banner */}

@@ -2,6 +2,7 @@
 'use client';
 
 import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import FrontLayout from '../components/FrontLayout';
 import { FrontCard, FrontCardContent, FrontCardHeader, FrontCardTitle } from '../components/ui/FrontCard';
 import { ExclamationCircleIcon, InformationCircleIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
@@ -177,12 +178,19 @@ export default function FlyerReviewFormPage() {
           </div>
         )}
 
-        <FrontCard>
-          <FrontCardHeader>
-            <FrontCardTitle>Flyer Design Review Request</FrontCardTitle>
-          </FrontCardHeader>
-          <FrontCardContent>
-            <form onSubmit={handleSubmitForm} className="space-y-6">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+        >
+          <FrontCard className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-soft-lg border border-white/20 dark:border-gray-700/50">
+            <FrontCardHeader className="border-b border-gray-200/50 dark:border-gray-700/50 pb-4">
+              <FrontCardTitle className="text-2xl font-bold bg-gradient-to-r from-sh-primary to-sh-sage bg-clip-text text-transparent">
+                Flyer Design Review Request
+              </FrontCardTitle>
+            </FrontCardHeader>
+            <FrontCardContent className="p-8">
+              <form onSubmit={handleSubmitForm} className="space-y-8">
               {/* Contact Information */}
               <div className="space-y-4">
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white">Contact Information</h3>
@@ -426,9 +434,10 @@ export default function FlyerReviewFormPage() {
                   {submittingForm ? 'Submitting...' : 'Submit Flyer for Review'}
                 </button>
               </div>
-            </form>
-          </FrontCardContent>
-        </FrontCard>
+              </form>
+            </FrontCardContent>
+          </FrontCard>
+        </motion.div>
       </div>
     </FrontLayout>
   );

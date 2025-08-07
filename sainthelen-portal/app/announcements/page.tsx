@@ -2,6 +2,7 @@
 'use client';
 
 import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import FrontLayout from '../components/FrontLayout';
 import { FrontCard, FrontCardContent, FrontCardHeader, FrontCardTitle } from '../components/ui/FrontCard';
 import { Button } from '../components/ui/Button';
@@ -114,6 +115,23 @@ export default function AnnouncementsFormPage() {
     setErrorMessage('');
     setSuccessMessage('');
 
+    // Basic client-side validation
+    if (!name.trim()) {
+      setErrorMessage('Name is required');
+      setSubmittingForm(false);
+      return;
+    }
+    if (!email.trim()) {
+      setErrorMessage('Email is required');
+      setSubmittingForm(false);
+      return;
+    }
+    if (!announcementBody.trim()) {
+      setErrorMessage('Announcement body is required');
+      setSubmittingForm(false);
+      return;
+    }
+
     try {
       const res = await fetch('/api/announcements', {
         method: 'POST',
@@ -167,57 +185,116 @@ export default function AnnouncementsFormPage() {
 
   return (
     <FrontLayout title="Submit an Announcement">
-      <div className="max-w-3xl mx-auto my-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-4xl mx-auto my-8 px-4 sm:px-6 lg:px-8">
         {/* Editorial Notice */}
-        <FrontCard className="mb-6 border-l-4 border-l-amber-500">
-          <FrontCardContent className="flex items-start gap-3">
-            <div className="flex-shrink-0">
-              <InformationCircleIcon className="h-6 w-6 text-amber-500" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Editorial Notice</h3>
-              <p className="text-gray-700 dark:text-gray-300 text-sm">
-                Announcements and content may be adjusted by the Director of Communications, in collaboration with 
-                the Pastor, to maintain consistency with Saint Helen's brand style and tone. Major changes (a full revamp of the message) will be 
-                communicated prior to publication, while minor adjustments may be 
-                made without prior notification. Any final decisions regarding messaging will be made by the Director of Communications, in collaboration with the Pastor.
-              </p>
-            </div>
-          </FrontCardContent>
-        </FrontCard>
-
-        {successMessage && (
-          <div className="p-4 mb-6 rounded-md bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-300">
-            {successMessage}
-          </div>
-        )}
-        
-        {errorMessage && (
-          <div className="p-4 mb-6 rounded-md bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300 flex items-start gap-2">
-            <ExclamationCircleIcon className="h-5 w-5 flex-shrink-0 mt-0.5" />
-            <span>{errorMessage}</span>
-          </div>
-        )}
-
-        <FrontCard>
-          <FrontCardHeader>
-            <FrontCardTitle>Announcement Details</FrontCardTitle>
-          </FrontCardHeader>
-          <FrontCardContent>
-            <form onSubmit={handleSubmitForm} className="space-y-6">
-              {/* Name */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <FrontCard className="mb-8 border-l-4 border-l-amber-500 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-soft">
+            <FrontCardContent className="flex items-start gap-4 p-6">
+              <div className="flex-shrink-0">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ duration: 0.3, delay: 0.2 }}
+                >
+                  <InformationCircleIcon className="h-7 w-7 text-amber-500" />
+                </motion.div>
+              </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-2">Editorial Notice</h3>
+                <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
+                  Announcements and content may be adjusted by the Director of Communications, in collaboration with 
+                  the Pastor, to maintain consistency with Saint Helen's brand style and tone. Major changes (a full revamp of the message) will be 
+                  communicated prior to publication, while minor adjustments may be 
+                  made without prior notification. Any final decisions regarding messaging will be made by the Director of Communications, in collaboration with the Pastor.
+                </p>
+              </div>
+            </FrontCardContent>
+          </FrontCard>
+        </motion.div>
+
+        <AnimatePresence>
+          {successMessage && (
+            <motion.div 
+              className="p-5 mb-6 rounded-xl bg-green-50/90 dark:bg-green-900/40 backdrop-blur-sm border border-green-200/50 dark:border-green-800/50 text-green-800 dark:text-green-300 shadow-soft"
+              initial={{ opacity: 0, scale: 0.9, y: -10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: -10 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="flex items-start gap-3">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ duration: 0.3, delay: 0.1 }}
+                >
+                  <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                </motion.div>
+                <div>
+                  <p className="font-medium">{successMessage}</p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        
+        <AnimatePresence>
+          {errorMessage && (
+            <motion.div 
+              className="p-5 mb-6 rounded-xl bg-red-50/90 dark:bg-red-900/40 backdrop-blur-sm border border-red-200/50 dark:border-red-800/50 text-red-800 dark:text-red-300 shadow-soft"
+              initial={{ opacity: 0, scale: 0.9, y: -10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: -10 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="flex items-start gap-3">
+                <ExclamationCircleIcon className="h-6 w-6 flex-shrink-0 mt-0.5 text-red-500" />
+                <div>
+                  <p className="font-medium">{errorMessage}</p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+        >
+          <FrontCard className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-soft-lg border border-white/20 dark:border-gray-700/50">
+            <FrontCardHeader className="border-b border-gray-200/50 dark:border-gray-700/50 pb-4">
+              <FrontCardTitle className="text-2xl font-bold bg-gradient-to-r from-sh-primary to-sh-sage bg-clip-text text-transparent">
+                Announcement Details
+              </FrontCardTitle>
+            </FrontCardHeader>
+            <FrontCardContent className="p-8">
+              <form onSubmit={handleSubmitForm} className="space-y-8">
+              {/* Name */}
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3, delay: 0.4 }}
+              >
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                   Your Name <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary dark:bg-gray-700 dark:text-white"
+                  className="w-full px-4 py-3 border border-gray-300/50 dark:border-gray-600/50 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-sh-primary/50 focus:border-sh-primary dark:bg-gray-700/50 dark:text-white transition-all duration-200 backdrop-blur-sm bg-white/80"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
+                  placeholder="Enter your full name"
                 />
-              </div>
+              </motion.div>
 
               {/* Email */}
               <div>
@@ -455,18 +532,35 @@ export default function AnnouncementsFormPage() {
               </div>
 
               {/* Submit Button */}
-              <div className="pt-2">
-                <button
+              <motion.div 
+                className="pt-4"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.6 }}
+              >
+                <motion.button
                   type="submit"
-                  className="w-full bg-sh-primary text-white px-4 py-2 rounded-md hover:bg-sh-secondary transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sh-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-gradient-to-r from-sh-primary to-sh-primary-light hover:from-sh-primary-light hover:to-sh-primary text-white px-8 py-4 rounded-2xl font-semibold transition-all duration-300 shadow-soft hover:shadow-soft-lg transform hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sh-primary disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                   disabled={submittingForm || uploadingFiles}
+                  whileHover={{ scale: submittingForm || uploadingFiles ? 1 : 1.02 }}
+                  whileTap={{ scale: submittingForm || uploadingFiles ? 1 : 0.98 }}
                 >
-                  {submittingForm ? 'Submitting...' : 'Submit Announcement'}
-                </button>
-              </div>
+                  <div className="flex items-center justify-center">
+                    {submittingForm && (
+                      <motion.div
+                        className="w-5 h-5 border-2 border-white border-t-transparent rounded-full mr-3"
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                      />
+                    )}
+                    {submittingForm ? 'Submitting...' : 'Submit Announcement'}
+                  </div>
+                </motion.button>
+              </motion.div>
             </form>
           </FrontCardContent>
         </FrontCard>
+        </motion.div>
       </div>
     </FrontLayout>
   );

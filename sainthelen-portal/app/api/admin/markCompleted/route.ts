@@ -17,13 +17,14 @@ const WEBSITE_UPDATES_TABLE = process.env.WEBSITE_UPDATES_TABLE_NAME || 'Website
 const SMS_REQUESTS_TABLE = process.env.SMS_REQUESTS_TABLE_NAME || 'SMS Requests';
 const AV_REQUESTS_TABLE = process.env.AV_REQUESTS_TABLE_NAME || 'A/V Requests';
 const FLYER_REVIEWS_TABLE = process.env.FLYER_REVIEW_TABLE_NAME || 'Flyer Reviews';
+const GRAPHIC_DESIGN_TABLE = process.env.GRAPHIC_DESIGN_TABLE_NAME || 'Graphic Design';
 
 const base = new Airtable({ apiKey: AIRTABLE_PERSONAL_TOKEN }).base(AIRTABLE_BASE_ID);
 
 /**
  * Request body shape:
  * {
- *   "table": "announcements" | "websiteUpdates" | "smsRequests" | "avRequests" | "flyerReviews",
+ *   "table": "announcements" | "websiteUpdates" | "smsRequests" | "avRequests" | "flyerReviews" | "graphicDesign",
  *   "recordId": string,
  *   "completed": boolean
  * }
@@ -40,6 +41,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const { table, recordId, completed } = await request.json();
+    console.log(`markCompleted request: table=${table}, recordId=${recordId}, completed=${completed}`);
 
     let tableName: string;
     if (table === 'announcements') {
@@ -52,6 +54,8 @@ export async function POST(request: NextRequest) {
       tableName = AV_REQUESTS_TABLE;
     } else if (table === 'flyerReviews') {
       tableName = FLYER_REVIEWS_TABLE;
+    } else if (table === 'graphicDesign') {
+      tableName = GRAPHIC_DESIGN_TABLE;
     } else {
       throw new Error(`Unknown table type: ${table}`);
     }
@@ -65,6 +69,7 @@ export async function POST(request: NextRequest) {
     const requestTitle = fields.Title || fields.Subject || fields.Name || `${requestType} Request`;
     
     // Update "Completed" in Airtable
+    console.log(`Updating ${tableName} record ${recordId} with Completed=${completed}`);
     await base(tableName).update([
       {
         id: recordId,
@@ -73,6 +78,7 @@ export async function POST(request: NextRequest) {
         },
       },
     ]);
+    console.log(`Successfully updated ${tableName} record ${recordId}`);
     
     // Create notification for the requester if they have an email
     if (fields.RequesterEmail) {

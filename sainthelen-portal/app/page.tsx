@@ -3,6 +3,7 @@
 
 import FrontLayout from './components/FrontLayout';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { FrontCard, FrontCardContent, FrontCardHeader, FrontCardTitle } from './components/ui/FrontCard';
 import { 
   InformationCircleIcon, 
@@ -23,91 +24,176 @@ export default function HomePage() {
       {/* MAIN CONTENT */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-20 mt-16">
         {/* Intro Copy */}
-        <div className="space-y-6 mb-16 max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-sh-primary via-sh-primary-light to-sh-sage-dark bg-clip-text text-transparent">
+        <motion.div 
+          className="space-y-6 mb-16 max-w-4xl mx-auto text-center"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: 'easeOut' }}
+        >
+          <motion.h2 
+            className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-sh-primary via-sh-primary-light to-sh-sage-dark bg-clip-text text-transparent"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+          >
             Welcome to Excellence in Ministry Communications
-          </h2>
-          <p className="text-xl text-gray-600 dark:text-gray-400 leading-relaxed">
+          </motion.h2>
+          <motion.p 
+            className="text-xl text-gray-600 dark:text-gray-400 leading-relaxed"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+          >
             Thank you for your dedicated ministry work. We're here to amplify your message with professional 
             communications tools and strategic promotion services.
-          </p>
-        </div>
+          </motion.p>
+        </motion.div>
 
         {/* How To Get Started (cards) */}
-        <div className="mb-20">
-          <h3 className="text-2xl md:text-3xl font-bold mb-12 text-center text-gray-900 dark:text-white">
+        <motion.div 
+          className="mb-20"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.6, delay: 0.6 }}
+        >
+          <motion.h3 
+            className="text-2xl md:text-3xl font-bold mb-12 text-center text-gray-900 dark:text-white"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.7 }}
+          >
             <span className="bg-gradient-to-r from-sh-primary to-sh-sage bg-clip-text text-transparent">
               How to Get Started
             </span>
-          </h3>
+          </motion.h3>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <FrontCard className="group hover:scale-105 transition-all duration-300">
-              <FrontCardContent className="flex flex-col items-center text-center p-8">
-                <div className="rounded-2xl p-4 bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-800 text-blue-600 dark:text-blue-300 mb-6 group-hover:shadow-lg transition-all duration-300">
-                  <CheckCircleIcon className="h-10 w-10" />
-                </div>
-                <h4 className="font-bold text-xl mb-3 text-gray-900 dark:text-white">1. Review Guidelines</h4>
-                <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
-                  Discover our comprehensive guide featuring best practices, brand standards, and strategic timelines.
-                </p>
-                <Link
-                  href="/guidelines"
-                  className="text-sh-primary dark:text-blue-400 font-semibold hover:text-sh-primary-light transition-colors duration-200 flex items-center"
-                >
-                  View Guidelines 
-                  <svg className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </Link>
-              </FrontCardContent>
-            </FrontCard>
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.8 }}
+              whileHover={{ y: -8 }}
+            >
+              <FrontCard className="group h-full bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm border border-white/20 dark:border-gray-700/50 shadow-soft hover:shadow-soft-lg transition-all duration-300">
+                <FrontCardContent className="flex flex-col items-center text-center p-8 h-full">
+                  <motion.div 
+                    className="rounded-2xl p-4 bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-800 text-blue-600 dark:text-blue-300 mb-6 group-hover:shadow-lg transition-all duration-300"
+                    whileHover={{ scale: 1.1, rotate: 5 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                  >
+                    <CheckCircleIcon className="h-10 w-10" />
+                  </motion.div>
+                  <h4 className="font-bold text-xl mb-3 text-gray-900 dark:text-white">1. Review Guidelines</h4>
+                  <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed flex-grow">
+                    Discover our comprehensive guide featuring best practices, brand standards, and strategic timelines.
+                  </p>
+                  <Link
+                    href="/guidelines"
+                    className="text-sh-primary dark:text-blue-400 font-semibold hover:text-sh-primary-light transition-colors duration-200 flex items-center group"
+                  >
+                    View Guidelines 
+                    <motion.svg 
+                      className="w-4 h-4 ml-1" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                      animate={{ x: 0 }}
+                      whileHover={{ x: 4 }}
+                      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </motion.svg>
+                  </Link>
+                </FrontCardContent>
+              </FrontCard>
+            </motion.div>
 
-            <FrontCard className="group hover:scale-105 transition-all duration-300">
-              <FrontCardContent className="flex flex-col items-center text-center p-8">
-                <div className="rounded-2xl p-4 bg-gradient-to-br from-green-100 to-green-200 dark:from-green-900 dark:to-green-800 text-green-600 dark:text-green-300 mb-6 group-hover:shadow-lg transition-all duration-300">
-                  <CheckCircleIcon className="h-10 w-10" />
-                </div>
-                <h4 className="font-bold text-xl mb-3 text-gray-900 dark:text-white">2. Submit Your Request</h4>
-                <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
-                  Select the perfect form below and provide comprehensive details for your ministry needs.
-                </p>
-                <Link
-                  href="#forms"
-                  className="text-sh-sage dark:text-green-400 font-semibold hover:text-sh-sage-dark transition-colors duration-200 flex items-center"
-                >
-                  View Forms
-                  <svg className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </Link>
-              </FrontCardContent>
-            </FrontCard>
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.9 }}
+              whileHover={{ y: -8 }}
+            >
+              <FrontCard className="group h-full bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm border border-white/20 dark:border-gray-700/50 shadow-soft hover:shadow-soft-lg transition-all duration-300">
+                <FrontCardContent className="flex flex-col items-center text-center p-8 h-full">
+                  <motion.div 
+                    className="rounded-2xl p-4 bg-gradient-to-br from-green-100 to-green-200 dark:from-green-900 dark:to-green-800 text-green-600 dark:text-green-300 mb-6 group-hover:shadow-lg transition-all duration-300"
+                    whileHover={{ scale: 1.1, rotate: -5 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                  >
+                    <CheckCircleIcon className="h-10 w-10" />
+                  </motion.div>
+                  <h4 className="font-bold text-xl mb-3 text-gray-900 dark:text-white">2. Submit Your Request</h4>
+                  <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed flex-grow">
+                    Select the perfect form below and provide comprehensive details for your ministry needs.
+                  </p>
+                  <Link
+                    href="#forms"
+                    className="text-sh-sage dark:text-green-400 font-semibold hover:text-sh-sage-dark transition-colors duration-200 flex items-center group"
+                  >
+                    View Forms
+                    <motion.svg 
+                      className="w-4 h-4 ml-1" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                      animate={{ x: 0 }}
+                      whileHover={{ x: 4 }}
+                      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </motion.svg>
+                  </Link>
+                </FrontCardContent>
+              </FrontCard>
+            </motion.div>
 
-            <FrontCard className="group hover:scale-105 transition-all duration-300">
-              <FrontCardContent className="flex flex-col items-center text-center p-8">
-                <div className="rounded-2xl p-4 bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-900 dark:to-purple-800 text-purple-600 dark:text-purple-300 mb-6 group-hover:shadow-lg transition-all duration-300">
-                  <CheckCircleIcon className="h-10 w-10" />
-                </div>
-                <h4 className="font-bold text-xl mb-3 text-gray-900 dark:text-white">3. Confirmation Email</h4>
-                <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
-                  Receive instant confirmation and personalized follow-up for any clarifications needed.
-                </p>
-              </FrontCardContent>
-            </FrontCard>
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 1.0 }}
+              whileHover={{ y: -8 }}
+            >
+              <FrontCard className="group h-full bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm border border-white/20 dark:border-gray-700/50 shadow-soft hover:shadow-soft-lg transition-all duration-300">
+                <FrontCardContent className="flex flex-col items-center text-center p-8 h-full">
+                  <motion.div 
+                    className="rounded-2xl p-4 bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-900 dark:to-purple-800 text-purple-600 dark:text-purple-300 mb-6 group-hover:shadow-lg transition-all duration-300"
+                    whileHover={{ scale: 1.1, rotate: 5 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                  >
+                    <CheckCircleIcon className="h-10 w-10" />
+                  </motion.div>
+                  <h4 className="font-bold text-xl mb-3 text-gray-900 dark:text-white">3. Confirmation Email</h4>
+                  <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed flex-grow">
+                    Receive instant confirmation and personalized follow-up for any clarifications needed.
+                  </p>
+                </FrontCardContent>
+              </FrontCard>
+            </motion.div>
 
-            <FrontCard className="group hover:scale-105 transition-all duration-300">
-              <FrontCardContent className="flex flex-col items-center text-center p-8">
-                <div className="rounded-2xl p-4 bg-gradient-to-br from-amber-100 to-amber-200 dark:from-amber-900 dark:to-amber-800 text-amber-600 dark:text-amber-300 mb-6 group-hover:shadow-lg transition-all duration-300">
-                  <CheckCircleIcon className="h-10 w-10" />
-                </div>
-                <h4 className="font-bold text-xl mb-3 text-gray-900 dark:text-white">4. We Handle the Rest</h4>
-                <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
-                  Our expert team orchestrates multi-channel promotion with precision timing and professional execution.
-                </p>
-              </FrontCardContent>
-            </FrontCard>
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 1.1 }}
+              whileHover={{ y: -8 }}
+            >
+              <FrontCard className="group h-full bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm border border-white/20 dark:border-gray-700/50 shadow-soft hover:shadow-soft-lg transition-all duration-300">
+                <FrontCardContent className="flex flex-col items-center text-center p-8 h-full">
+                  <motion.div 
+                    className="rounded-2xl p-4 bg-gradient-to-br from-amber-100 to-amber-200 dark:from-amber-900 dark:to-amber-800 text-amber-600 dark:text-amber-300 mb-6 group-hover:shadow-lg transition-all duration-300"
+                    whileHover={{ scale: 1.1, rotate: -5 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                  >
+                    <CheckCircleIcon className="h-10 w-10" />
+                  </motion.div>
+                  <h4 className="font-bold text-xl mb-3 text-gray-900 dark:text-white">4. We Handle the Rest</h4>
+                  <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed flex-grow">
+                    Our expert team orchestrates multi-channel promotion with precision timing and professional execution.
+                  </p>
+                </FrontCardContent>
+              </FrontCard>
+            </motion.div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Estimated Turnaround */}
         <div className="mb-16">

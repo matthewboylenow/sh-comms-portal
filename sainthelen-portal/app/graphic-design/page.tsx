@@ -2,6 +2,7 @@
 'use client';
 
 import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import FrontLayout from '../components/FrontLayout';
 import { FrontCard, FrontCardContent, FrontCardHeader, FrontCardTitle } from '../components/ui/FrontCard';
 import { ExclamationCircleIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
@@ -147,42 +148,89 @@ export default function GraphicDesignFormPage() {
           </FrontCardContent>
         </FrontCard>
 
-        {successMessage && (
-          <div className="p-4 mb-6 rounded-md bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-300">
-            {successMessage}
-          </div>
-        )}
+        <AnimatePresence>
+          {successMessage && (
+            <motion.div 
+              className="p-5 mb-6 rounded-xl bg-green-50/90 dark:bg-green-900/40 backdrop-blur-sm border border-green-200/50 dark:border-green-800/50 text-green-800 dark:text-green-300 shadow-soft"
+              initial={{ opacity: 0, scale: 0.9, y: -10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: -10 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="flex items-start gap-3">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ duration: 0.3, delay: 0.1 }}
+                >
+                  <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                </motion.div>
+                <div>
+                  <p className="font-medium">{successMessage}</p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
         
-        {errorMessage && (
-          <div className="p-4 mb-6 rounded-md bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300 flex items-start gap-2">
-            <ExclamationCircleIcon className="h-5 w-5 flex-shrink-0 mt-0.5" />
-            <span>{errorMessage}</span>
-          </div>
-        )}
+        <AnimatePresence>
+          {errorMessage && (
+            <motion.div 
+              className="p-5 mb-6 rounded-xl bg-red-50/90 dark:bg-red-900/40 backdrop-blur-sm border border-red-200/50 dark:border-red-800/50 text-red-800 dark:text-red-300 shadow-soft"
+              initial={{ opacity: 0, scale: 0.9, y: -10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: -10 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="flex items-start gap-3">
+                <ExclamationCircleIcon className="h-6 w-6 flex-shrink-0 mt-0.5 text-red-500" />
+                <div>
+                  <p className="font-medium">{errorMessage}</p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        <FrontCard>
-          <FrontCardHeader>
-            <FrontCardTitle>Graphic Design Request</FrontCardTitle>
-          </FrontCardHeader>
-          <FrontCardContent>
-            <form onSubmit={handleSubmitForm} className="space-y-6">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+        >
+          <FrontCard className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-soft-lg border border-white/20 dark:border-gray-700/50">
+            <FrontCardHeader className="border-b border-gray-200/50 dark:border-gray-700/50 pb-4">
+              <FrontCardTitle className="text-2xl font-bold bg-gradient-to-r from-sh-primary to-sh-sage bg-clip-text text-transparent">
+                Graphic Design Request
+              </FrontCardTitle>
+            </FrontCardHeader>
+            <FrontCardContent className="p-8">
+              <form onSubmit={handleSubmitForm} className="space-y-8">
               {/* Contact Information */}
               <div className="space-y-4">
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white">Contact Information</h3>
                 
                 {/* Name */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.3, delay: 0.4 }}
+                >
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                     Your Name <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary dark:bg-gray-700 dark:text-white"
+                    className="w-full px-4 py-3 border border-gray-300/50 dark:border-gray-600/50 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-sh-primary/50 focus:border-sh-primary dark:bg-gray-700/50 dark:text-white transition-all duration-200 backdrop-blur-sm bg-white/80"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     required
+                    placeholder="Enter your full name"
                   />
-                </div>
+                </motion.div>
 
                 {/* Email */}
                 <div>
@@ -420,8 +468,9 @@ export default function GraphicDesignFormPage() {
                 </button>
               </div>
             </form>
-          </FrontCardContent>
-        </FrontCard>
+            </FrontCardContent>
+          </FrontCard>
+        </motion.div>
       </div>
     </FrontLayout>
   );
