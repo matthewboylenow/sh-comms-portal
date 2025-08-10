@@ -37,9 +37,12 @@ interface ApprovalCardProps {
   approval: ApprovalData;
   onApprove?: (id: string) => void;
   onReject?: (id: string, reason: string) => void;
+  showCheckbox?: boolean;
+  isSelected?: boolean;
+  onSelectChange?: (checked: boolean) => void;
 }
 
-export function ApprovalCard({ approval, onApprove, onReject }: ApprovalCardProps) {
+export function ApprovalCard({ approval, onApprove, onReject, showCheckbox, isSelected, onSelectChange }: ApprovalCardProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
@@ -86,7 +89,20 @@ export function ApprovalCard({ approval, onApprove, onReject }: ApprovalCardProp
         <div className="p-6">
           {/* Header */}
           <div className="flex items-start justify-between mb-4">
-            <div className="flex-1">
+            <div className="flex items-start gap-3 flex-1">
+              {/* Checkbox for bulk selection */}
+              {showCheckbox && (
+                <div className="pt-1">
+                  <input
+                    type="checkbox"
+                    id={`select-${approval.id}`}
+                    checked={isSelected || false}
+                    onChange={(e) => onSelectChange?.(e.target.checked)}
+                    className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                  />
+                </div>
+              )}
+              <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                   {approval.ministry}
@@ -119,6 +135,7 @@ export function ApprovalCard({ approval, onApprove, onReject }: ApprovalCardProp
                   <CalendarIcon className="w-4 h-4" />
                   Submitted: {formatDateTime(approval.submittedAt)}
                 </span>
+              </div>
               </div>
             </div>
           </div>

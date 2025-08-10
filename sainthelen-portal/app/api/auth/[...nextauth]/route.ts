@@ -18,13 +18,19 @@ export const authOptions: NextAuthOptions = {
     strategy: 'jwt',
   },
   callbacks: {
-    // If you only want certain domain emails to sign in, you can filter in `signIn`.
-    // signIn: async ({ user, account, profile, email, credentials }) => {
-    //   if (user.email?.endsWith('@sainthelen.org')) {
-    //     return true;
-    //   }
-    //   return false;
-    // },
+    // Allow specific admin users to sign in
+    signIn: async ({ user, account, profile, email, credentials }) => {
+      const allowedEmails = [
+        'mboyle@sainthelen.org',
+        'ccolonna@sainthelen.org', 
+        'mauricchio@sainthelen.org'
+      ];
+      
+      if (user.email && allowedEmails.includes(user.email.toLowerCase())) {
+        return true;
+      }
+      return false;
+    },
   },
 };
 

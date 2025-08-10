@@ -132,18 +132,6 @@ export default function SMSRequestsFormPage() {
           </FrontCardContent>
         </FrontCard>
 
-        {successMessage && (
-          <div className="p-4 mb-6 rounded-md bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-300">
-            {successMessage}
-          </div>
-        )}
-        
-        {errorMessage && (
-          <div className="p-4 mb-6 rounded-md bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300 flex items-start gap-2">
-            <ExclamationCircleIcon className="h-5 w-5 flex-shrink-0 mt-0.5" />
-            <span>{errorMessage}</span>
-          </div>
-        )}
 
         <FrontCard>
           <FrontCardHeader>
@@ -303,6 +291,20 @@ export default function SMSRequestsFormPage() {
                   </div>
                 )}
               </div>
+
+              {/* Success and Error Messages */}
+              {successMessage && (
+                <div className="p-4 mb-4 rounded-md bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-300">
+                  {successMessage}
+                </div>
+              )}
+              
+              {errorMessage && (
+                <div className="p-4 mb-4 rounded-md bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300 flex items-start gap-2">
+                  <ExclamationCircleIcon className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                  <span>{errorMessage}</span>
+                </div>
+              )}
 
               {/* Submit Button */}
               <div className="pt-2">

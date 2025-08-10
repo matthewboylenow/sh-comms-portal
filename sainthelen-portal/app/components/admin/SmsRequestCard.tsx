@@ -6,8 +6,10 @@ import { Badge } from '../ui/Badge';
 import { 
   CalendarIcon,
   ChatBubbleLeftEllipsisIcon,
-  ArrowTopRightOnSquareIcon
+  ArrowTopRightOnSquareIcon,
+  ClockIcon
 } from '@heroicons/react/24/outline';
+import { formatCreatedTime, getAgeIndicator, getAgeIndicatorColor, formatEventDate } from '../../utils/dateUtils';
 
 type SmsRequestRecord = {
   id: string;
@@ -19,27 +21,17 @@ type SmsRequestCardProps = {
   onToggleCompleted: (tableName: 'smsRequests', recordId: string, currentValue: boolean) => void;
 };
 
-// Helper function to format date
-const formatDate = (dateStr: string) => {
-  if (!dateStr) return 'N/A';
-  
-  // If it's already in MM/DD/YY format
-  if (dateStr.includes('/')) return dateStr;
-  
-  // If it's in YYYY-MM-DD format
-  try {
-    const [year, month, day] = dateStr.split('-');
-    return `${month}/${day}/${year.substring(2)}`;
-  } catch (e) {
-    return dateStr;
-  }
-};
+// Note: formatDate moved to dateUtils.ts as formatEventDate
 
 export default function SmsRequestCard({
   record,
   onToggleCompleted
 }: SmsRequestCardProps) {
   const f = record.fields;
+  
+  // Age indicators for visual priority
+  const ageIndicator = getAgeIndicator(f.createdTime);
+  const ageColor = getAgeIndicatorColor(ageIndicator);
   
   return (
     <Card className="mb-4">
@@ -49,8 +41,12 @@ export default function SmsRequestCard({
             <ChatBubbleLeftEllipsisIcon className="h-5 w-5 mr-2 text-gray-500" />
             {f.Name || 'Unnamed Request'}
           </CardTitle>
-          <div className="flex items-center text-sm text-gray-500 mt-1">
+          <div className="flex items-center justify-between text-sm text-gray-500 mt-1">
             <span className="font-medium mr-2">{f.Ministry || 'No Ministry'}</span>
+            <div className={`flex items-center text-xs ${ageColor}`}>
+              <ClockIcon className="h-3 w-3 mr-1" />
+              <span>Submitted {formatCreatedTime(f.createdTime)}</span>
+            </div>
           </div>
         </div>
         <div className="flex items-center space-x-2">
@@ -73,7 +69,7 @@ export default function SmsRequestCard({
         {f['Requested Date'] && (
           <div className="flex items-center text-sm text-gray-600 dark:text-gray-300 mb-3">
             <CalendarIcon className="h-4 w-4 mr-1" />
-            <span>Requested Date: {formatDate(f['Requested Date'])}</span>
+            <span>Requested Date: {formatEventDate(f['Requested Date'])}</span>
           </div>
         )}
 

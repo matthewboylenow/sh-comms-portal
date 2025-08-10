@@ -9,8 +9,10 @@ import {
   ArrowTopRightOnSquareIcon,
   PencilSquareIcon,
   CalendarIcon,
-  ExclamationTriangleIcon
+  ExclamationTriangleIcon,
+  ClockIcon
 } from '@heroicons/react/24/outline';
+import { formatCreatedTime, getAgeIndicator, getAgeIndicatorColor, formatEventDate } from '../../utils/dateUtils';
 
 type GraphicDesignRecord = {
   id: string;
@@ -30,6 +32,10 @@ export default function GraphicDesignCard({
 }: GraphicDesignCardProps) {
   const [expanded, setExpanded] = useState(false);
   const f = record.fields;
+  
+  // Age indicators for visual priority
+  const ageIndicator = getAgeIndicator(f.createdTime);
+  const ageColor = getAgeIndicatorColor(ageIndicator);
   
   // Extract relevant fields with fallbacks
   const projectType = f['Project Type'] || 'Unnamed Project';
@@ -79,21 +85,7 @@ export default function GraphicDesignCard({
     }
   };
 
-  // Format the date
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return 'No deadline';
-    
-    // If it's already in MM/DD/YY format
-    if (dateStr.includes('/')) return dateStr;
-    
-    // If it's in YYYY-MM-DD format
-    try {
-      const [year, month, day] = dateStr.split('-');
-      return `${month}/${day}/${year.substring(2)}`;
-    } catch (e) {
-      return dateStr;
-    }
-  };
+  // Note: formatDate moved to dateUtils.ts as formatEventDate
 
   return (
     <Card className={`mb-4 ${isUrgent ? 'border-l-4 border-l-red-500' : ''}`}>
@@ -106,9 +98,15 @@ export default function GraphicDesignCard({
             </CardTitle>
             {getStatusBadge()}
           </div>
-          <div className="flex items-center text-sm text-gray-500 mt-1">
-            <span className="font-medium mr-2">{f.Name || 'No Name'}</span>
-            <span>• {f.Ministry || ''}</span>
+          <div className="flex items-center justify-between text-sm text-gray-500 mt-1">
+            <div className="flex items-center">
+              <span className="font-medium mr-2">{f.Name || 'No Name'}</span>
+              <span>• {f.Ministry || ''}</span>
+            </div>
+            <div className={`flex items-center text-xs ${ageColor}`}>
+              <ClockIcon className="h-3 w-3 mr-1" />
+              <span>Submitted {formatCreatedTime(f.createdTime)}</span>
+            </div>
           </div>
         </div>
         <div className="flex items-center space-x-2">
@@ -134,7 +132,7 @@ export default function GraphicDesignCard({
           {deadline && (
             <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
               <CalendarIcon className="h-4 w-4 mr-1" />
-              <span>Deadline: {formatDate(deadline)}</span>
+              <span>Deadline: {formatEventDate(deadline)}</span>
             </div>
           )}
         </div>

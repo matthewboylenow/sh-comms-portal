@@ -9,8 +9,10 @@ import {
   ChevronUpIcon,
   ArrowTopRightOnSquareIcon,
   GlobeAltIcon,
-  ExclamationTriangleIcon
+  ExclamationTriangleIcon,
+  ClockIcon
 } from '@heroicons/react/24/outline';
+import { formatCreatedTime, getAgeIndicator, getAgeIndicatorColor } from '../../utils/dateUtils';
 
 type WebsiteUpdateRecord = {
   id: string;
@@ -30,6 +32,10 @@ export default function WebsiteUpdateCard({
   const f = record.fields;
   const isUrgent = f['Urgent'] === 'Yes';
   
+  // Age indicators for visual priority
+  const ageIndicator = getAgeIndicator(f.createdTime);
+  const ageColor = getAgeIndicatorColor(ageIndicator);
+  
   return (
     <Card className={`mb-4 ${isUrgent ? 'border-l-4 border-l-red-500' : ''}`}>
       <CardHeader className="flex flex-row items-start justify-between">
@@ -43,8 +49,12 @@ export default function WebsiteUpdateCard({
               </Badge>
             )}
           </div>
-          <div className="flex items-center text-sm text-gray-500 mt-1">
+          <div className="flex items-center justify-between text-sm text-gray-500 mt-1">
             <span className="font-medium">{f.Name || 'No Name'}</span>
+            <div className={`flex items-center text-xs ${ageColor}`}>
+              <ClockIcon className="h-3 w-3 mr-1" />
+              <span>Submitted {formatCreatedTime(f.createdTime)}</span>
+            </div>
           </div>
         </div>
         <div className="flex items-center space-x-2">

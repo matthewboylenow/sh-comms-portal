@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 import { useNotificationContext } from '../../context/NotificationContext';
+import { getUserPermissions } from '../../config/permissions';
 import { 
   MegaphoneIcon, 
   GlobeAltIcon, 
@@ -21,7 +22,8 @@ import {
   PencilSquareIcon,
   ChartBarIcon,
   BellIcon,
-  BuildingOffice2Icon
+  BuildingOffice2Icon,
+  ClockIcon
 } from '@heroicons/react/24/outline';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -40,6 +42,9 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [userPreferences, setUserPreferences] = useState(false);
   const [notificationCenter, setNotificationCenter] = useState(false);
+  
+  // Get user permissions
+  const permissions = session?.user?.email ? getUserPermissions(session.user.email) : null;
 
   useEffect(() => {
     // Initialize dark mode based on localStorage
@@ -134,49 +139,72 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
           {/* Sidebar main navigation */}
           <div className="py-6 flex flex-col h-[calc(100%-4rem)] justify-between">
             <nav className="px-3 space-y-1">
-              {/* Dashboard link */}
-              <Link 
-                href="/admin" 
-                className="flex items-center px-3 py-2.5 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-all duration-200 group"
-              >
-                <div className="flex items-center justify-center w-8 h-8 text-gray-500 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-200">
-                  <HomeIcon className="h-5 w-5" />
-                </div>
-                {!collapsed && <span className="ml-3 font-medium">Dashboard</span>}
-              </Link>
+              {/* Dashboard link - only for admins */}
+              {permissions?.canAccessMainDashboard && (
+                <Link 
+                  href="/admin" 
+                  className="flex items-center px-3 py-2.5 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-all duration-200 group"
+                >
+                  <div className="flex items-center justify-center w-8 h-8 text-gray-500 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-200">
+                    <HomeIcon className="h-5 w-5" />
+                  </div>
+                  {!collapsed && <span className="ml-3 font-medium">Dashboard</span>}
+                </Link>
+              )}
 
-              {/* Completed Items */}
-              <Link 
-                href="/admin/completed" 
-                className="flex items-center px-3 py-2.5 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-all duration-200 group"
-              >
-                <div className="flex items-center justify-center w-8 h-8 text-gray-500 dark:text-gray-400 group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors duration-200">
-                  <CheckCircleIcon className="h-5 w-5" />
-                </div>
-                {!collapsed && <span className="ml-3 font-medium">Completed Items</span>}
-              </Link>
+              {/* Approvals link - for both admins and approvers */}
+              {permissions?.canAccessApprovals && (
+                <Link 
+                  href="/admin/approvals" 
+                  className="flex items-center px-3 py-2.5 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-all duration-200 group"
+                >
+                  <div className="flex items-center justify-center w-8 h-8 text-gray-500 dark:text-gray-400 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors duration-200">
+                    <ClockIcon className="h-5 w-5" />
+                  </div>
+                  {!collapsed && <span className="ml-3 font-medium">
+                    {permissions.role === 'adult_faith_approver' ? 'Adult Faith Approvals' : 'Approvals'}
+                  </span>}
+                </Link>
+              )}
 
-              {/* Analytics */}
-              <Link 
-                href="/admin/analytics" 
-                className="flex items-center px-3 py-2.5 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-all duration-200 group"
-              >
-                <div className="flex items-center justify-center w-8 h-8 text-gray-500 dark:text-gray-400 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors duration-200">
-                  <ChartBarIcon className="h-5 w-5" />
-                </div>
-                {!collapsed && <span className="ml-3 font-medium">Analytics</span>}
-              </Link>
+              {/* Completed Items - only for admins */}
+              {permissions?.canAccessCompleted && (
+                <Link 
+                  href="/admin/completed" 
+                  className="flex items-center px-3 py-2.5 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-all duration-200 group"
+                >
+                  <div className="flex items-center justify-center w-8 h-8 text-gray-500 dark:text-gray-400 group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors duration-200">
+                    <CheckCircleIcon className="h-5 w-5" />
+                  </div>
+                  {!collapsed && <span className="ml-3 font-medium">Completed Items</span>}
+                </Link>
+              )}
 
-              {/* Ministries */}
-              <Link 
-                href="/admin/ministries" 
-                className="flex items-center px-3 py-2.5 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-all duration-200 group"
-              >
-                <div className="flex items-center justify-center w-8 h-8 text-gray-500 dark:text-gray-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200">
-                  <BuildingOffice2Icon className="h-5 w-5" />
-                </div>
-                {!collapsed && <span className="ml-3 font-medium">Ministries</span>}
-              </Link>
+              {/* Analytics - only for admins */}
+              {permissions?.canAccessAnalytics && (
+                <Link 
+                  href="/admin/analytics" 
+                  className="flex items-center px-3 py-2.5 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-all duration-200 group"
+                >
+                  <div className="flex items-center justify-center w-8 h-8 text-gray-500 dark:text-gray-400 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors duration-200">
+                    <ChartBarIcon className="h-5 w-5" />
+                  </div>
+                  {!collapsed && <span className="ml-3 font-medium">Analytics</span>}
+                </Link>
+              )}
+
+              {/* Ministries - only for admins */}
+              {permissions?.canAccessMinistries && (
+                <Link 
+                  href="/admin/ministries" 
+                  className="flex items-center px-3 py-2.5 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-all duration-200 group"
+                >
+                  <div className="flex items-center justify-center w-8 h-8 text-gray-500 dark:text-gray-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200">
+                    <BuildingOffice2Icon className="h-5 w-5" />
+                  </div>
+                  {!collapsed && <span className="ml-3 font-medium">Ministries</span>}
+                </Link>
+              )}
             </nav>
 
             {/* Sidebar footer */}
@@ -246,50 +274,73 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
 
             <div className="py-6 flex flex-col h-[calc(100%-4rem)] justify-between">
               <nav className="px-3 space-y-1">
-                {/* Mobile navigation - same as desktop but without collapsing */}
-                <Link 
-                  href="/admin" 
-                  className="flex items-center px-3 py-2.5 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-all duration-200 group"
-                  onClick={toggleMobileMenu}
-                >
-                  <div className="flex items-center justify-center w-8 h-8 text-gray-500 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-200">
-                    <HomeIcon className="h-5 w-5" />
-                  </div>
-                  <span className="ml-3 font-medium">Dashboard</span>
-                </Link>
+                {/* Mobile navigation - role-based like desktop */}
+                {permissions?.canAccessMainDashboard && (
+                  <Link 
+                    href="/admin" 
+                    className="flex items-center px-3 py-2.5 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-all duration-200 group"
+                    onClick={toggleMobileMenu}
+                  >
+                    <div className="flex items-center justify-center w-8 h-8 text-gray-500 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-200">
+                      <HomeIcon className="h-5 w-5" />
+                    </div>
+                    <span className="ml-3 font-medium">Dashboard</span>
+                  </Link>
+                )}
 
-                <Link 
-                  href="/admin/completed" 
-                  className="flex items-center px-3 py-2.5 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-all duration-200 group"
-                  onClick={toggleMobileMenu}
-                >
-                  <div className="flex items-center justify-center w-8 h-8 text-gray-500 dark:text-gray-400 group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors duration-200">
-                    <CheckCircleIcon className="h-5 w-5" />
-                  </div>
-                  <span className="ml-3 font-medium">Completed Items</span>
-                </Link>
+                {permissions?.canAccessApprovals && (
+                  <Link 
+                    href="/admin/approvals" 
+                    className="flex items-center px-3 py-2.5 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-all duration-200 group"
+                    onClick={toggleMobileMenu}
+                  >
+                    <div className="flex items-center justify-center w-8 h-8 text-gray-500 dark:text-gray-400 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors duration-200">
+                      <ClockIcon className="h-5 w-5" />
+                    </div>
+                    <span className="ml-3 font-medium">
+                      {permissions.role === 'adult_faith_approver' ? 'Adult Faith Approvals' : 'Approvals'}
+                    </span>
+                  </Link>
+                )}
 
-                <Link 
-                  href="/admin/analytics" 
-                  className="flex items-center px-3 py-2.5 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-all duration-200 group"
-                  onClick={toggleMobileMenu}
-                >
-                  <div className="flex items-center justify-center w-8 h-8 text-gray-500 dark:text-gray-400 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors duration-200">
-                    <ChartBarIcon className="h-5 w-5" />
-                  </div>
-                  <span className="ml-3 font-medium">Analytics</span>
-                </Link>
+                {permissions?.canAccessCompleted && (
+                  <Link 
+                    href="/admin/completed" 
+                    className="flex items-center px-3 py-2.5 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-all duration-200 group"
+                    onClick={toggleMobileMenu}
+                  >
+                    <div className="flex items-center justify-center w-8 h-8 text-gray-500 dark:text-gray-400 group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors duration-200">
+                      <CheckCircleIcon className="h-5 w-5" />
+                    </div>
+                    <span className="ml-3 font-medium">Completed Items</span>
+                  </Link>
+                )}
 
-                <Link 
-                  href="/admin/ministries" 
-                  className="flex items-center px-3 py-2.5 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-all duration-200 group"
-                  onClick={toggleMobileMenu}
-                >
-                  <div className="flex items-center justify-center w-8 h-8 text-gray-500 dark:text-gray-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200">
-                    <BuildingOffice2Icon className="h-5 w-5" />
-                  </div>
-                  <span className="ml-3 font-medium">Ministries</span>
-                </Link>
+                {permissions?.canAccessAnalytics && (
+                  <Link 
+                    href="/admin/analytics" 
+                    className="flex items-center px-3 py-2.5 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-all duration-200 group"
+                    onClick={toggleMobileMenu}
+                  >
+                    <div className="flex items-center justify-center w-8 h-8 text-gray-500 dark:text-gray-400 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors duration-200">
+                      <ChartBarIcon className="h-5 w-5" />
+                    </div>
+                    <span className="ml-3 font-medium">Analytics</span>
+                  </Link>
+                )}
+
+                {permissions?.canAccessMinistries && (
+                  <Link 
+                    href="/admin/ministries" 
+                    className="flex items-center px-3 py-2.5 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-all duration-200 group"
+                    onClick={toggleMobileMenu}
+                  >
+                    <div className="flex items-center justify-center w-8 h-8 text-gray-500 dark:text-gray-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200">
+                      <BuildingOffice2Icon className="h-5 w-5" />
+                    </div>
+                    <span className="ml-3 font-medium">Ministries</span>
+                  </Link>
+                )}
               </nav>
 
               <div className="mt-auto border-t border-gray-200 dark:border-gray-800 pt-4 px-3">

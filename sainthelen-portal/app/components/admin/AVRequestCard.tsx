@@ -9,8 +9,10 @@ import {
   CheckIcon,
   ArrowTopRightOnSquareIcon,
   VideoCameraIcon,
-  CalendarIcon
+  CalendarIcon,
+  ClockIcon
 } from '@heroicons/react/24/outline';
+import { formatCreatedTime, getAgeIndicator, getAgeIndicatorColor } from '../../utils/dateUtils';
 
 type AVRequestRecord = {
   id: string;
@@ -30,6 +32,10 @@ export default function AVRequestCard({
   const f = record.fields;
   const needsLivestream = !!f['Needs Livestream'];
   
+  // Age indicators for visual priority
+  const ageIndicator = getAgeIndicator(f.createdTime);
+  const ageColor = getAgeIndicatorColor(ageIndicator);
+  
   return (
     <Card className={`mb-4 ${needsLivestream ? 'border-l-4 border-l-red-500' : ''}`}>
       <CardHeader className="flex flex-row items-start justify-between">
@@ -43,9 +49,15 @@ export default function AVRequestCard({
               <Badge variant="danger" className="ml-2">Livestream</Badge>
             )}
           </div>
-          <div className="flex items-center text-sm text-gray-500 mt-1">
-            <span className="font-medium mr-2">{f.Ministry || 'No Ministry'}</span>
-            <span>• {f.Location || 'No Location'}</span>
+          <div className="flex items-center justify-between text-sm text-gray-500 mt-1">
+            <div className="flex items-center">
+              <span className="font-medium mr-2">{f.Ministry || 'No Ministry'}</span>
+              <span>• {f.Location || 'No Location'}</span>
+            </div>
+            <div className={`flex items-center text-xs ${ageColor}`}>
+              <ClockIcon className="h-3 w-3 mr-1" />
+              <span>Submitted {formatCreatedTime(f.createdTime)}</span>
+            </div>
           </div>
         </div>
         <div className="flex items-center space-x-2">

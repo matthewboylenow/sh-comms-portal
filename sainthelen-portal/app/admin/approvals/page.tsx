@@ -33,6 +33,10 @@ export default function ApprovalsPage() {
   const [error, setError] = useState('');
   const [filter, setFilter] = useState<'pending' | 'approved' | 'rejected'>('pending');
   const [processing, setProcessing] = useState<string | null>(null);
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const [bulkProcessing, setBulkProcessing] = useState(false);
+  const [showBulkRejectModal, setShowBulkRejectModal] = useState(false);
+  const [bulkRejectionReason, setBulkRejectionReason] = useState('');
 
   const fetchApprovals = async () => {
     try {
@@ -109,6 +113,86 @@ export default function ApprovalsPage() {
     }
   };
 
+  const handleSelectItem = (recordId: string, checked: boolean) => {
+    const newSelected = new Set(selectedItems);
+    if (checked) {
+      newSelected.add(recordId);
+    } else {
+      newSelected.delete(recordId);
+    }
+    setSelectedItems(newSelected);
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const allIds = new Set(approvals.map(approval => approval.id));
+      setSelectedItems(allIds);
+    } else {
+      setSelectedItems(new Set());
+    }
+  };
+
+  const handleBulkApprove = async () => {
+    if (selectedItems.size === 0) return;
+
+    try {
+      setBulkProcessing(true);
+      const response = await fetch('/api/admin/approvals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bulk: true,
+          recordIds: Array.from(selectedItems),
+          action: 'approve'
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to approve items');
+      }
+
+      setSelectedItems(new Set());
+      await fetchApprovals();
+    } catch (err: any) {
+      setError(err.message || 'Failed to approve items');
+    } finally {
+      setBulkProcessing(false);
+    }
+  };
+
+  const handleBulkReject = async () => {
+    if (selectedItems.size === 0 || !bulkRejectionReason.trim()) return;
+
+    try {
+      setBulkProcessing(true);
+      const response = await fetch('/api/admin/approvals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bulk: true,
+          recordIds: Array.from(selectedItems),
+          action: 'reject',
+          rejectionReason: bulkRejectionReason
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to reject items');
+      }
+
+      setSelectedItems(new Set());
+      setBulkRejectionReason('');
+      setShowBulkRejectModal(false);
+      await fetchApprovals();
+    } catch (err: any) {
+      setError(err.message || 'Failed to reject items');
+    } finally {
+      setBulkProcessing(false);
+    }
+  };
+
   return (
     <AdminLayout title="Adult Discipleship Approvals">
       <div className="max-w-6xl mx-auto">
@@ -150,6 +234,44 @@ export default function ApprovalsPage() {
           </div>
         </div>
 
+        {/* Bulk Actions - only show for pending items with selections */}
+        {filter === 'pending' && selectedItems.size > 0 && (
+          <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-blue-800 dark:text-blue-300">
+                {selectedItems.size} item{selectedItems.size !== 1 ? 's' : ''} selected
+              </span>
+              <div className="flex gap-3">
+                <Button
+                  onClick={handleBulkApprove}
+                  disabled={bulkProcessing}
+                  className="bg-green-600 hover:bg-green-700 text-white text-sm"
+                  size="sm"
+                >
+                  {bulkProcessing ? 'Processing...' : `Approve All (${selectedItems.size})`}
+                </Button>
+                <Button
+                  onClick={() => setShowBulkRejectModal(true)}
+                  disabled={bulkProcessing}
+                  variant="outline"
+                  className="border-red-300 text-red-700 hover:bg-red-50 dark:border-red-600 dark:text-red-400 dark:hover:bg-red-900/30 text-sm"
+                  size="sm"
+                >
+                  Request Changes for All
+                </Button>
+                <Button
+                  onClick={() => setSelectedItems(new Set())}
+                  variant="outline"
+                  size="sm"
+                  className="text-sm"
+                >
+                  Clear Selection
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Content */}
         {loading ? (
           <div className="flex items-center justify-center py-12">
@@ -172,18 +294,84 @@ export default function ApprovalsPage() {
             </p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {approvals.map((approval) => (
-              <ApprovalCard
-                key={approval.id}
-                approval={approval}
-                onApprove={filter === 'pending' ? handleApprove : undefined}
-                onReject={filter === 'pending' ? handleReject : undefined}
-              />
-            ))}
-          </div>
+          <>
+            {/* Select all header for pending items */}
+            {filter === 'pending' && approvals.length > 0 && (
+              <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="selectAll"
+                    checked={selectedItems.size === approvals.length && approvals.length > 0}
+                    onChange={(e) => handleSelectAll(e.target.checked)}
+                    className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                  />
+                  <label htmlFor="selectAll" className="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Select All ({approvals.length} items)
+                  </label>
+                </div>
+              </div>
+            )}
+            
+            <div className="space-y-4">
+              {approvals.map((approval) => (
+                <ApprovalCard
+                  key={approval.id}
+                  approval={approval}
+                  onApprove={filter === 'pending' ? handleApprove : undefined}
+                  onReject={filter === 'pending' ? handleReject : undefined}
+                  showCheckbox={filter === 'pending'}
+                  isSelected={selectedItems.has(approval.id)}
+                  onSelectChange={(checked) => handleSelectItem(approval.id, checked)}
+                />
+              ))}
+            </div>
+          </>
         )}
       </div>
+
+      {/* Bulk Reject Modal */}
+      {showBulkRejectModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full">
+            <div className="p-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                Request Changes for {selectedItems.size} Items
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                This feedback will be sent to all selected submitters:
+              </p>
+              <textarea
+                value={bulkRejectionReason}
+                onChange={(e) => setBulkRejectionReason(e.target.value)}
+                placeholder="Explain what changes or improvements are needed..."
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary dark:bg-gray-700 dark:text-white resize-none"
+                rows={4}
+                required
+              />
+              <div className="flex gap-3 mt-6">
+                <Button
+                  onClick={handleBulkReject}
+                  disabled={bulkProcessing || !bulkRejectionReason.trim()}
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                >
+                  {bulkProcessing ? 'Sending...' : `Send Feedback to ${selectedItems.size} Items`}
+                </Button>
+                <Button
+                  onClick={() => {
+                    setShowBulkRejectModal(false);
+                    setBulkRejectionReason('');
+                  }}
+                  variant="outline"
+                  disabled={bulkProcessing}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 }

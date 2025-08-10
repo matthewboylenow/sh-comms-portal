@@ -13,6 +13,7 @@ import {
   ArrowTopRightOnSquareIcon,
   ClockIcon
 } from '@heroicons/react/24/outline';
+import { formatCreatedTime, getAgeIndicator, getAgeIndicatorColor, formatEventDate } from '../../utils/dateUtils';
 
 type AnnouncementRecord = {
   id: string;
@@ -29,21 +30,7 @@ type AnnouncementCardProps = {
   onToggleCompleted: (tableName: 'announcements', recordId: string, currentValue: boolean) => void;
 };
 
-// Helper function to format date
-const formatDate = (dateStr: string) => {
-  if (!dateStr) return 'N/A';
-  
-  // If it's already in MM/DD/YY format
-  if (dateStr.includes('/')) return dateStr;
-  
-  // If it's in YYYY-MM-DD format
-  try {
-    const [year, month, day] = dateStr.split('-');
-    return `${month}/${day}/${year.substring(2)}`;
-  } catch (e) {
-    return dateStr;
-  }
-};
+// Note: formatDate moved to dateUtils.ts as formatEventDate
 
 export default function AnnouncementCard({
   record,
@@ -58,6 +45,10 @@ export default function AnnouncementCard({
   const f = record.fields;
   const isSummarize = summarizeMap[record.id] || false;
   const isCalendarSelected = calendarMap[record.id] || false;
+  
+  // Age indicators for visual priority
+  const ageIndicator = getAgeIndicator(f.createdTime);
+  const ageColor = getAgeIndicatorColor(ageIndicator);
   
   // Determine badge color based on platforms
   const getPlatformBadge = (platform: string) => {
@@ -95,9 +86,15 @@ export default function AnnouncementCard({
       <CardHeader className="flex flex-row items-start justify-between">
         <div>
           <CardTitle>{f.Name || 'Unnamed Announcement'}</CardTitle>
-          <div className="flex items-center text-sm text-gray-500 mt-1">
-            <span className="font-medium mr-2">{f.Ministry || 'No Ministry'}</span>
-            {getOverrideBadge()}
+          <div className="flex items-center justify-between text-sm text-gray-500 mt-1">
+            <div className="flex items-center">
+              <span className="font-medium mr-2">{f.Ministry || 'No Ministry'}</span>
+              {getOverrideBadge()}
+            </div>
+            <div className={`flex items-center text-xs ${ageColor}`}>
+              <ClockIcon className="h-3 w-3 mr-1" />
+              <span>Submitted {formatCreatedTime(f.createdTime)}</span>
+            </div>
           </div>
         </div>
         <div className="flex items-center space-x-2">
@@ -149,11 +146,11 @@ export default function AnnouncementCard({
         <div className="flex flex-wrap gap-2 mb-3">
           <div className="flex items-center text-sm text-gray-600 dark:text-gray-300 mr-4">
             <CalendarIcon className="h-4 w-4 mr-1" />
-            <span>Event: {formatDate(f['Date of Event'] || '')} {f['Time of Event'] || ''}</span>
+            <span>Event: {formatEventDate(f['Date of Event'] || '')} {f['Time of Event'] || ''}</span>
           </div>
           <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
             <ClockIcon className="h-4 w-4 mr-1" />
-            <span>Promo Start: {formatDate(f['Promotion Start Date'] || '')}</span>
+            <span>Promo Start: {formatEventDate(f['Promotion Start Date'] || '')}</span>
           </div>
         </div>
 

@@ -176,6 +176,7 @@ export async function POST(request: NextRequest) {
             <p>${data.announcementBody.replace(/\n/g, '<br/>')}</p>
           </div>
           ${fileLinksString ? `<p><strong>Attached Files:</strong><br/>${fileLinksString.replace(/\n/g, '<br/>')}</p>` : ''}
+          <p><a href="${process.env.NEXTAUTH_URL}/admin/approvals" style="background-color: #3B82F6; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin: 10px 0;">Review in Admin Portal</a></p>
           <p>Please review this submission in the admin portal to approve or reject it.</p>
           <p>Saint Helen Communications Portal</p>
         `;

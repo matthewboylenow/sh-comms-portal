@@ -32,7 +32,7 @@ import {
 /** Type Declarations */
 type TableName = 'announcements' | 'websiteUpdates' | 'smsRequests' | 'avRequests' | 'flyerReviews' | 'graphicDesign';
 type SortDirection = 'asc' | 'desc';
-type SortField = 'createdTime' | 'name' | 'date';
+type SortField = 'createdTime' | 'name' | 'date' | 'age';
 
 type AdminRecord = {
   id: string;
@@ -131,6 +131,14 @@ export default function AdminClient() {
         return sortDirection === 'asc'
           ? aName.localeCompare(bName)
           : bName.localeCompare(aName);
+      }
+      else if (sortField === 'age') {
+        // Sort by age (same as createdTime but different label)
+        const aTime = a.fields.createdTime || '';
+        const bTime = b.fields.createdTime || '';
+        return sortDirection === 'asc' 
+          ? aTime.localeCompare(bTime)
+          : bTime.localeCompare(aTime);
       }
       else if (sortField === 'date') {
         // First, determine which date field to use based on the table
@@ -691,15 +699,15 @@ export default function AdminClient() {
           
           <div className="flex bg-gray-50 dark:bg-slate-700 rounded-xl p-1">
             <button
-              onClick={() => handleSortChange('createdTime')}
+              onClick={() => handleSortChange('age')}
               className={`px-4 py-2 text-sm rounded-lg flex items-center transition-all ${
-                sortField === 'createdTime' 
+                sortField === 'age' 
                   ? 'bg-blue-600 text-white shadow-md' 
                   : 'hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-300'
               }`}
             >
-              Date Added
-              {sortField === 'createdTime' && (
+              Age
+              {sortField === 'age' && (
                 <span className="ml-1.5">
                   {sortDirection === 'asc' ? <ArrowUpIcon className="h-3.5 w-3.5" /> : <ArrowDownIcon className="h-3.5 w-3.5" />}
                 </span>
