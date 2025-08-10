@@ -88,13 +88,13 @@ export async function POST(request: NextRequest) {
     const fileLinksString = data.fileLinks?.length ? data.fileLinks.join('\n') : '';
 
     // Build fields object dynamically, only including fields that have values
+    // Note: Do not include computed fields like 'Submitted At' - Airtable handles these automatically
     const fields: Record<string, any> = {
       Name: data.name,
       Email: data.email,
       'Announcement Body': data.announcementBody,
       'Approval Status': approvalStatus,
       'Requires Approval': requiresApproval,
-      'Submitted At': new Date().toISOString(),
     };
 
     // Only add optional fields if they have values

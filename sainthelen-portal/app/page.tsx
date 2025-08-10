@@ -36,7 +36,7 @@ export default function HomePage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
           >
-            Welcome to Excellence in Ministry Communications
+            Saint Helen Communications Portal
           </motion.h2>
           <motion.p 
             className="text-xl text-gray-600 dark:text-gray-400 leading-relaxed"
@@ -44,8 +44,8 @@ export default function HomePage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
           >
-            Thank you for your dedicated ministry work. We're here to amplify your message with professional 
-            communications tools and strategic promotion services.
+            Submit forms and requests to help publicize your ministries and events. 
+            Our communications team is here to help promote your ministry work.
           </motion.p>
         </motion.div>
 
@@ -84,7 +84,7 @@ export default function HomePage() {
                   </motion.div>
                   <h4 className="font-bold text-xl mb-3 text-gray-900 dark:text-white">1. Review Guidelines</h4>
                   <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed flex-grow">
-                    Discover our comprehensive guide featuring best practices, brand standards, and strategic timelines.
+                    View guidelines and information for submitting communications requests.
                   </p>
                   <Link
                     href="/guidelines"
@@ -187,7 +187,7 @@ export default function HomePage() {
                   </motion.div>
                   <h4 className="font-bold text-xl mb-3 text-gray-900 dark:text-white">4. We Handle the Rest</h4>
                   <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed flex-grow">
-                    Our expert team orchestrates multi-channel promotion with precision timing and professional execution.
+                    Our communications team will help promote your ministry events and announcements.
                   </p>
                 </FrontCardContent>
               </FrontCard>
@@ -413,7 +413,7 @@ export default function HomePage() {
               </FrontCardHeader>
               <FrontCardContent className="flex flex-col items-center pt-2">
                 <p className="mb-8 text-gray-600 dark:text-gray-300 leading-relaxed">
-                  Request professional graphic design services for ministry materials, social media, posters, and more.
+                  Request graphic design services for ministry materials, social media, posters, and more.
                 </p>
                 <Link
                   href="/graphic-design"

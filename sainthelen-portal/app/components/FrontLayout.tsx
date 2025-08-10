@@ -259,7 +259,7 @@ export default function FrontLayout({ children, title = 'Saint Helen Communicati
               Saint Helen Communications Portal
             </h1>
             <p className="mt-8 max-w-2xl mx-auto text-xl text-gray-200 leading-relaxed">
-              Streamlined tools and best practices for promoting your ministry and events with excellence
+              Simple forms and tools to help promote your ministry and events
             </p>
             <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
               <Link 

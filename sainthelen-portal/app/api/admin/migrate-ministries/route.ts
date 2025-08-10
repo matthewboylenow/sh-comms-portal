@@ -38,8 +38,6 @@ export async function POST(request: NextRequest) {
           'Approval Coordinator': ministry.approvalCoordinator || 'adult-discipleship',
           Description: ministry.description || '',
           Active: true, // All config ministries are active by default
-          'Created At': new Date().toISOString(),
-          'Updated At': new Date().toISOString()
         }
       });
     }

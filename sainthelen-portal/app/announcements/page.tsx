@@ -288,7 +288,7 @@ export default function AnnouncementsFormPage() {
                 </label>
                 <input
                   type="text"
-                  className="w-full px-4 py-3 border border-gray-300/50 dark:border-gray-600/50 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-sh-primary/50 focus:border-sh-primary dark:bg-gray-700/50 dark:text-white transition-all duration-200 backdrop-blur-sm bg-white/80"
+                  className="w-full px-4 py-3 border border-gray-300/50 dark:border-gray-600/50 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-sh-primary/50 focus:border-sh-primary bg-white/80 text-gray-900 dark:bg-gray-700/50 dark:text-white transition-all duration-200 backdrop-blur-sm"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
@@ -303,7 +303,7 @@ export default function AnnouncementsFormPage() {
                 </label>
                 <input
                   type="email"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary dark:bg-gray-700 dark:text-white"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary bg-white text-gray-900 dark:bg-gray-700 dark:text-white"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -365,7 +365,7 @@ export default function AnnouncementsFormPage() {
                   </label>
                   <input
                     type="date"
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary dark:bg-gray-700 dark:text-white"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary bg-white text-gray-900 dark:bg-gray-700 dark:text-white"
                     value={eventDate}
                     onChange={(e) => setEventDate(e.target.value)}
                   />
@@ -376,7 +376,7 @@ export default function AnnouncementsFormPage() {
                   </label>
                   <input
                     type="time"
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary dark:bg-gray-700 dark:text-white"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary bg-white text-gray-900 dark:bg-gray-700 dark:text-white"
                     value={eventTime}
                     onChange={(e) => setEventTime(e.target.value)}
                   />
@@ -390,7 +390,7 @@ export default function AnnouncementsFormPage() {
                 </label>
                 <input
                   type="date"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary dark:bg-gray-700 dark:text-white"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary bg-white text-gray-900 dark:bg-gray-700 dark:text-white"
                   value={promotionStart}
                   onChange={(e) => setPromotionStart(e.target.value)}
                 />
@@ -445,7 +445,7 @@ export default function AnnouncementsFormPage() {
                   Announcement Body <span className="text-red-500">*</span>
                 </label>
                 <textarea
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary dark:bg-gray-700 dark:text-white"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary bg-white text-gray-900 dark:bg-gray-700 dark:text-white"
                   rows={6}
                   value={announcementBody}
                   onChange={(e) => setAnnouncementBody(e.target.value)}

@@ -95,7 +95,6 @@ export async function POST(request: NextRequest) {
     const updateFields: any = {
       'Approval Status': action === 'approve' ? 'approved' : 'rejected',
       'Approved By': approverEmail,
-      'Approved At': new Date().toISOString(),
     };
 
     if (action === 'reject') {

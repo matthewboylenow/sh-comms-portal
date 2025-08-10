@@ -68,8 +68,6 @@ export async function POST(request: NextRequest) {
           'Approval Coordinator': approvalCoordinator || 'adult-discipleship',
           Description: description?.trim() || '',
           Active: active !== false, // Default to true
-          'Created At': new Date().toISOString(),
-          'Updated At': new Date().toISOString()
         }
       }
     ]);
@@ -130,7 +128,6 @@ export async function PUT(request: NextRequest) {
           'Approval Coordinator': approvalCoordinator || 'adult-discipleship',
           Description: description?.trim() || '',
           Active: active !== false,
-          'Updated At': new Date().toISOString()
         }
       }
     ]);

@@ -93,7 +93,6 @@ export async function POST(request: NextRequest) {
       'Urgency': data.urgency || 'standard',
       'File Links': fileLinksString,
       'Status': 'Pending',
-      'Submitted At': new Date().toISOString(),
     };
 
     // Only add optional fields if they have values
