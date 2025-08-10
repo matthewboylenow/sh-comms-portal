@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
     if (data.promotionStart) fields['Promotion Start Date'] = data.promotionStart;
     if (data.platforms && data.platforms.length > 0) fields.Platforms = data.platforms;
     if (data.addToCalendar !== undefined) fields['Add to Events Calendar'] = data.addToCalendar ? 'Yes' : 'No';
-    if (data.isExternalEvent !== undefined) fields['Is External Event'] = data.isExternalEvent ? 'Yes' : 'No';
+    if (data.isExternalEvent !== undefined) fields['External Event'] = data.isExternalEvent ? 'Yes' : 'No';
     if (fileLinksString) fields['File Links'] = fileLinksString;
     if (ministry?.id) fields['Ministry ID'] = ministry.id;
 

@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
     const records = await base(NOTIFICATIONS_TABLE)
       .select({
         filterByFormula: `{userEmail} = "${userEmail}"`,
-        sort: [{ field: 'createdAt', direction: 'desc' }],
+        sort: [{ field: 'Created Time', direction: 'desc' }],
         maxRecords: 100
       })
       .all();
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
         relatedRecordId: fields.relatedRecordId || null,
         relatedRecordType: fields.relatedRecordType || null,
         isRead: fields.isRead || false,
-        createdAt: fields.createdAt || new Date().toISOString(),
+        createdAt: fields['Created Time'] || new Date().toISOString(),
         userEmail: fields.userEmail || ''
       };
     });
@@ -114,7 +114,7 @@ export async function createNotification(params: {
       relatedRecordId: relatedRecordId || '',
       relatedRecordType: relatedRecordType || '',
       isRead: false,
-      createdAt: new Date().toISOString()
+      'Created Time': new Date().toISOString()
     });
     
     return record.id;

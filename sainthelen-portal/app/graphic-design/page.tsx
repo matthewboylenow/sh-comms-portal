@@ -349,6 +349,7 @@ export default function GraphicDesignFormPage() {
                     </label>
                     <input
                       type="time"
+                      step="300"
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary dark:bg-gray-700 dark:text-white"
                       value={deadlineTime}
                       onChange={(e) => setDeadlineTime(e.target.value)}
