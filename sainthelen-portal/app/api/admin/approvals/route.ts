@@ -50,7 +50,8 @@ export async function GET(request: NextRequest) {
     const base = getAirtableBase();
     
     // Build filter formula based on user's approval scope
-    let filterFormula = `{Approval Status} = "${status}"`;
+    // Only show announcements that actually require approval
+    let filterFormula = `AND({Approval Status} = "${status}", {Requires Approval} = TRUE())`;
     
     const approvalScope = getUserApprovalScope(session.user.email);
     if (approvalScope && approvalScope.length > 0) {
@@ -58,7 +59,7 @@ export async function GET(request: NextRequest) {
       const ministryFilter = approvalScope.map(ministry => 
         `{Ministry} = "${ministry}"`
       ).join(', ');
-      filterFormula = `AND({Approval Status} = "${status}", OR(${ministryFilter}))`;
+      filterFormula = `AND({Approval Status} = "${status}", {Requires Approval} = TRUE(), OR(${ministryFilter}))`;
     }
 
     const records = await base(TABLE_NAMES.ANNOUNCEMENTS)
