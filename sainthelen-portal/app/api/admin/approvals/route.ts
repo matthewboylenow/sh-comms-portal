@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const permissions = getUserPermissions(session.user.email);
+    const permissions = await getUserPermissions(session.user.email);
     if (!permissions.canAccessApprovals) {
       return new NextResponse(
         JSON.stringify({ error: 'Insufficient permissions' }),
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
     // Only show announcements that actually require approval
     let filterFormula = `AND({Approval Status} = "${status}", {Requires Approval} = TRUE())`;
     
-    const approvalScope = getUserApprovalScope(session.user.email);
+    const approvalScope = await getUserApprovalScope(session.user.email);
     if (approvalScope && approvalScope.length > 0) {
       // Adult Faith approvers can only see their ministries
       const ministryFilter = approvalScope.map(ministry => 
@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const permissions = getUserPermissions(session.user.email);
+    const permissions = await getUserPermissions(session.user.email);
     if (!permissions.canAccessApprovals) {
       return new NextResponse(
         JSON.stringify({ error: 'Insufficient permissions' }),
@@ -151,7 +151,7 @@ export async function POST(request: NextRequest) {
     const ministry = currentRecord.fields.Ministry as string;
     
     // Verify user has permission to approve this ministry
-    const approvalScope = getUserApprovalScope(session.user.email);
+    const approvalScope = await getUserApprovalScope(session.user.email);
     if (approvalScope && !approvalScope.includes(ministry)) {
       return new NextResponse(
         JSON.stringify({ error: 'You do not have permission to approve this ministry' }),
@@ -239,7 +239,7 @@ async function handleBulkApproval(
   try {
     const { recordIds, action, rejectionReason } = body;
     const base = getAirtableBase();
-    const approvalScope = getUserApprovalScope(userEmail);
+    const approvalScope = await getUserApprovalScope(userEmail);
     
     // Get all records first to validate permissions
     const records = await Promise.all(

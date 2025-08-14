@@ -11,7 +11,7 @@ export async function getAdminSession() {
     return null;
   }
   
-  const permissions = getUserPermissions(session.user.email);
+  const permissions = await getUserPermissions(session.user.email);
   
   return {
     ...session,

@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 import { useNotificationContext } from '../../context/NotificationContext';
-import { getUserPermissions } from '../../config/permissions';
+import { usePermissions } from '../../hooks/usePermissions';
 import { 
   MegaphoneIcon, 
   GlobeAltIcon, 
@@ -44,7 +44,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
   const [notificationCenter, setNotificationCenter] = useState(false);
   
   // Get user permissions
-  const permissions = session?.user?.email ? getUserPermissions(session.user.email) : null;
+  const { permissions, loading: permissionsLoading } = usePermissions();
 
   useEffect(() => {
     // Initialize dark mode based on localStorage
