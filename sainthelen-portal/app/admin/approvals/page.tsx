@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSession, signIn } from 'next-auth/react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { ApprovalCard } from '../../components/admin/ApprovalCard';
 import { Button } from '../../components/ui/Button';
@@ -28,6 +29,7 @@ interface ApprovalData {
 }
 
 export default function ApprovalsPage() {
+  const { data: session, status } = useSession();
   const [approvals, setApprovals] = useState<ApprovalData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -55,8 +57,10 @@ export default function ApprovalsPage() {
   };
 
   useEffect(() => {
-    fetchApprovals();
-  }, [filter]);
+    if (status === 'authenticated') {
+      fetchApprovals();
+    }
+  }, [filter, status]);
 
   const handleApprove = async (recordId: string) => {
     try {
@@ -192,6 +196,40 @@ export default function ApprovalsPage() {
       setBulkProcessing(false);
     }
   };
+
+  // Handle authentication states
+  if (status === 'loading') {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-100 dark:bg-gray-900">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sh-primary mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (status === 'unauthenticated') {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-gray-100 dark:bg-gray-900">
+        <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow-md max-w-md w-full">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+            Access Denied
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
+            You must be signed in to view the admin dashboard.
+          </p>
+          <Button
+            onClick={() => signIn('azure-ad')}
+            className="w-full"
+            size="lg"
+          >
+            Sign In with Azure AD
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <AdminLayout title="Adult Discipleship Approvals">

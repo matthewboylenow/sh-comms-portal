@@ -23,7 +23,8 @@ export const authOptions: NextAuthOptions = {
       const allowedEmails = [
         'mboyle@sainthelen.org',
         'ccolonna@sainthelen.org', 
-        'mauricchio@sainthelen.org'
+        'mauricchio@sainthelen.org',
+        'faith@sainthelen.org'
       ];
       
       if (user.email && allowedEmails.includes(user.email.toLowerCase())) {
