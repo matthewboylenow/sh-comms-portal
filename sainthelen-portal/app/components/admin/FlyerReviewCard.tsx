@@ -34,7 +34,7 @@ export default function FlyerReviewCard({
   const isUrgent = f.Urgency === 'urgent';
   
   // Age indicators for visual priority
-  const ageIndicator = getAgeIndicator(f.createdTime);
+  const ageIndicator = getAgeIndicator(f['Submitted At']);
   const ageColor = getAgeIndicatorColor(ageIndicator);
   
   // Note: formatDate moved to dateUtils.ts as formatEventDate
@@ -62,7 +62,7 @@ export default function FlyerReviewCard({
             </div>
             <div className={`flex items-center text-xs ${ageColor}`}>
               <ClockIcon className="h-3 w-3 mr-1" />
-              <span>Submitted {formatCreatedTime(f.createdTime)}</span>
+              <span>Submitted {formatCreatedTime(f['Submitted At'])}</span>
             </div>
           </div>
         </div>

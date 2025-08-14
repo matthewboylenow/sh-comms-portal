@@ -30,7 +30,7 @@ export default function SmsRequestCard({
   const f = record.fields;
   
   // Age indicators for visual priority
-  const ageIndicator = getAgeIndicator(f.createdTime);
+  const ageIndicator = getAgeIndicator(f['Submitted At']);
   const ageColor = getAgeIndicatorColor(ageIndicator);
   
   return (
@@ -45,7 +45,7 @@ export default function SmsRequestCard({
             <span className="font-medium mr-2">{f.Ministry || 'No Ministry'}</span>
             <div className={`flex items-center text-xs ${ageColor}`}>
               <ClockIcon className="h-3 w-3 mr-1" />
-              <span>Submitted {formatCreatedTime(f.createdTime)}</span>
+              <span>Submitted {formatCreatedTime(f['Submitted At'])}</span>
             </div>
           </div>
         </div>

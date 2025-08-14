@@ -32,7 +32,7 @@ import {
 /** Type Declarations */
 type TableName = 'announcements' | 'websiteUpdates' | 'smsRequests' | 'avRequests' | 'flyerReviews' | 'graphicDesign';
 type SortDirection = 'asc' | 'desc';
-type SortField = 'createdTime' | 'name' | 'date' | 'age';
+type SortField = 'submittedAt' | 'name' | 'date' | 'age';
 
 type AdminRecord = {
   id: string;
@@ -77,7 +77,7 @@ export default function AdminClient() {
   const [graphicDesign, setGraphicDesign] = useState<AdminRecord[]>([]);
 
   // Sort state
-  const [sortField, setSortField] = useState<SortField>('createdTime');
+  const [sortField, setSortField] = useState<SortField>('submittedAt');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
   // Summarize checkboxes (only for announcements now)
@@ -117,10 +117,10 @@ export default function AdminClient() {
 
   function sortRecords(records: AdminRecord[]): AdminRecord[] {
     return [...records].sort((a, b) => {
-      if (sortField === 'createdTime') {
-        // Most Airtable records have a createdTime field
-        const aTime = a.fields.createdTime || '';
-        const bTime = b.fields.createdTime || '';
+      if (sortField === 'submittedAt') {
+        // Most Airtable records have a Submitted At field
+        const aTime = a.fields['Submitted At'] || '';
+        const bTime = b.fields['Submitted At'] || '';
         return sortDirection === 'asc' 
           ? aTime.localeCompare(bTime)
           : bTime.localeCompare(aTime);
@@ -133,9 +133,9 @@ export default function AdminClient() {
           : bName.localeCompare(aName);
       }
       else if (sortField === 'age') {
-        // Sort by age (same as createdTime but different label)
-        const aTime = a.fields.createdTime || '';
-        const bTime = b.fields.createdTime || '';
+        // Sort by age (same as submittedAt but different label)
+        const aTime = a.fields['Submitted At'] || '';
+        const bTime = b.fields['Submitted At'] || '';
         return sortDirection === 'asc' 
           ? aTime.localeCompare(bTime)
           : bTime.localeCompare(aTime);

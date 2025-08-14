@@ -33,7 +33,7 @@ export default function AVRequestCard({
   const needsLivestream = !!f['Needs Livestream'];
   
   // Age indicators for visual priority
-  const ageIndicator = getAgeIndicator(f.createdTime);
+  const ageIndicator = getAgeIndicator(f['Submitted At']);
   const ageColor = getAgeIndicatorColor(ageIndicator);
   
   return (
@@ -56,7 +56,7 @@ export default function AVRequestCard({
             </div>
             <div className={`flex items-center text-xs ${ageColor}`}>
               <ClockIcon className="h-3 w-3 mr-1" />
-              <span>Submitted {formatCreatedTime(f.createdTime)}</span>
+              <span>Submitted {formatCreatedTime(f['Submitted At'])}</span>
             </div>
           </div>
         </div>
