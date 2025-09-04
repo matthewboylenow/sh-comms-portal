@@ -134,7 +134,6 @@ export async function POST(request: NextRequest) {
           Description: data.description,
           'Sign-Up URL': data.signUpUrl || '',
           'File Links': fileLinksString,
-          'WordPress File Links': wordpressFileLinks.length > 0 ? wordpressFileLinks.join('\n') : '',
         },
       },
     ]);
