@@ -34,6 +34,13 @@ interface RequestTypeStats {
   requests: RequestDetails[];
 }
 
+interface CompletionTime {
+  totalHours: number;
+  days: number;
+  hours: number;
+  displayText: string;
+}
+
 interface RequestDetails {
   id: string;
   name: string;
@@ -41,7 +48,7 @@ interface RequestDetails {
   submittedDate: string;
   completedDate?: string;
   status: string;
-  completionTime?: number;
+  completionTime?: CompletionTime;
   priority?: string;
   urgent?: boolean;
   description: string;
@@ -364,7 +371,7 @@ export default function ReportsPage() {
                           <span>Submitted: {formatDate(request.submittedDate)}</span>
                           {request.completedDate && (
                             <span>Completed: {formatDate(request.completedDate)} 
-                              {request.completionTime && ` (${request.completionTime}d)`}
+                              {request.completionTime && ` (${request.completionTime.displayText})`}
                             </span>
                           )}
                         </div>
@@ -417,7 +424,7 @@ export default function ReportsPage() {
                       <span>Submitted: {formatDate(request.submittedDate)}</span>
                       {request.completedDate && (
                         <span>Completed: {formatDate(request.completedDate)} 
-                          {request.completionTime && ` (${request.completionTime}d)`}
+                          {request.completionTime && ` (${request.completionTime.displayText})`}
                         </span>
                       )}
                     </div>

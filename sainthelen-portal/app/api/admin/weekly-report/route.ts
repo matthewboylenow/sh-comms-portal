@@ -45,7 +45,7 @@ interface RequestDetails {
   submittedDate: string;
   completedDate?: string;
   status: string;
-  completionTime?: number;
+  completionTime?: CompletionTime;
   priority?: string;
   urgent?: boolean;
   description: string;
@@ -65,13 +65,39 @@ function getWeekDates(weekOffset: number = 0): { start: Date; end: Date } {
   return { start, end };
 }
 
-function calculateCompletionTime(submitted: string, completed?: string): number | undefined {
+interface CompletionTime {
+  totalHours: number;
+  days: number;
+  hours: number;
+  displayText: string;
+}
+
+function calculateCompletionTime(submitted: string, completed?: string): CompletionTime | undefined {
   if (!completed) return undefined;
   
   const submittedDate = new Date(submitted);
   const completedDate = new Date(completed);
   const diffTime = completedDate.getTime() - submittedDate.getTime();
-  return Math.ceil(diffTime / (1000 * 60 * 60 * 24)); // Days
+  const totalHours = Math.ceil(diffTime / (1000 * 60 * 60)); // Total hours
+  
+  const days = Math.floor(totalHours / 24);
+  const hours = totalHours % 24;
+  
+  let displayText = '';
+  if (days > 0 && hours > 0) {
+    displayText = `${days}d ${hours}h`;
+  } else if (days > 0) {
+    displayText = `${days}d`;
+  } else {
+    displayText = `${hours}h`;
+  }
+  
+  return {
+    totalHours,
+    days,
+    hours,
+    displayText
+  };
 }
 
 function isWithinWeek(date: string, weekStart: Date, weekEnd: Date): boolean {
@@ -120,18 +146,21 @@ function processRequests(records: any[], type: string): RequestTypeStats {
   );
   
   const completionTimes = completed
-    .map(req => req.completionTime)
+    .map(req => req.completionTime?.totalHours)
     .filter((time): time is number => time !== undefined);
     
-  const avgCompletionTime = completionTimes.length > 0 
+  const avgCompletionTimeHours = completionTimes.length > 0 
     ? completionTimes.reduce((sum, time) => sum + time, 0) / completionTimes.length 
     : 0;
+
+  // Convert average back to days for backward compatibility in overview stats
+  const avgCompletionTimeDays = avgCompletionTimeHours / 24;
 
   return {
     total: requests.length,
     completed: completed.length,
     pending: requests.length - completed.length,
-    avgCompletionTime: Math.round(avgCompletionTime * 10) / 10,
+    avgCompletionTime: Math.round(avgCompletionTimeDays * 10) / 10,
     requests
   };
 }
@@ -167,12 +196,14 @@ export async function GET(request: NextRequest) {
       ...flyerReviews.requests,
       ...graphicDesign.requests
     ]
-      .map(req => req.completionTime)
+      .map(req => req.completionTime?.totalHours)
       .filter((time): time is number => time !== undefined);
     
-    const avgCompletionTime = allCompletionTimes.length > 0 
+    const avgCompletionTimeHours = allCompletionTimes.length > 0 
       ? allCompletionTimes.reduce((sum, time) => sum + time, 0) / allCompletionTimes.length 
       : 0;
+    
+    const avgCompletionTime = avgCompletionTimeHours / 24; // Convert to days for display
 
     // Calculate urgent request stats
     const allRequests = [
@@ -187,12 +218,14 @@ export async function GET(request: NextRequest) {
     );
     
     const urgentCompletionTimes = urgentCompleted
-      .map(req => req.completionTime)
+      .map(req => req.completionTime?.totalHours)
       .filter((time): time is number => time !== undefined);
       
-    const urgentAvgCompletionTime = urgentCompletionTimes.length > 0 
+    const urgentAvgCompletionTimeHours = urgentCompletionTimes.length > 0 
       ? urgentCompletionTimes.reduce((sum, time) => sum + time, 0) / urgentCompletionTimes.length 
       : 0;
+      
+    const urgentAvgCompletionTime = urgentAvgCompletionTimeHours / 24; // Convert to days for display
 
     const reportData: WeeklyReportData = {
       weekStart: weekStart.toISOString().split('T')[0],
@@ -289,7 +322,7 @@ function generateCSV(data: WeeklyReportData): string {
       req.completedDate ? req.completedDate.split('T')[0] : '',
       req.status,
       req.urgent ? 'Urgent' : (req.priority || 'Standard'),
-      req.completionTime || ''
+      req.completionTime?.displayText || ''
     ];
     rows.push(row.join(','));
   });
