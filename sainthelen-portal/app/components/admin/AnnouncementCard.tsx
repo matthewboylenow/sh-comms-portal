@@ -13,7 +13,7 @@ import {
   ArrowTopRightOnSquareIcon,
   ClockIcon
 } from '@heroicons/react/24/outline';
-import { formatCreatedTime, getAgeIndicator, getAgeIndicatorColor, formatEventDate } from '../../utils/dateUtils';
+import { formatCreatedTime, getAgeIndicator, getAgeIndicatorColor, formatEventDate, extractTimestamp } from '../../utils/dateUtils';
 
 type AnnouncementRecord = {
   id: string;
@@ -46,8 +46,11 @@ export default function AnnouncementCard({
   const isSummarize = summarizeMap[record.id] || false;
   const isCalendarSelected = calendarMap[record.id] || false;
   
+  // Extract timestamp with fallbacks
+  const timestamp = extractTimestamp(f, record);
+  
   // Age indicators for visual priority
-  const ageIndicator = getAgeIndicator(f['Submitted At']);
+  const ageIndicator = getAgeIndicator(timestamp);
   const ageColor = getAgeIndicatorColor(ageIndicator);
   
   // Determine badge color based on platforms
@@ -93,7 +96,7 @@ export default function AnnouncementCard({
             </div>
             <div className={`flex items-center text-xs ${ageColor}`}>
               <ClockIcon className="h-3 w-3 mr-1" />
-              <span>Submitted {formatCreatedTime(f['Submitted At'])}</span>
+              <span>Submitted {formatCreatedTime(timestamp)}</span>
             </div>
           </div>
         </div>

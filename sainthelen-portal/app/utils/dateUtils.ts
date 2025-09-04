@@ -4,8 +4,39 @@
  * Utility functions for consistent date/time formatting across the admin interface
  */
 
-export function formatCreatedTime(createdTime: string): string {
-  if (!createdTime) return 'Unknown';
+/**
+ * Extract timestamp from Airtable record fields with multiple fallbacks
+ */
+export function extractTimestamp(fields: Record<string, any>, rawRecord?: any): string | null {
+  // Try multiple possible field names in order of preference
+  const possibleFields = [
+    'Submitted At',
+    'Created Time', 
+    'Created',
+    'createdTime',
+    'created'
+  ];
+  
+  for (const field of possibleFields) {
+    if (fields[field]) {
+      return fields[field];
+    }
+  }
+  
+  // Try the raw record createdTime as fallback
+  if (rawRecord?._rawJson?.createdTime) {
+    return rawRecord._rawJson.createdTime;
+  }
+  
+  if (rawRecord?.createdTime) {
+    return rawRecord.createdTime;
+  }
+  
+  return null;
+}
+
+export function formatCreatedTime(createdTime: string | null): string {
+  if (!createdTime) return 'Date Unknown';
   
   try {
     const date = new Date(createdTime);
@@ -43,7 +74,7 @@ export function formatCreatedTime(createdTime: string): string {
   }
 }
 
-export function getAgeIndicator(createdTime: string): 'new' | 'recent' | 'aging' | 'old' {
+export function getAgeIndicator(createdTime: string | null): 'new' | 'recent' | 'aging' | 'old' {
   if (!createdTime) return 'old';
   
   try {

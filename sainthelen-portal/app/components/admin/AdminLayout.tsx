@@ -193,6 +193,19 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
                 </Link>
               )}
 
+              {/* Reports - only for admins */}
+              {permissions?.canAccessAnalytics && (
+                <Link 
+                  href="/admin/reports" 
+                  className="flex items-center px-3 py-2.5 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-all duration-200 group"
+                >
+                  <div className="flex items-center justify-center w-8 h-8 text-gray-500 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-200">
+                    <DocumentTextIcon className="h-5 w-5" />
+                  </div>
+                  {!collapsed && <span className="ml-3 font-medium">Weekly Reports</span>}
+                </Link>
+              )}
+
               {/* Ministries - only for admins */}
               {permissions?.canAccessMinistries && (
                 <Link 

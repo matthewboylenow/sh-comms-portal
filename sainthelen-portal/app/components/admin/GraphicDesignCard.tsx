@@ -12,7 +12,7 @@ import {
   ExclamationTriangleIcon,
   ClockIcon
 } from '@heroicons/react/24/outline';
-import { formatCreatedTime, getAgeIndicator, getAgeIndicatorColor, formatEventDate } from '../../utils/dateUtils';
+import { formatCreatedTime, getAgeIndicator, getAgeIndicatorColor, formatEventDate, extractTimestamp } from '../../utils/dateUtils';
 
 type GraphicDesignRecord = {
   id: string;
@@ -33,8 +33,11 @@ export default function GraphicDesignCard({
   const [expanded, setExpanded] = useState(false);
   const f = record.fields;
   
+  // Extract timestamp with fallbacks
+  const timestamp = extractTimestamp(f, record);
+  
   // Age indicators for visual priority
-  const ageIndicator = getAgeIndicator(f['Submitted At']);
+  const ageIndicator = getAgeIndicator(timestamp);
   const ageColor = getAgeIndicatorColor(ageIndicator);
   
   // Extract relevant fields with fallbacks
@@ -105,7 +108,7 @@ export default function GraphicDesignCard({
             </div>
             <div className={`flex items-center text-xs ${ageColor}`}>
               <ClockIcon className="h-3 w-3 mr-1" />
-              <span>Submitted {formatCreatedTime(f['Submitted At'])}</span>
+              <span>Submitted {formatCreatedTime(timestamp)}</span>
             </div>
           </div>
         </div>

@@ -21,6 +21,11 @@ const websiteUpdatesTable = process.env.WEBSITE_UPDATES_TABLE_NAME || 'Website U
 
 const base = new Airtable({ apiKey: personalToken }).base(baseId);
 
+// WordPress API credentials
+const WP_API_URL = process.env.WP_API_URL || 'https://sainthelen.org/wp-json';
+const WP_AUTH_USERNAME = process.env.WP_AUTH_USERNAME || '';
+const WP_AUTH_PASSWORD = process.env.WP_AUTH_PASSWORD || '';
+
 // Microsoft Graph client
 function getGraphClient() {
   const tenantId = process.env.AZURE_AD_TENANT_ID || '';
@@ -35,13 +40,85 @@ function getGraphClient() {
   return Client.initWithMiddleware({ authProvider });
 }
 
+// Function to extract clean filename from S3 URL
+function extractCleanFilename(s3Url: string): string {
+  const filename = s3Url.split('/').pop() || '';
+  // Remove timestamp prefix (format: 1234567890-filename.ext)
+  const cleanFilename = filename.replace(/^\d+-/, '');
+  return cleanFilename;
+}
+
+// Function to upload file to WordPress media library
+async function uploadToWordPress(s3Url: string): Promise<{ id: number; url: string } | null> {
+  try {
+    // Download file from S3
+    const response = await fetch(s3Url);
+    if (!response.ok) {
+      throw new Error(`Failed to download file from S3: ${response.statusText}`);
+    }
+
+    const buffer = await response.arrayBuffer();
+    const cleanFilename = extractCleanFilename(s3Url);
+    
+    // Create FormData for WordPress upload
+    const formData = new FormData();
+    const blob = new Blob([buffer]);
+    formData.append('file', blob, cleanFilename);
+    
+    // WordPress authentication
+    const authString = Buffer.from(`${WP_AUTH_USERNAME}:${WP_AUTH_PASSWORD}`).toString('base64');
+    
+    // Upload to WordPress
+    const wpResponse = await fetch(`${WP_API_URL}/wp/v2/media`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${authString}`,
+      },
+      body: formData,
+    });
+
+    if (!wpResponse.ok) {
+      const errorText = await wpResponse.text();
+      throw new Error(`WordPress upload failed: ${wpResponse.status} ${errorText}`);
+    }
+
+    const wpResult = await wpResponse.json();
+    return {
+      id: wpResult.id,
+      url: wpResult.source_url,
+    };
+  } catch (error) {
+    console.error('Error uploading to WordPress:', error);
+    return null;
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const data = (await request.json()) as WebsiteUpdatesFormData;
     console.log('Website Updates form submission:', data);
 
-    // Build the fileLinks string for Airtable
-    const fileLinksString = data.fileLinks?.length ? data.fileLinks.join('\n') : '';
+    // Upload files to WordPress and build file links
+    let wordpressFileLinks: string[] = [];
+    let fileLinksString = '';
+    
+    if (data.fileLinks?.length) {
+      console.log('Uploading files to WordPress...');
+      
+      for (const s3Url of data.fileLinks) {
+        const wpResult = await uploadToWordPress(s3Url);
+        if (wpResult) {
+          wordpressFileLinks.push(wpResult.url);
+          console.log(`Successfully uploaded ${extractCleanFilename(s3Url)} to WordPress`);
+        } else {
+          // Fallback to S3 URL if WordPress upload fails
+          wordpressFileLinks.push(s3Url);
+          console.log(`Failed to upload ${extractCleanFilename(s3Url)} to WordPress, using S3 URL`);
+        }
+      }
+      
+      fileLinksString = wordpressFileLinks.join('\n');
+    }
 
     // Fix: Convert the urgent boolean to a proper Yes/No string for Airtable
     const urgentValue = data.urgent ? 'Yes' : 'No';
@@ -57,6 +134,7 @@ export async function POST(request: NextRequest) {
           Description: data.description,
           'Sign-Up URL': data.signUpUrl || '',
           'File Links': fileLinksString,
+          'WordPress File Links': wordpressFileLinks.length > 0 ? wordpressFileLinks.join('\n') : '',
         },
       },
     ]);

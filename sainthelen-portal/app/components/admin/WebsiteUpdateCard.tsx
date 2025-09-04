@@ -12,7 +12,7 @@ import {
   ExclamationTriangleIcon,
   ClockIcon
 } from '@heroicons/react/24/outline';
-import { formatCreatedTime, getAgeIndicator, getAgeIndicatorColor } from '../../utils/dateUtils';
+import { formatCreatedTime, getAgeIndicator, getAgeIndicatorColor, extractTimestamp } from '../../utils/dateUtils';
 
 type WebsiteUpdateRecord = {
   id: string;
@@ -32,8 +32,11 @@ export default function WebsiteUpdateCard({
   const f = record.fields;
   const isUrgent = f['Urgent'] === 'Yes';
   
+  // Extract timestamp with fallbacks
+  const timestamp = extractTimestamp(f, record);
+  
   // Age indicators for visual priority
-  const ageIndicator = getAgeIndicator(f['Submitted At']);
+  const ageIndicator = getAgeIndicator(timestamp);
   const ageColor = getAgeIndicatorColor(ageIndicator);
   
   return (
@@ -53,7 +56,7 @@ export default function WebsiteUpdateCard({
             <span className="font-medium">{f.Name || 'No Name'}</span>
             <div className={`flex items-center text-xs ${ageColor}`}>
               <ClockIcon className="h-3 w-3 mr-1" />
-              <span>Submitted {formatCreatedTime(f['Submitted At'])}</span>
+              <span>Submitted {formatCreatedTime(timestamp)}</span>
             </div>
           </div>
         </div>

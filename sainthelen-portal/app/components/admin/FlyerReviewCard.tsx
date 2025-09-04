@@ -13,7 +13,7 @@ import {
   ExclamationTriangleIcon,
   ClockIcon
 } from '@heroicons/react/24/outline';
-import { formatCreatedTime, getAgeIndicator, getAgeIndicatorColor, formatEventDate } from '../../utils/dateUtils';
+import { formatCreatedTime, getAgeIndicator, getAgeIndicatorColor, formatEventDate, extractTimestamp } from '../../utils/dateUtils';
 
 type FlyerReviewRecord = {
   id: string;
@@ -33,8 +33,11 @@ export default function FlyerReviewCard({
   const f = record.fields;
   const isUrgent = f.Urgency === 'urgent';
   
+  // Extract timestamp with fallbacks
+  const timestamp = extractTimestamp(f, record);
+  
   // Age indicators for visual priority
-  const ageIndicator = getAgeIndicator(f['Submitted At']);
+  const ageIndicator = getAgeIndicator(timestamp);
   const ageColor = getAgeIndicatorColor(ageIndicator);
   
   // Note: formatDate moved to dateUtils.ts as formatEventDate
@@ -62,7 +65,7 @@ export default function FlyerReviewCard({
             </div>
             <div className={`flex items-center text-xs ${ageColor}`}>
               <ClockIcon className="h-3 w-3 mr-1" />
-              <span>Submitted {formatCreatedTime(f['Submitted At'])}</span>
+              <span>Submitted {formatCreatedTime(timestamp)}</span>
             </div>
           </div>
         </div>

@@ -9,7 +9,7 @@ import {
   ArrowTopRightOnSquareIcon,
   ClockIcon
 } from '@heroicons/react/24/outline';
-import { formatCreatedTime, getAgeIndicator, getAgeIndicatorColor, formatEventDate } from '../../utils/dateUtils';
+import { formatCreatedTime, getAgeIndicator, getAgeIndicatorColor, formatEventDate, extractTimestamp } from '../../utils/dateUtils';
 
 type SmsRequestRecord = {
   id: string;
@@ -29,8 +29,11 @@ export default function SmsRequestCard({
 }: SmsRequestCardProps) {
   const f = record.fields;
   
+  // Extract timestamp with fallbacks
+  const timestamp = extractTimestamp(f, record);
+  
   // Age indicators for visual priority
-  const ageIndicator = getAgeIndicator(f['Submitted At']);
+  const ageIndicator = getAgeIndicator(timestamp);
   const ageColor = getAgeIndicatorColor(ageIndicator);
   
   return (
@@ -45,7 +48,7 @@ export default function SmsRequestCard({
             <span className="font-medium mr-2">{f.Ministry || 'No Ministry'}</span>
             <div className={`flex items-center text-xs ${ageColor}`}>
               <ClockIcon className="h-3 w-3 mr-1" />
-              <span>Submitted {formatCreatedTime(f['Submitted At'])}</span>
+              <span>Submitted {formatCreatedTime(timestamp)}</span>
             </div>
           </div>
         </div>
