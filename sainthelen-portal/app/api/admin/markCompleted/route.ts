@@ -68,14 +68,26 @@ export async function POST(request: NextRequest) {
     const requestType = table.charAt(0).toUpperCase() + table.slice(1, -1); // e.g. "announcements" -> "Announcement"
     const requestTitle = fields.Title || fields.Subject || fields.Name || `${requestType} Request`;
     
-    // Update "Completed" in Airtable
+    // Update "Completed" and "Completed Date" in Airtable
     console.log(`Updating ${tableName} record ${recordId} with Completed=${completed}`);
+    
+    const updateFields: Record<string, any> = {
+      Completed: completed,
+    };
+    
+    // Set completion date when marking as completed, clear it when uncompleting
+    if (completed) {
+      const now = new Date();
+      const completedDate = now.toISOString().slice(0, 16).replace('T', ' '); // Format: 2025-09-03 16:30
+      updateFields['Completed Date'] = completedDate;
+    } else {
+      updateFields['Completed Date'] = null; // Clear the date when uncompleting
+    }
+    
     await base(tableName).update([
       {
         id: recordId,
-        fields: {
-          Completed: completed,
-        },
+        fields: updateFields,
       },
     ]);
     console.log(`Successfully updated ${tableName} record ${recordId}`);

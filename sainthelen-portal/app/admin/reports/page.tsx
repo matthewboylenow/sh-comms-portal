@@ -117,6 +117,22 @@ export default function ReportsPage() {
     });
   };
 
+  const formatCompletionTime = (decimalDays: number) => {
+    if (decimalDays === 0) return '0h';
+    
+    const totalHours = Math.round(decimalDays * 24);
+    const days = Math.floor(totalHours / 24);
+    const hours = totalHours % 24;
+    
+    if (days > 0 && hours > 0) {
+      return `${days} day${days > 1 ? 's' : ''} ${hours} hour${hours > 1 ? 's' : ''}`;
+    } else if (days > 0) {
+      return `${days} day${days > 1 ? 's' : ''}`;
+    } else {
+      return `${hours} hour${hours > 1 ? 's' : ''}`;
+    }
+  };
+
   const getWeekOptions = () => {
     const options = [];
     for (let i = 0; i < 12; i++) {
@@ -241,8 +257,7 @@ export default function ReportsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{reportData.avgCompletionTime}</div>
-            <p className="text-xs text-gray-500">days</p>
+            <div className="text-2xl font-bold">{formatCompletionTime(reportData.avgCompletionTime)}</div>
           </CardContent>
         </Card>
 
@@ -258,7 +273,7 @@ export default function ReportsPage() {
             <p className="text-xs text-gray-500">
               {reportData.urgentRequests.completed} completed
               {reportData.urgentRequests.avgCompletionTime > 0 && 
-                ` (${reportData.urgentRequests.avgCompletionTime}d avg)`
+                ` (${formatCompletionTime(reportData.urgentRequests.avgCompletionTime)} avg)`
               }
             </p>
           </CardContent>
@@ -321,7 +336,7 @@ export default function ReportsPage() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-gray-600">Avg. Time:</span>
-                      <span className="font-semibold">{data.avgCompletionTime}d</span>
+                      <span className="font-semibold">{formatCompletionTime(data.avgCompletionTime)}</span>
                     </div>
                   </CardContent>
                 </Card>
