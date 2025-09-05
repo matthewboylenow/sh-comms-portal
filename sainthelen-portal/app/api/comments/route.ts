@@ -151,6 +151,18 @@ async function sendCommentNotification(recordId: string, tableName: string, mess
     const requesterEmail = record.fields['Email'] || record.fields['Contact Email'];
     if (!requesterEmail) return;
 
+    // Extract original submission details based on table type
+    const submissionDetails = getSubmissionDetails(record, tableName);
+
+    // Generate public response link
+    const baseUrl = process.env.NEXTAUTH_URL || 'https://your-domain.com';
+    const params = new URLSearchParams({
+      table: tableName,
+      name: String(record.fields['Name'] || ''),
+      email: String(requesterEmail)
+    });
+    const publicResponseLink = `${baseUrl}/comment/${recordId}?${params.toString()}`;
+
     // Send email using Microsoft Graph
     const response = await fetch('/api/send-email', {
       method: 'POST',
@@ -159,15 +171,41 @@ async function sendCommentNotification(recordId: string, tableName: string, mess
         to: requesterEmail,
         subject: `New Comment on Your ${tableName.replace(/([A-Z])/g, ' $1').toLowerCase()} Request`,
         body: `
-          <h2>New Comment on Your Request</h2>
-          <p>Hello,</p>
-          <p><strong>${commenterName}</strong> has left a comment on your request:</p>
-          <blockquote style="border-left: 4px solid #blue; padding-left: 16px; margin: 16px 0; color: #666;">
-            ${message.replace(/\n/g, '<br>')}
-          </blockquote>
-          <p>To respond to this comment, please reply to this email or visit our portal.</p>
-          <p>Thank you!</p>
-          <p><em>Saint Helen Communications Team</em></p>
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #2563eb; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px;">New Comment on Your Request</h2>
+            
+            <p>Hello ${record.fields['Name'] || 'there'},</p>
+            
+            <p><strong>Matthew Boyle</strong> has left a comment on your request:</p>
+            
+            <div style="background-color: #f8fafc; border-left: 4px solid #2563eb; padding: 16px; margin: 20px 0;">
+              <p style="margin: 0; color: #374151; font-style: italic;">${message.replace(/\n/g, '<br>')}</p>
+            </div>
+
+            <div style="background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin: 20px 0;">
+              <h3 style="color: #374151; margin-top: 0; margin-bottom: 15px;">Your Original Submission:</h3>
+              ${submissionDetails}
+            </div>
+            
+            <div style="background-color: #e8f4fd; border: 1px solid #2563eb; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
+              <h3 style="color: #2563eb; margin-top: 0; margin-bottom: 15px;">Want to Respond?</h3>
+              <p style="margin-bottom: 15px; color: #374151;">Click the button below to respond to this comment:</p>
+              <a href="${publicResponseLink}" 
+                 style="display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; 
+                        text-decoration: none; border-radius: 6px; font-weight: bold; 
+                        box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);">
+                Respond to Comment
+              </a>
+            </div>
+            
+            <p>Thank you!</p>
+            <p><em>Saint Helen Communications Team</em></p>
+            
+            <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+            <p style="font-size: 12px; color: #6b7280; text-align: center;">
+              Saint Helen Parish • <a href="https://sainthelen.org" style="color: #2563eb;">sainthelen.org</a>
+            </p>
+          </div>
         `
       })
     });
@@ -177,5 +215,102 @@ async function sendCommentNotification(recordId: string, tableName: string, mess
     }
   } catch (error) {
     console.error('Error sending comment notification:', error);
+  }
+}
+
+function getSubmissionDetails(record: any, tableName: string): string {
+  const fields = record.fields;
+  const formatDate = (dateString: string) => {
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    } catch {
+      return dateString;
+    }
+  };
+
+  switch (tableName) {
+    case 'websiteUpdates':
+      return `
+        <p><strong>Page to Update:</strong> ${fields['Page to Update'] || 'Not specified'}</p>
+        <p><strong>Description:</strong></p>
+        <div style="background-color: white; padding: 12px; border-radius: 4px; margin: 8px 0;">
+          ${(fields['Description'] || 'No description provided').replace(/\n/g, '<br>')}
+        </div>
+        ${fields['Sign-Up URL'] ? `<p><strong>Sign-Up URL:</strong> <a href="${fields['Sign-Up URL']}" style="color: #2563eb;">${fields['Sign-Up URL']}</a></p>` : ''}
+        ${fields['Urgent'] === 'Yes' ? '<p><strong>⚠️ Marked as Urgent</strong></p>' : ''}
+        <p><strong>Submitted:</strong> ${fields['Created'] ? formatDate(fields['Created']) : 'Unknown date'}</p>
+      `;
+
+    case 'announcements':
+      return `
+        <p><strong>Event Name:</strong> ${fields['Event Name'] || 'Not specified'}</p>
+        <p><strong>Event Date:</strong> ${fields['Event Date'] ? formatDate(fields['Event Date']) : 'Not specified'}</p>
+        <p><strong>Description:</strong></p>
+        <div style="background-color: white; padding: 12px; border-radius: 4px; margin: 8px 0;">
+          ${(fields['Description'] || 'No description provided').replace(/\n/g, '<br>')}
+        </div>
+        ${fields['Priority'] ? `<p><strong>Priority:</strong> ${fields['Priority']}</p>` : ''}
+        <p><strong>Submitted:</strong> ${fields['Created'] ? formatDate(fields['Created']) : 'Unknown date'}</p>
+      `;
+
+    case 'flyerReviews':
+      return `
+        <p><strong>Event Name:</strong> ${fields['Event Name'] || 'Not specified'}</p>
+        <p><strong>Event Date:</strong> ${fields['Event Date'] ? formatDate(fields['Event Date']) : 'Not specified'}</p>
+        <p><strong>Description:</strong></p>
+        <div style="background-color: white; padding: 12px; border-radius: 4px; margin: 8px 0;">
+          ${(fields['Description'] || 'No description provided').replace(/\n/g, '<br>')}
+        </div>
+        ${fields['Rush Job'] === 'Yes' ? '<p><strong>⚡ Rush Job Requested</strong></p>' : ''}
+        <p><strong>Submitted:</strong> ${fields['Created'] ? formatDate(fields['Created']) : 'Unknown date'}</p>
+      `;
+
+    case 'graphicDesign':
+      return `
+        <p><strong>Project Name:</strong> ${fields['Name'] || fields['Project Name'] || 'Not specified'}</p>
+        <p><strong>Description:</strong></p>
+        <div style="background-color: white; padding: 12px; border-radius: 4px; margin: 8px 0;">
+          ${(fields['Description'] || 'No description provided').replace(/\n/g, '<br>')}
+        </div>
+        ${fields['Priority'] ? `<p><strong>Priority:</strong> ${fields['Priority']}</p>` : ''}
+        <p><strong>Submitted:</strong> ${fields['Created'] ? formatDate(fields['Created']) : 'Unknown date'}</p>
+      `;
+
+    case 'smsRequests':
+      return `
+        <p><strong>Message Type:</strong> ${fields['Message Type'] || 'Not specified'}</p>
+        <p><strong>Message Content:</strong></p>
+        <div style="background-color: white; padding: 12px; border-radius: 4px; margin: 8px 0;">
+          ${(fields['Message'] || 'No message provided').replace(/\n/g, '<br>')}
+        </div>
+        ${fields['Send Date'] ? `<p><strong>Requested Send Date:</strong> ${formatDate(fields['Send Date'])}</p>` : ''}
+        <p><strong>Submitted:</strong> ${fields['Created'] ? formatDate(fields['Created']) : 'Unknown date'}</p>
+      `;
+
+    case 'avRequests':
+      return `
+        <p><strong>Event Name:</strong> ${fields['Event Name'] || 'Not specified'}</p>
+        <p><strong>Event Date:</strong> ${fields['Event Date'] ? formatDate(fields['Event Date']) : 'Not specified'}</p>
+        <p><strong>Description:</strong></p>
+        <div style="background-color: white; padding: 12px; border-radius: 4px; margin: 8px 0;">
+          ${(fields['Description'] || 'No description provided').replace(/\n/g, '<br>')}
+        </div>
+        ${fields['Equipment Needed'] ? `<p><strong>Equipment Needed:</strong> ${fields['Equipment Needed']}</p>` : ''}
+        <p><strong>Submitted:</strong> ${fields['Created'] ? formatDate(fields['Created']) : 'Unknown date'}</p>
+      `;
+
+    default:
+      return `
+        <p><strong>Request Details:</strong></p>
+        <div style="background-color: white; padding: 12px; border-radius: 4px; margin: 8px 0;">
+          ${(fields['Description'] || fields['Message'] || 'No details available').replace(/\n/g, '<br>')}
+        </div>
+        <p><strong>Submitted:</strong> ${fields['Created'] ? formatDate(fields['Created']) : 'Unknown date'}</p>
+      `;
   }
 }
