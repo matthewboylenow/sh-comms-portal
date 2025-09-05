@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
 
     // Check if the email matches the original requester
     const originalEmail = originalRecord.fields['Email'] || originalRecord.fields['Contact Email'];
-    if (!originalEmail || originalEmail.toLowerCase() !== email.toLowerCase()) {
+    if (!originalEmail || (typeof originalEmail === 'string' && originalEmail.toLowerCase() !== email.toLowerCase())) {
       return NextResponse.json(
         { error: 'Email must match the original requester' },
         { status: 403 }

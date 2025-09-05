@@ -6,7 +6,7 @@ import AdminLayout from '../../components/admin/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
-import { CalendarDaysIcon, ArrowDownTrayIcon, ChartBarIcon, ClockIcon, ExclamationTriangleIcon, CheckCircleIcon, TrendingUpIcon } from '@heroicons/react/24/outline';
+import { CalendarDaysIcon, ArrowDownTrayIcon, ChartBarIcon, ClockIcon, ExclamationTriangleIcon, CheckCircleIcon, ArrowTrendingUpIcon } from '@heroicons/react/24/outline';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 
 interface WeeklyReportData {
@@ -152,7 +152,7 @@ export default function ReportsPage() {
     return options;
   };
 
-  const completionRate = reportData?.totalRequests > 0 
+  const completionRate = reportData?.totalRequests && reportData.totalRequests > 0 
     ? Math.round((reportData.completedRequests / reportData.totalRequests) * 100) 
     : 0;
 
@@ -507,7 +507,7 @@ export default function ReportsPage() {
               <Card className="w-full">
                 <CardHeader>
                   <CardTitle className="flex items-center text-sm sm:text-base">
-                    <TrendingUpIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                    <ArrowTrendingUpIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
                     Completion Status
                   </CardTitle>
                 </CardHeader>

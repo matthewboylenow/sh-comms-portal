@@ -46,7 +46,7 @@ export const authOptions: NextAuthOptions = {
     },
     session: async ({ session, token }) => {
       // Send properties to the client
-      if (token) {
+      if (token && session.user) {
         session.user.email = token.email as string;
         session.user.name = token.name as string;
       }
