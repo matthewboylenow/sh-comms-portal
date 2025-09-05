@@ -27,7 +27,9 @@ export const TABLE_NAMES = {
   GRAPHIC_DESIGN: process.env.GRAPHIC_DESIGN_TABLE_NAME || 'Graphic Design',
   NOTIFICATIONS: process.env.NOTIFICATIONS_TABLE_NAME || 'Notifications',
   PUSH_SUBSCRIPTIONS: process.env.PUSH_SUBSCRIPTIONS_TABLE_NAME || 'Push Subscriptions',
-  CALENDAR_EVENTS: process.env.CALENDAR_EVENTS_TABLE_NAME || 'Calendar Events'
+  CALENDAR_EVENTS: process.env.CALENDAR_EVENTS_TABLE_NAME || 'Calendar Events',
+  COMMENTS: process.env.COMMENTS_TABLE_NAME || 'Comments',
+  FLYER_REVIEWS: process.env.FLYER_REVIEWS_TABLE_NAME || 'Flyer Reviews'
 };
 
 // Graceful fallback for development/build time

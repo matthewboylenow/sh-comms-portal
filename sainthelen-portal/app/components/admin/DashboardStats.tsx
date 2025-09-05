@@ -7,9 +7,13 @@ import {
   ExclamationTriangleIcon,
   VideoCameraIcon,
   DocumentTextIcon,
-  PencilSquareIcon
+  PencilSquareIcon,
+  ChartBarIcon,
+  ClockIcon
 } from '@heroicons/react/24/outline';
 import { motion } from 'framer-motion';
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { format, parseISO, subDays, eachDayOfInterval } from 'date-fns';
 
 type DashboardStatsProps = {
   announcements: any[];
@@ -126,6 +130,68 @@ export default function DashboardStats({
   // Calculate total pending requests
   const totalPending = stats.reduce((sum, stat) => sum + stat.count, 0);
 
+  // Prepare data for charts
+  const pieData = stats.map(stat => ({
+    name: stat.title,
+    value: stat.count,
+    color: stat.textColor.includes('blue') ? '#3B82F6' :
+           stat.textColor.includes('green') ? '#10B981' :
+           stat.textColor.includes('purple') ? '#8B5CF6' :
+           stat.textColor.includes('red') ? '#EF4444' :
+           stat.textColor.includes('amber') ? '#F59E0B' :
+           '#6366F1'
+  })).filter(item => item.value > 0);
+
+  // Calculate submissions over the last 7 days
+  const last7Days = eachDayOfInterval({
+    start: subDays(new Date(), 6),
+    end: new Date()
+  });
+
+  const submissionTrendData = last7Days.map(day => {
+    const dayStr = format(day, 'yyyy-MM-dd');
+    const daySubmissions = [...announcements, ...websiteUpdates, ...smsRequests, ...avRequests, ...flyerReviews, ...graphicDesign]
+      .filter(record => {
+        const submittedDate = record.fields['Submitted At'];
+        if (!submittedDate) return false;
+        return submittedDate.startsWith(dayStr);
+      }).length;
+
+    return {
+      date: format(day, 'MMM dd'),
+      submissions: daySubmissions,
+      fullDate: dayStr
+    };
+  });
+
+  // Calculate completion rate data
+  const allRecords = [...announcements, ...websiteUpdates, ...smsRequests, ...avRequests, ...flyerReviews, ...graphicDesign];
+  const completionData = stats.map(stat => {
+    const tableName = stat.title;
+    let records = [];
+    
+    switch (tableName) {
+      case 'Announcements': records = announcements; break;
+      case 'Website Updates': records = websiteUpdates; break;
+      case 'SMS Requests': records = smsRequests; break;
+      case 'A/V Requests': records = avRequests; break;
+      case 'Flyer Reviews': records = flyerReviews; break;
+      case 'Graphic Design': records = graphicDesign; break;
+    }
+
+    const total = records.length;
+    const completed = records.filter(r => r.fields.Completed).length;
+    const pending = total - completed;
+    
+    return {
+      category: tableName.replace(' Requests', '').replace(' Updates', ''),
+      completed,
+      pending,
+      total,
+      completionRate: total > 0 ? Math.round((completed / total) * 100) : 0
+    };
+  }).filter(item => item.total > 0);
+
   return (
     <div className="mb-8">
       {/* Total pending stats */}
@@ -149,7 +215,8 @@ export default function DashboardStats({
         </div>
       </motion.div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      {/* Stats Cards Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
         {stats.map((stat, index) => (
           <motion.div 
             key={stat.title}
@@ -188,6 +255,115 @@ export default function DashboardStats({
             </a>
           </motion.div>
         ))}
+      </div>
+
+      {/* Analytics Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
+        {/* Pending Requests Distribution */}
+        {pieData.length > 0 && (
+          <motion.div
+            className="lg:col-span-1"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.5 }}
+          >
+            <Card className="border border-gray-200 dark:border-gray-700 shadow-sm h-full">
+              <CardContent className="p-6">
+                <div className="flex items-center mb-4">
+                  <ChartBarIcon className="h-5 w-5 text-blue-600 dark:text-blue-400 mr-2" />
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Pending Distribution</h3>
+                </div>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={pieData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={40}
+                        outerRadius={80}
+                        paddingAngle={2}
+                        dataKey="value"
+                      >
+                        {pieData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        {/* Submission Trend (Last 7 Days) */}
+        <motion.div
+          className="lg:col-span-1"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4, duration: 0.5 }}
+        >
+          <Card className="border border-gray-200 dark:border-gray-700 shadow-sm h-full">
+            <CardContent className="p-6">
+              <div className="flex items-center mb-4">
+                <ClockIcon className="h-5 w-5 text-green-600 dark:text-green-400 mr-2" />
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">7-Day Trend</h3>
+              </div>
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={submissionTrendData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" />
+                    <YAxis />
+                    <Tooltip />
+                    <Line 
+                      type="monotone" 
+                      dataKey="submissions" 
+                      stroke="#10B981" 
+                      strokeWidth={2}
+                      dot={{ fill: '#10B981', strokeWidth: 2, r: 4 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Completion Rates */}
+        {completionData.length > 0 && (
+          <motion.div
+            className="lg:col-span-2 xl:col-span-1"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5, duration: 0.5 }}
+          >
+            <Card className="border border-gray-200 dark:border-gray-700 shadow-sm h-full">
+              <CardContent className="p-6">
+                <div className="flex items-center mb-4">
+                  <ExclamationTriangleIcon className="h-5 w-5 text-purple-600 dark:text-purple-400 mr-2" />
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Completion Status</h3>
+                </div>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={completionData} layout="horizontal">
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis type="number" />
+                      <YAxis dataKey="category" type="category" width={80} />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="completed" stackId="a" fill="#10B981" name="Completed" />
+                      <Bar dataKey="pending" stackId="a" fill="#F59E0B" name="Pending" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
       </div>
     </div>
   );

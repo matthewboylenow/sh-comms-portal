@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../ui/Card';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
+import CommentsSection from './CommentsSection';
 import { 
   ChatBubbleOvalLeftEllipsisIcon, 
   CalendarIcon, 
@@ -231,6 +232,14 @@ export default function AnnouncementCard({
             </div>
           </div>
         )}
+
+        {/* Comments Section */}
+        <CommentsSection
+          recordId={record.id}
+          tableName="announcements"
+          requesterEmail={f.Email}
+          requesterName={f.Name}
+        />
       </CardFooter>
     </Card>
   );

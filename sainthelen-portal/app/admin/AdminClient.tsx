@@ -66,7 +66,7 @@ function parseDate(dateStr: string): Date | null {
 }
 
 export default function AdminClient() {
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
 
   // We'll store the data for each table
   const [announcements, setAnnouncements] = useState<AdminRecord[]>([]);
@@ -620,175 +620,190 @@ export default function AdminClient() {
         hideCompleted={hideCompleted}
       />
       
-      {/* Modern toolbar with intuitive layout */}
-      <div className="mb-8">
+      {/* Mobile-Optimized Toolbar */}
+      <div className="mb-6 sm:mb-8">
         {/* Primary toolbar with search and important actions */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-5 mb-5 transition-all">
-          <div className="flex flex-col lg:flex-row lg:items-center gap-5">
-            {/* Search field - expanded on mobile, reasonable width on desktop */}
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-4 sm:p-5 mb-4 sm:mb-5 transition-all">
+          {/* Mobile-first layout: Search first, then actions */}
+          <div className="space-y-4 sm:space-y-0 sm:flex sm:flex-col lg:flex-row lg:items-center gap-4 lg:gap-5">
+            {/* Search field - full width on mobile, constrained on desktop */}
             <div className="relative flex-grow lg:max-w-sm">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+              <div className="absolute inset-y-0 left-0 pl-3 sm:pl-4 flex items-center pointer-events-none">
+                <MagnifyingGlassIcon className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
               </div>
               <input
                 type="text"
-                className="pl-11 pr-4 py-3 w-full bg-gray-50 dark:bg-slate-700 border-0 shadow-inner rounded-xl focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 dark:text-white transition-all"
+                className="pl-10 sm:pl-11 pr-3 sm:pr-4 py-2.5 sm:py-3 w-full bg-gray-50 dark:bg-slate-700 border-0 shadow-inner rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 dark:text-white transition-all text-sm sm:text-base"
                 placeholder="Search communications..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
 
-            {/* Main action buttons - horizontal on all screens */}
-            <div className="flex flex-wrap gap-3 my-3 lg:my-0">
-              <Button
-                onClick={fetchAllRequests}
-                variant="outline"
-                className="rounded-xl h-11"
-                disabled={loadingData}
-                icon={<ArrowPathIcon className={`h-5 w-5 ${loadingData ? 'animate-spin' : ''}`} />}
-              >
-                Refresh
-              </Button>
+            {/* Action buttons and toggle - responsive layout */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+              {/* Main action buttons */}
+              <div className="flex flex-wrap gap-2 sm:gap-3">
+                <Button
+                  onClick={fetchAllRequests}
+                  variant="outline"
+                  className="rounded-lg sm:rounded-xl h-9 sm:h-11 text-xs sm:text-sm px-3 sm:px-4 flex-1 sm:flex-initial"
+                  disabled={loadingData}
+                  icon={<ArrowPathIcon className={`h-4 w-4 sm:h-5 sm:w-5 ${loadingData ? 'animate-spin' : ''}`} />}
+                >
+                  <span className="hidden xs:inline">Refresh</span>
+                </Button>
 
-              {activeTab === 'announcements' && (
-                <>
-                  <Button
-                    onClick={handleSummarizeSelected}
-                    variant="primary"
-                    className="rounded-xl h-11"
-                    disabled={loadingData || Object.keys(summarizeMap).filter(key => summarizeMap[key]).length === 0}
-                    icon={<DocumentTextIcon className="h-5 w-5" />}
-                  >
-                    Summarize
-                  </Button>
-                  
-                  <Button
-                    onClick={handleAddToCalendar}
-                    variant="success"
-                    className="rounded-xl h-11"
-                    disabled={creatingEvents || Object.keys(calendarMap).filter(key => calendarMap[key]).length === 0}
-                    icon={<CalendarIcon className="h-5 w-5" />}
-                  >
-                    Calendar
-                  </Button>
-                </>
-              )}
-            </div>
+                {activeTab === 'announcements' && (
+                  <>
+                    <Button
+                      onClick={handleSummarizeSelected}
+                      variant="primary"
+                      className="rounded-lg sm:rounded-xl h-9 sm:h-11 text-xs sm:text-sm px-3 sm:px-4 flex-1 sm:flex-initial"
+                      disabled={loadingData || Object.keys(summarizeMap).filter(key => summarizeMap[key]).length === 0}
+                      icon={<DocumentTextIcon className="h-4 w-4 sm:h-5 sm:w-5" />}
+                    >
+                      <span className="hidden xs:inline">Summarize</span>
+                    </Button>
+                    
+                    <Button
+                      onClick={handleAddToCalendar}
+                      variant="success"
+                      className="rounded-lg sm:rounded-xl h-9 sm:h-11 text-xs sm:text-sm px-3 sm:px-4 flex-1 sm:flex-initial"
+                      disabled={creatingEvents || Object.keys(calendarMap).filter(key => calendarMap[key]).length === 0}
+                      icon={<CalendarIcon className="h-4 w-4 sm:h-5 sm:w-5" />}
+                    >
+                      <span className="hidden xs:inline">Calendar</span>
+                    </Button>
+                  </>
+                )}
+              </div>
 
-            {/* Hide completed toggle with visual switch */}
-            <div className="flex items-center ml-auto p-1.5 bg-gray-50 dark:bg-slate-700 rounded-xl">
-              <div className="relative inline-flex items-center cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  id="hideCompleted" 
-                  className="sr-only peer" 
-                  checked={hideCompleted}
-                  onChange={() => setHideCompleted(!hideCompleted)}
-                />
-                <div className="w-12 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer dark:bg-slate-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                <span className="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300">Hide Completed</span>
+              {/* Hide completed toggle - optimized for mobile */}
+              <div className="flex items-center justify-center sm:justify-start p-1.5 bg-gray-50 dark:bg-slate-700 rounded-lg sm:rounded-xl">
+                <div className="relative inline-flex items-center cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    id="hideCompleted" 
+                    className="sr-only peer" 
+                    checked={hideCompleted}
+                    onChange={() => setHideCompleted(!hideCompleted)}
+                  />
+                  <div className="w-10 h-5 sm:w-12 sm:h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer dark:bg-slate-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 sm:after:h-5 sm:after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                  <span className="ml-2 sm:ml-3 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <span className="hidden sm:inline">Hide Completed</span>
+                    <span className="sm:hidden">Hide Done</span>
+                  </span>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Secondary toolbar with sorting options */}
-        <div className="bg-white dark:bg-slate-800 backdrop-blur-lg rounded-xl shadow-md py-3 px-5 flex flex-wrap items-center gap-3 transition-all">
-          <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Sort by:</span>
-          
-          <div className="flex bg-gray-50 dark:bg-slate-700 rounded-xl p-1">
-            <button
-              onClick={() => handleSortChange('age')}
-              className={`px-4 py-2 text-sm rounded-lg flex items-center transition-all ${
-                sortField === 'age' 
-                  ? 'bg-blue-600 text-white shadow-md' 
-                  : 'hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-300'
-              }`}
-            >
-              Age
-              {sortField === 'age' && (
-                <span className="ml-1.5">
-                  {sortDirection === 'asc' ? <ArrowUpIcon className="h-3.5 w-3.5" /> : <ArrowDownIcon className="h-3.5 w-3.5" />}
-                </span>
-              )}
-            </button>
+        {/* Mobile-Optimized Secondary toolbar with sorting options */}
+        <div className="bg-white dark:bg-slate-800 backdrop-blur-lg rounded-xl shadow-md p-3 sm:py-3 sm:px-5 transition-all">
+          {/* Mobile: Vertical layout, Desktop: Horizontal layout */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <span className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">Sort by:</span>
+              
+              <div className="flex bg-gray-50 dark:bg-slate-700 rounded-lg sm:rounded-xl p-1 overflow-x-auto">
+                <button
+                  onClick={() => handleSortChange('age')}
+                  className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm rounded-md sm:rounded-lg flex items-center transition-all whitespace-nowrap ${
+                    sortField === 'age' 
+                      ? 'bg-blue-600 text-white shadow-md' 
+                      : 'hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-300'
+                  }`}
+                >
+                  Age
+                  {sortField === 'age' && (
+                    <span className="ml-1 sm:ml-1.5">
+                      {sortDirection === 'asc' ? <ArrowUpIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> : <ArrowDownIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />}
+                    </span>
+                  )}
+                </button>
+                
+                <button
+                  onClick={() => handleSortChange('name')}
+                  className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm rounded-md sm:rounded-lg flex items-center mx-1 transition-all whitespace-nowrap ${
+                    sortField === 'name' 
+                      ? 'bg-blue-600 text-white shadow-md' 
+                      : 'hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-300'
+                  }`}
+                >
+                  Name
+                  {sortField === 'name' && (
+                    <span className="ml-1 sm:ml-1.5">
+                      {sortDirection === 'asc' ? <ArrowUpIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> : <ArrowDownIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />}
+                    </span>
+                  )}
+                </button>
+                
+                <button
+                  onClick={() => handleSortChange('date')}
+                  className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm rounded-md sm:rounded-lg flex items-center transition-all whitespace-nowrap ${
+                    sortField === 'date' 
+                      ? 'bg-blue-600 text-white shadow-md' 
+                      : 'hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-300'
+                  }`}
+                >
+                  <span className="hidden sm:inline">Event Date</span>
+                  <span className="sm:hidden">Date</span>
+                  {sortField === 'date' && (
+                    <span className="ml-1 sm:ml-1.5">
+                      {sortDirection === 'asc' ? <ArrowUpIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> : <ArrowDownIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />}
+                    </span>
+                  )}
+                </button>
+              </div>
+            </div>
             
-            <button
-              onClick={() => handleSortChange('name')}
-              className={`px-4 py-2 text-sm rounded-lg flex items-center mx-1 transition-all ${
-                sortField === 'name' 
-                  ? 'bg-blue-600 text-white shadow-md' 
-                  : 'hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-300'
-              }`}
-            >
-              Name
-              {sortField === 'name' && (
-                <span className="ml-1.5">
-                  {sortDirection === 'asc' ? <ArrowUpIcon className="h-3.5 w-3.5" /> : <ArrowDownIcon className="h-3.5 w-3.5" />}
-                </span>
-              )}
-            </button>
-            
-            <button
-              onClick={() => handleSortChange('date')}
-              className={`px-4 py-2 text-sm rounded-lg flex items-center transition-all ${
-                sortField === 'date' 
-                  ? 'bg-blue-600 text-white shadow-md' 
-                  : 'hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-300'
-              }`}
-            >
-              Event Date
-              {sortField === 'date' && (
-                <span className="ml-1.5">
-                  {sortDirection === 'asc' ? <ArrowUpIcon className="h-3.5 w-3.5" /> : <ArrowDownIcon className="h-3.5 w-3.5" />}
-                </span>
-              )}
-            </button>
-          </div>
-          
-          <div className="ml-auto text-sm text-gray-500 dark:text-gray-400 flex items-center">
-            <span className="hidden md:inline">Showing</span> 
-            <span className="ml-1 font-medium text-blue-600 dark:text-blue-400">
-              {
-                activeTab === 'announcements' ? filteredAnnouncements.length :
-                activeTab === 'websiteUpdates' ? filteredWebsiteUpdates.length :
-                activeTab === 'smsRequests' ? filteredSmsRequests.length :
-                activeTab === 'avRequests' ? filteredAvRequests.length :
-                activeTab === 'flyerReviews' ? filteredFlyerReviews.length :
-                filteredGraphicDesign.length
-              }
-            </span> 
-            <span className="ml-1 hidden md:inline">items</span>
+            <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 flex items-center justify-center sm:justify-end">
+              <span className="hidden sm:inline">Showing</span> 
+              <span className="ml-1 font-medium text-blue-600 dark:text-blue-400">
+                {
+                  activeTab === 'announcements' ? filteredAnnouncements.length :
+                  activeTab === 'websiteUpdates' ? filteredWebsiteUpdates.length :
+                  activeTab === 'smsRequests' ? filteredSmsRequests.length :
+                  activeTab === 'avRequests' ? filteredAvRequests.length :
+                  activeTab === 'flyerReviews' ? filteredFlyerReviews.length :
+                  filteredGraphicDesign.length
+                }
+              </span> 
+              <span className="ml-1 hidden sm:inline">items</span>
+              <span className="ml-1 sm:hidden">found</span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Modern Navigation Tabs */}
-      <div className="mb-8 overflow-x-auto">
+      {/* Mobile-Optimized Navigation Tabs */}
+      <div className="mb-6 sm:mb-8 overflow-x-auto">
         <div className="min-w-max">
-          <nav className="flex space-x-2 bg-white dark:bg-slate-800 p-2 rounded-xl shadow-md">
+          <nav className="flex space-x-1 sm:space-x-2 bg-white dark:bg-slate-800 p-2 rounded-lg sm:rounded-xl shadow-md">
             {[
-              { id: 'announcements', label: 'Announcements', count: filteredAnnouncements.length, icon: <MegaphoneIcon className="h-4 w-4" /> },
-              { id: 'websiteUpdates', label: 'Website Updates', count: filteredWebsiteUpdates.length, icon: <GlobeAltIcon className="h-4 w-4" /> },
-              { id: 'smsRequests', label: 'SMS Requests', count: filteredSmsRequests.length, icon: <ChatBubbleLeftRightIcon className="h-4 w-4" /> },
-              { id: 'avRequests', label: 'A/V Requests', count: filteredAvRequests.length, icon: <VideoCameraIcon className="h-4 w-4" /> },
-              { id: 'flyerReviews', label: 'Flyer Reviews', count: filteredFlyerReviews.length, icon: <DocumentTextIcon className="h-4 w-4" /> },
-              { id: 'graphicDesign', label: 'Graphic Design', count: filteredGraphicDesign.length, icon: <PencilSquareIcon className="h-4 w-4" /> }
+              { id: 'announcements', label: 'Announcements', shortLabel: 'Announce', count: filteredAnnouncements.length, icon: <MegaphoneIcon className="h-3 w-3 sm:h-4 sm:w-4" /> },
+              { id: 'websiteUpdates', label: 'Website Updates', shortLabel: 'Website', count: filteredWebsiteUpdates.length, icon: <GlobeAltIcon className="h-3 w-3 sm:h-4 sm:w-4" /> },
+              { id: 'smsRequests', label: 'SMS Requests', shortLabel: 'SMS', count: filteredSmsRequests.length, icon: <ChatBubbleLeftRightIcon className="h-3 w-3 sm:h-4 sm:w-4" /> },
+              { id: 'avRequests', label: 'A/V Requests', shortLabel: 'A/V', count: filteredAvRequests.length, icon: <VideoCameraIcon className="h-3 w-3 sm:h-4 sm:w-4" /> },
+              { id: 'flyerReviews', label: 'Flyer Reviews', shortLabel: 'Flyers', count: filteredFlyerReviews.length, icon: <DocumentTextIcon className="h-3 w-3 sm:h-4 sm:w-4" /> },
+              { id: 'graphicDesign', label: 'Graphic Design', shortLabel: 'Design', count: filteredGraphicDesign.length, icon: <PencilSquareIcon className="h-3 w-3 sm:h-4 sm:w-4" /> }
             ].map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as TableName)}
-                className={`whitespace-nowrap py-2 px-4 rounded-lg font-medium text-sm flex items-center transition-all ${
+                className={`whitespace-nowrap py-2 px-2 sm:px-4 rounded-md sm:rounded-lg font-medium text-xs sm:text-sm flex items-center transition-all ${
                   activeTab === tab.id
                     ? 'bg-blue-600 text-white shadow-md'
                     : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-700'
                 }`}
               >
-                <span className="mr-1.5">{tab.icon}</span>
-                {tab.label}
+                <span className="mr-1 sm:mr-1.5">{tab.icon}</span>
+                <span className="hidden sm:inline">{tab.label}</span>
+                <span className="sm:hidden">{tab.shortLabel}</span>
                 {tab.count > 0 && (
-                  <span className={`ml-1.5 px-1.5 py-0.5 rounded-full text-xs ${
+                  <span className={`ml-1 sm:ml-1.5 px-1.5 py-0.5 rounded-full text-xs ${
                     activeTab === tab.id 
                       ? 'bg-white/20 text-white'
                       : 'bg-gray-200 dark:bg-slate-600 text-gray-800 dark:text-gray-300'

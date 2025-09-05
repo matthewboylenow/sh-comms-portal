@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../ui/Card';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
+import CommentsSection from './CommentsSection';
 import { 
   ChevronDownIcon, 
   ChevronUpIcon,
@@ -143,6 +144,14 @@ export default function WebsiteUpdateCard({
             </div>
           </div>
         )}
+
+        {/* Comments Section */}
+        <CommentsSection
+          recordId={record.id}
+          tableName="websiteUpdates"
+          requesterEmail={f.Email}
+          requesterName={f.Name}
+        />
       </CardFooter>
     </Card>
   );

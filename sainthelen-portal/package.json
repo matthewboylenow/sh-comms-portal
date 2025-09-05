@@ -20,12 +20,14 @@
     "@tailwindcss/typography": "^0.5.16",
     "airtable": "^0.12.2",
     "cd": "^0.3.3",
+    "date-fns": "^4.1.0",
     "framer-motion": "^12.6.3",
     "next": "14.0.0",
     "next-auth": "^4.24.11",
     "next-themes": "^0.2.1",
     "react": "18.2.0",
     "react-dom": "18.2.0",
+    "recharts": "^3.1.2",
     "web-push": "^3.6.6"
   },
   "devDependencies": {

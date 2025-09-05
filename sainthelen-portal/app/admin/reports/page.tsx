@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import AdminLayout from '../../components/admin/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
-import { CalendarDaysIcon, ArrowDownTrayIcon, ChartBarIcon, ClockIcon, ExclamationTriangleIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
+import { CalendarDaysIcon, ArrowDownTrayIcon, ChartBarIcon, ClockIcon, ExclamationTriangleIcon, CheckCircleIcon, TrendingUpIcon } from '@heroicons/react/24/outline';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 
 interface WeeklyReportData {
   weekStart: string;
@@ -150,60 +152,71 @@ export default function ReportsPage() {
     return options;
   };
 
+  const completionRate = reportData?.totalRequests > 0 
+    ? Math.round((reportData.completedRequests / reportData.totalRequests) * 100) 
+    : 0;
+
+  // Prepare chart data
+  const requestTypeChartData = reportData ? Object.entries(reportData.requestsByType).map(([key, data]) => ({
+    name: key === 'websiteUpdates' ? 'Website Updates' : 
+          key === 'flyerReviews' ? 'Flyer Reviews' : 'Graphic Design',
+    total: data.total,
+    completed: data.completed,
+    pending: data.pending,
+    completionRate: data.total > 0 ? Math.round((data.completed / data.total) * 100) : 0
+  })) : [];
+
+  const pieChartData = requestTypeChartData.map(item => ({
+    name: item.name,
+    value: item.total,
+    color: item.name.includes('Website') ? '#3B82F6' :
+           item.name.includes('Flyer') ? '#10B981' : '#F59E0B'
+  }));
+
+  const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
+
   if (status === 'loading' || loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-sm text-gray-600">Loading report...</p>
+      <AdminLayout title="Weekly Reports">
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-2 text-sm text-gray-600">Loading report...</p>
+          </div>
         </div>
-      </div>
-    );
-  }
-
-  if (status === 'unauthenticated') {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Access Required</h1>
-          <p className="text-gray-600">Please sign in to view reports.</p>
-        </div>
-      </div>
+      </AdminLayout>
     );
   }
 
   if (!reportData) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">No Data Available</h1>
-          <p className="text-gray-600">Unable to load report data.</p>
+      <AdminLayout title="Weekly Reports">
+        <div className="text-center py-12">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">No Data Available</h2>
+          <p className="text-gray-600 dark:text-gray-400">Unable to load report data.</p>
         </div>
-      </div>
+      </AdminLayout>
     );
   }
 
-  const completionRate = reportData.totalRequests > 0 
-    ? Math.round((reportData.completedRequests / reportData.totalRequests) * 100) 
-    : 0;
-
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-6">
+    <AdminLayout title="Weekly Reports">
+      <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Weekly Reports</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Weekly Reports</h1>
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">
             Performance metrics for {formatDate(reportData.weekStart)} - {formatDate(reportData.weekEnd)}
           </p>
         </div>
         
-        <div className="flex flex-col sm:flex-row gap-3">
+        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
           <div className="relative">
             <CalendarDaysIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <select 
               value={selectedWeek} 
               onChange={(e) => setSelectedWeek(e.target.value)}
-              className="w-64 pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full sm:w-64 pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             >
               {getWeekOptions().map(option => (
                 <option key={option.value} value={option.value}>
@@ -213,7 +226,7 @@ export default function ReportsPage() {
             </select>
           </div>
           
-          <Button onClick={downloadCSV} disabled={downloading}>
+          <Button onClick={downloadCSV} disabled={downloading} size="sm" className="w-full sm:w-auto">
             <ArrowDownTrayIcon className="h-4 w-4 mr-2" />
             {downloading ? 'Downloading...' : 'Download CSV'}
           </Button>
@@ -281,26 +294,27 @@ export default function ReportsPage() {
       </div>
 
       <div className="space-y-4">
-        {/* Tab Navigation */}
-        <div className="border-b border-gray-200 dark:border-gray-700">
-          <nav className="flex space-x-8" aria-label="Tabs">
+        {/* Mobile-Optimized Tab Navigation */}
+        <div className="border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
+          <nav className="flex space-x-6 sm:space-x-8 min-w-max" aria-label="Tabs">
             {[
-              { key: 'overview', label: 'Overview' },
-              { key: 'website', label: 'Website Updates' },
-              { key: 'flyers', label: 'Flyer Reviews' },
-              { key: 'design', label: 'Graphic Design' },
-              { key: 'details', label: 'Request Details' }
+              { key: 'overview', label: 'Overview', shortLabel: 'Overview' },
+              { key: 'website', label: 'Website Updates', shortLabel: 'Website' },
+              { key: 'flyers', label: 'Flyer Reviews', shortLabel: 'Flyers' },
+              { key: 'design', label: 'Graphic Design', shortLabel: 'Design' },
+              { key: 'details', label: 'Request Details', shortLabel: 'Details' }
             ].map((tab) => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-xs sm:text-sm ${
                   activeTab === tab.key
                     ? 'border-blue-500 text-blue-600 dark:text-blue-400'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200'
                 }`}
               >
-                {tab.label}
+                <span className="hidden sm:inline">{tab.label}</span>
+                <span className="sm:hidden">{tab.shortLabel}</span>
               </button>
             ))}
           </nav>
@@ -449,7 +463,82 @@ export default function ReportsPage() {
             </CardContent>
           </Card>
         )}
+
+        {/* Charts Section - Mobile Responsive */}
+        {activeTab === 'overview' && (
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6 mt-6">
+            {/* Request Distribution Pie Chart */}
+            {pieChartData.length > 0 && (
+              <Card className="w-full">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-sm sm:text-base">
+                    <ChartBarIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                    Request Distribution
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-48 sm:h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={pieChartData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={30}
+                          outerRadius={60}
+                          paddingAngle={2}
+                          dataKey="value"
+                        >
+                          {pieChartData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                        <Legend wrapperStyle={{ fontSize: '12px' }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Completion Rate Bar Chart */}
+            {requestTypeChartData.length > 0 && (
+              <Card className="w-full">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-sm sm:text-base">
+                    <TrendingUpIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                    Completion Status
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-48 sm:h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={requestTypeChartData} margin={{ bottom: 60 }}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis 
+                          dataKey="name" 
+                          angle={-45} 
+                          textAnchor="end" 
+                          height={80} 
+                          fontSize={11}
+                          interval={0}
+                        />
+                        <YAxis fontSize={11} />
+                        <Tooltip />
+                        <Legend wrapperStyle={{ fontSize: '12px' }} />
+                        <Bar dataKey="completed" stackId="a" fill="#10B981" name="Completed" />
+                        <Bar dataKey="pending" stackId="a" fill="#F59E0B" name="Pending" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )}
       </div>
-    </div>
+      </div>
+    </AdminLayout>
   );
 }
