@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../auth/[...nextauth]/route';
 import { getAirtableBaseSafe, TABLE_NAMES } from '../../lib/airtable';
+import { Client } from '@microsoft/microsoft-graph-client';
+import { ClientSecretCredential } from '@azure/identity';
 
 export async function GET(request: NextRequest) {
   try {
@@ -98,7 +100,7 @@ export async function POST(request: NextRequest) {
     const createdComment = await base(TABLE_NAMES.COMMENTS || 'Comments').create([commentData]);
 
     // Send email notification to the original requester
-    await sendCommentNotification(recordId, tableName, message, isPublic ? publicName : session?.user?.name || 'Admin');
+    await sendCommentNotification(recordId, tableName, message);
 
     return NextResponse.json({
       success: true,
@@ -116,7 +118,30 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function sendCommentNotification(recordId: string, tableName: string, message: string, commenterName: string) {
+// Microsoft Graph client setup
+let graphClient: Client | null = null;
+
+function getGraphClient() {
+  if (!graphClient) {
+    const credential = new ClientSecretCredential(
+      process.env.AZURE_AD_TENANT_ID || '',
+      process.env.AZURE_AD_CLIENT_ID || '',
+      process.env.AZURE_AD_CLIENT_SECRET || ''
+    );
+
+    graphClient = Client.initWithMiddleware({
+      authProvider: {
+        getAccessToken: async () => {
+          const token = await credential.getToken('https://graph.microsoft.com/.default');
+          return token?.token || '';
+        }
+      }
+    });
+  }
+  return graphClient;
+}
+
+async function sendCommentNotification(recordId: string, tableName: string, message: string) {
   try {
     const base = getAirtableBaseSafe();
     if (!base) return;
@@ -151,6 +176,11 @@ async function sendCommentNotification(recordId: string, tableName: string, mess
     const requesterEmail = record.fields['Email'] || record.fields['Contact Email'];
     if (!requesterEmail) return;
 
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailStr = String(requesterEmail);
+    if (!emailRegex.test(emailStr)) return;
+
     // Extract original submission details based on table type
     const submissionDetails = getSubmissionDetails(record, tableName);
 
@@ -159,18 +189,19 @@ async function sendCommentNotification(recordId: string, tableName: string, mess
     const params = new URLSearchParams({
       table: tableName,
       name: String(record.fields['Name'] || ''),
-      email: String(requesterEmail)
+      email: emailStr
     });
     const publicResponseLink = `${baseUrl}/comment/${recordId}?${params.toString()}`;
 
-    // Send email using Microsoft Graph
-    const response = await fetch('/api/send-email', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        to: requesterEmail,
-        subject: `New Comment on Your ${tableName.replace(/([A-Z])/g, ' $1').toLowerCase()} Request`,
-        body: `
+    // Send email using Microsoft Graph directly
+    const client = getGraphClient();
+    
+    // Prepare email message
+    const emailMessage = {
+      subject: `New Comment on Your ${tableName.replace(/([A-Z])/g, ' $1').toLowerCase()} Request`,
+      body: {
+        contentType: 'HTML' as const,
+        content: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2 style="color: #2563eb; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px;">New Comment on Your Request</h2>
             
@@ -207,12 +238,30 @@ async function sendCommentNotification(recordId: string, tableName: string, mess
             </p>
           </div>
         `
-      })
-    });
+      },
+      toRecipients: [
+        {
+          emailAddress: {
+            address: emailStr
+          }
+        }
+      ],
+      from: {
+        emailAddress: {
+          address: 'mboyle@sainthelen.org',
+          name: 'Saint Helen Communications'
+        }
+      }
+    };
 
-    if (!response.ok) {
-      console.error('Failed to send comment notification email');
-    }
+    // Send email via Microsoft Graph
+    await client
+      .api('/users/mboyle@sainthelen.org/sendMail')
+      .post({
+        message: emailMessage,
+        saveToSentItems: true
+      });
+
   } catch (error) {
     console.error('Error sending comment notification:', error);
   }
