@@ -300,10 +300,13 @@ export default function AdminClient() {
         }),
       });
       
-      if (!res.ok) throw new Error('Failed to update Completed status');
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to update status (${res.status})`);
+      }
     } catch (err: any) {
-      console.error(err);
-      setErrorMessage(err.message);
+      console.error('Error updating completed status:', err);
+      setErrorMessage(err.message || 'Failed to update status');
       // Revert UI if the API call failed
       fetchAllRequests();
     }

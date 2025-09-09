@@ -37,7 +37,8 @@ export default function useNotifications() {
       const response = await fetch('/api/notifications');
       
       if (!response.ok) {
-        throw new Error('Failed to fetch notifications');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to fetch notifications (${response.status})`);
       }
       
       const data = await response.json();

@@ -79,8 +79,34 @@ export async function GET(request: NextRequest) {
 
   } catch (error: any) {
     console.error('Error fetching notifications:', error);
+    
+    // Handle different types of Airtable errors
+    if (error.statusCode === 401 || error.statusCode === 403) {
+      return new NextResponse(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Access denied. Please check your Airtable permissions.' 
+        }), 
+        { status: 403 }
+      );
+    }
+    
+    if (error.statusCode === 404) {
+      return new NextResponse(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Notifications table not found. Please check your Airtable configuration.' 
+        }), 
+        { status: 503 }
+      );
+    }
+    
+    // Generic server error for other cases
     return new NextResponse(
-      JSON.stringify({ success: false, error: error.message || 'Failed to fetch notifications' }), 
+      JSON.stringify({ 
+        success: false, 
+        error: error.message || 'Failed to fetch notifications' 
+      }), 
       { status: 500 }
     );
   }
