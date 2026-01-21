@@ -56,7 +56,7 @@ export default function AnnouncementsFormPage() {
     );
   };
 
-  // 1) Upload files to S3
+  // 1) Upload files to Vercel Blob
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     if (!e.target.files) return;
     setErrorMessage('');
@@ -68,34 +68,21 @@ export default function AnnouncementsFormPage() {
       const uploadedUrls: string[] = [];
 
       for (const file of filesArray) {
-        // 1) Get presigned URL from our API
-        const res = await fetch('/api/s3-upload', {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const res = await fetch('/api/blob-upload', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            fileName: file.name,
-            fileType: file.type,
-          }),
+          body: formData,
         });
 
         if (!res.ok) {
-          throw new Error('Failed to get S3 upload URL');
+          const error = await res.json();
+          throw new Error(error.error || `Failed to upload file: ${file.name}`);
         }
 
-        const { uploadUrl, objectUrl } = await res.json();
-
-        // 2) Upload the file directly to S3
-        const uploadRes = await fetch(uploadUrl, {
-          method: 'PUT',
-          headers: { 'Content-Type': file.type },
-          body: file,
-        });
-
-        if (!uploadRes.ok) {
-          throw new Error(`Failed to upload file: ${file.name}`);
-        }
-
-        uploadedUrls.push(objectUrl);
+        const { url, objectUrl } = await res.json();
+        uploadedUrls.push(objectUrl || url);
       }
 
       // Store them in state

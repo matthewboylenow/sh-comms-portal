@@ -20,7 +20,7 @@ export default function SMSRequestsFormPage() {
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Handle file uploads via the S3 route
+  // Handle file uploads to Vercel Blob
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     if (!e.target.files) return;
     setErrorMessage('');
@@ -32,31 +32,21 @@ export default function SMSRequestsFormPage() {
       const uploadedUrls: string[] = [];
 
       for (const file of filesArray) {
-        // 1) Get presigned URL
-        const res = await fetch('/api/s3-upload', {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const res = await fetch('/api/blob-upload', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            fileName: file.name,
-            fileType: file.type,
-          }),
+          body: formData,
         });
+
         if (!res.ok) {
-          throw new Error('Failed to get S3 upload URL');
-        }
-        const { uploadUrl, objectUrl } = await res.json();
-
-        // 2) Upload file
-        const uploadRes = await fetch(uploadUrl, {
-          method: 'PUT',
-          headers: { 'Content-Type': file.type },
-          body: file,
-        });
-        if (!uploadRes.ok) {
-          throw new Error(`Failed to upload file: ${file.name}`);
+          const error = await res.json();
+          throw new Error(error.error || `Failed to upload file: ${file.name}`);
         }
 
-        uploadedUrls.push(objectUrl);
+        const { url, objectUrl } = await res.json();
+        uploadedUrls.push(objectUrl || url);
       }
 
       setFileLinks((prev) => [...prev, ...uploadedUrls]);
