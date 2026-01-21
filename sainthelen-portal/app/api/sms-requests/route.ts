@@ -5,6 +5,10 @@ import { Client } from '@microsoft/microsoft-graph-client';
 import { TokenCredentialAuthenticationProvider } from '@microsoft/microsoft-graph-client/authProviders/azureTokenCredentials';
 import { ClientSecretCredential } from '@azure/identity';
 
+// New Neon database imports
+import { useNeonDatabase } from '../../lib/db';
+import * as smsRequestsService from '../../lib/db/services/sms-requests';
+
 type SMSRequestFormData = {
   name: string;
   email: string;
@@ -42,20 +46,36 @@ export async function POST(request: NextRequest) {
 
     const fileLinksString = data.fileLinks?.length ? data.fileLinks.join('\n') : '';
 
-    // Create record in Airtable
-    await base(smsRequestsTable).create([
-      {
-        fields: {
-          Name: data.name,
-          Email: data.email,
-          Ministry: data.ministry || '',
-          'SMS Message': data.smsMessage,
-          'Requested Date': data.requestedDate || '',
-          'Additional Info': data.additionalInfo || '',
-          'File Links': fileLinksString,
+    const useNeon = useNeonDatabase();
+
+    if (useNeon) {
+      // ===== NEON DATABASE PATH =====
+      await smsRequestsService.createSMSRequest({
+        name: data.name,
+        email: data.email,
+        ministry: data.ministry || null,
+        smsMessage: data.smsMessage,
+        requestedDate: data.requestedDate || null,
+        additionalInfo: data.additionalInfo || null,
+        fileLinks: data.fileLinks?.length ? data.fileLinks : null,
+      });
+    } else {
+      // ===== AIRTABLE DATABASE PATH (Legacy) =====
+      // Create record in Airtable
+      await base(smsRequestsTable).create([
+        {
+          fields: {
+            Name: data.name,
+            Email: data.email,
+            Ministry: data.ministry || '',
+            'SMS Message': data.smsMessage,
+            'Requested Date': data.requestedDate || '',
+            'Additional Info': data.additionalInfo || '',
+            'File Links': fileLinksString,
+          },
         },
-      },
-    ]);
+      ]);
+    }
 
     // Send confirmation email via Microsoft Graph
     const client = getGraphClient();

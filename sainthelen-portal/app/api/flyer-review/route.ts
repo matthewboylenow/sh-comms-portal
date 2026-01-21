@@ -5,6 +5,10 @@ import { Client } from '@microsoft/microsoft-graph-client';
 import { TokenCredentialAuthenticationProvider } from '@microsoft/microsoft-graph-client/authProviders/azureTokenCredentials';
 import { ClientSecretCredential } from '@azure/identity';
 
+// New Neon database imports
+import { useNeonDatabase } from '../../lib/db';
+import * as flyerReviewsService from '../../lib/db/services/flyer-reviews';
+
 export const dynamic = 'force-dynamic';
 
 type FlyerReviewFormData = {
@@ -103,9 +107,30 @@ export async function POST(request: NextRequest) {
       fields['Event Date'] = data.eventDate;
     }
 
-    // Create record in Airtable
-    const record = await base(flyerReviewTable).create([{ fields }]);
-    console.log('Airtable record created:', record);
+    const useNeon = useNeonDatabase();
+
+    if (useNeon) {
+      // ===== NEON DATABASE PATH =====
+      await flyerReviewsService.createFlyerReview({
+        name: data.name,
+        email: data.email,
+        ministry: data.ministry || null,
+        eventName: data.eventName,
+        eventDate: data.eventDate || null,
+        targetAudience: data.audience,
+        purpose: data.purpose,
+        feedbackNeeded: data.feedbackNeeded,
+        urgency: data.urgency || 'standard',
+        fileLinks: data.fileLinks,
+        status: 'Pending',
+      });
+      console.log('Neon record created');
+    } else {
+      // ===== AIRTABLE DATABASE PATH (Legacy) =====
+      // Create record in Airtable
+      const record = await base(flyerReviewTable).create([{ fields }]);
+      console.log('Airtable record created:', record);
+    }
 
     // Send confirmation email via Microsoft Graph
     try {

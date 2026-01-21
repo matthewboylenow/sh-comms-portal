@@ -7,6 +7,11 @@ import { ClientSecretCredential } from '@azure/identity';
 import { getApprovalCoordinator } from '../../config/ministries';
 import { getAirtableBaseSafe, getAirtableBase, TABLE_NAMES } from '../../lib/airtable';
 
+// New Neon database imports
+import { useNeonDatabase } from '../../lib/db';
+import { findMinistryByNameOrAlias } from '../../lib/db/services/ministries';
+import { createAnnouncement } from '../../lib/db/services/announcements';
+
 export const dynamic = 'force-dynamic';
 
 async function getMinistryByName(name: string) {
@@ -79,43 +84,83 @@ export async function POST(request: NextRequest) {
     const data = (await request.json()) as AnnouncementFormData;
     console.log('Announcements form submission:', data);
 
-    // Check if ministry requires approval
-    const ministry = data.ministry ? await getMinistryByName(data.ministry) : null;
-    const requiresApproval = ministry?.requiresApproval || false;
-    const approvalStatus = requiresApproval ? 'pending' : 'approved';
-
-    // 1) Write to Airtable
+    // Check feature flag for database selection
+    const useNeon = useNeonDatabase();
     const fileLinksString = data.fileLinks?.length ? data.fileLinks.join('\n') : '';
 
-    // Build fields object dynamically, only including fields that have values
-    // Note: Do not include computed fields like 'Submitted At' - Airtable handles these automatically
-    const fields: Record<string, any> = {
-      Name: data.name,
-      Email: data.email,
-      'Announcement Body': data.announcementBody,
-      'Approval Status': approvalStatus,
-      'Requires Approval': requiresApproval,
-    };
+    let ministry: any = null;
+    let requiresApproval = false;
+    let approvalStatus = 'approved';
 
-    // Only add optional fields if they have values
-    if (data.ministry) fields.Ministry = data.ministry;
-    if (data.eventDate) fields['Date of Event'] = data.eventDate;
-    if (data.eventTime) fields['Time of Event'] = data.eventTime;
-    if (data.promotionStart) fields['Promotion Start Date'] = data.promotionStart;
-    if (data.platforms && data.platforms.length > 0) fields.Platforms = data.platforms;
-    if (data.addToCalendar !== undefined) fields['Add to Events Calendar'] = data.addToCalendar ? 'Yes' : 'No';
-    if (data.isExternalEvent !== undefined) fields['External Event'] = data.isExternalEvent ? 'Yes' : 'No';
-    if (fileLinksString) fields['File Links'] = fileLinksString;
-    if (ministry?.id) fields['Ministry ID'] = ministry.id;
+    if (useNeon) {
+      // ===== NEON DATABASE PATH =====
+      console.log('Using Neon PostgreSQL database');
 
-    const base = getAirtableBase();
-    console.log('Creating Airtable record with fields:', Object.keys(fields));
-    
-    const record = await base(TABLE_NAMES.ANNOUNCEMENTS).create([
-      { fields },
-    ]);
+      // Check if ministry requires approval using Neon
+      if (data.ministry) {
+        ministry = await findMinistryByNameOrAlias(data.ministry);
+        requiresApproval = ministry?.requiresApproval || false;
+        approvalStatus = requiresApproval ? 'pending' : 'approved';
+      }
 
-    console.log('Airtable record created:', record);
+      // Create announcement in Neon
+      const announcement = await createAnnouncement({
+        name: data.name,
+        email: data.email,
+        ministry: data.ministry || null,
+        ministryId: ministry?.id || null,
+        announcementBody: data.announcementBody,
+        dateOfEvent: data.eventDate || null,
+        timeOfEvent: data.eventTime || null,
+        promotionStartDate: data.promotionStart || null,
+        platforms: data.platforms || null,
+        addToEventsCalendar: data.addToCalendar || false,
+        externalEvent: data.isExternalEvent || false,
+        fileLinks: data.fileLinks || null,
+        approvalStatus,
+        requiresApproval,
+      });
+
+      console.log('Neon record created:', announcement.id);
+    } else {
+      // ===== AIRTABLE DATABASE PATH (Legacy) =====
+      console.log('Using Airtable database');
+
+      // Check if ministry requires approval
+      ministry = data.ministry ? await getMinistryByName(data.ministry) : null;
+      requiresApproval = ministry?.requiresApproval || false;
+      approvalStatus = requiresApproval ? 'pending' : 'approved';
+
+      // Build fields object dynamically, only including fields that have values
+      // Note: Do not include computed fields like 'Submitted At' - Airtable handles these automatically
+      const fields: Record<string, any> = {
+        Name: data.name,
+        Email: data.email,
+        'Announcement Body': data.announcementBody,
+        'Approval Status': approvalStatus,
+        'Requires Approval': requiresApproval,
+      };
+
+      // Only add optional fields if they have values
+      if (data.ministry) fields.Ministry = data.ministry;
+      if (data.eventDate) fields['Date of Event'] = data.eventDate;
+      if (data.eventTime) fields['Time of Event'] = data.eventTime;
+      if (data.promotionStart) fields['Promotion Start Date'] = data.promotionStart;
+      if (data.platforms && data.platforms.length > 0) fields.Platforms = data.platforms;
+      if (data.addToCalendar !== undefined) fields['Add to Events Calendar'] = data.addToCalendar ? 'Yes' : 'No';
+      if (data.isExternalEvent !== undefined) fields['External Event'] = data.isExternalEvent ? 'Yes' : 'No';
+      if (fileLinksString) fields['File Links'] = fileLinksString;
+      if (ministry?.id) fields['Ministry ID'] = ministry.id;
+
+      const base = getAirtableBase();
+      console.log('Creating Airtable record with fields:', Object.keys(fields));
+
+      const record = await base(TABLE_NAMES.ANNOUNCEMENTS).create([
+        { fields },
+      ]);
+
+      console.log('Airtable record created:', record);
+    }
 
     // 2) Send confirmation email via Microsoft Graph
     const client = getGraphClient();

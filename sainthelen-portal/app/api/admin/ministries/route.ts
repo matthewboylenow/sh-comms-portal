@@ -1,10 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAirtableBase, TABLE_NAMES } from '../../../lib/airtable';
 
+// New Neon database imports
+import { useNeonDatabase } from '../../../lib/db';
+import * as ministriesService from '../../../lib/db/services/ministries';
+
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
+    const useNeon = useNeonDatabase();
+
+    if (useNeon) {
+      // ===== NEON DATABASE PATH =====
+      const ministries = await ministriesService.getAllMinistries();
+
+      const formattedMinistries = ministries.map(m => ({
+        id: m.id,
+        name: m.name,
+        aliases: m.aliases ? m.aliases.split(',').map((alias: string) => alias.trim()) : [],
+        requiresApproval: m.requiresApproval,
+        approvalCoordinator: m.approvalCoordinator || 'adult-discipleship',
+        description: m.description || '',
+        active: m.active,
+        createdAt: m.createdAt,
+        updatedAt: m.updatedAt
+      }));
+
+      return NextResponse.json({ ministries: formattedMinistries });
+    }
+
+    // ===== AIRTABLE DATABASE PATH (Legacy) =====
     const base = getAirtableBase();
     const records = await base(TABLE_NAMES.MINISTRIES)
       .select({
@@ -19,7 +45,7 @@ export async function GET(request: NextRequest) {
       requiresApproval: record.fields['Requires Approval'] === true,
       approvalCoordinator: record.fields['Approval Coordinator'] || 'adult-discipleship',
       description: record.fields.Description || '',
-      active: record.fields.Active !== false, // Default to true if not specified
+      active: record.fields.Active !== false,
       createdAt: record.fields['Created At'],
       updatedAt: record.fields['Updated At']
     }));
@@ -45,7 +71,42 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if ministry already exists
+    const useNeon = useNeonDatabase();
+
+    if (useNeon) {
+      // ===== NEON DATABASE PATH =====
+      // Check if ministry already exists
+      const existing = await ministriesService.getMinistryByName(name.trim());
+      if (existing) {
+        return new NextResponse(
+          JSON.stringify({ error: 'A ministry with this name already exists' }),
+          { status: 409 }
+        );
+      }
+
+      const ministry = await ministriesService.createMinistry({
+        name: name.trim(),
+        requiresApproval: requiresApproval || false,
+        approvalCoordinator: approvalCoordinator || 'adult-discipleship',
+        description: description?.trim() || null,
+        active: active !== false,
+      });
+
+      const newMinistry = {
+        id: ministry.id,
+        name: ministry.name,
+        requiresApproval: ministry.requiresApproval,
+        approvalCoordinator: ministry.approvalCoordinator,
+        description: ministry.description,
+        active: ministry.active,
+        createdAt: ministry.createdAt,
+        updatedAt: ministry.updatedAt
+      };
+
+      return NextResponse.json({ ministry: newMinistry }, { status: 201 });
+    }
+
+    // ===== AIRTABLE DATABASE PATH (Legacy) =====
     const base = getAirtableBase();
     const existingRecords = await base(TABLE_NAMES.MINISTRIES)
       .select({
@@ -67,7 +128,7 @@ export async function POST(request: NextRequest) {
           'Requires Approval': requiresApproval || false,
           'Approval Coordinator': approvalCoordinator || 'adult-discipleship',
           Description: description?.trim() || '',
-          Active: active !== false, // Default to true
+          Active: active !== false,
         }
       }
     ]);
@@ -104,7 +165,40 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Check if another ministry with this name exists (excluding current one)
+    const useNeon = useNeonDatabase();
+
+    if (useNeon) {
+      // ===== NEON DATABASE PATH =====
+      const ministry = await ministriesService.updateMinistry(id, {
+        name: name.trim(),
+        requiresApproval: requiresApproval || false,
+        approvalCoordinator: approvalCoordinator || 'adult-discipleship',
+        description: description?.trim() || null,
+        active: active !== false,
+      });
+
+      if (!ministry) {
+        return new NextResponse(
+          JSON.stringify({ error: 'Ministry not found' }),
+          { status: 404 }
+        );
+      }
+
+      const updatedMinistry = {
+        id: ministry.id,
+        name: ministry.name,
+        requiresApproval: ministry.requiresApproval,
+        approvalCoordinator: ministry.approvalCoordinator,
+        description: ministry.description,
+        active: ministry.active,
+        createdAt: ministry.createdAt,
+        updatedAt: ministry.updatedAt
+      };
+
+      return NextResponse.json({ ministry: updatedMinistry });
+    }
+
+    // ===== AIRTABLE DATABASE PATH (Legacy) =====
     const base = getAirtableBase();
     const existingRecords = await base(TABLE_NAMES.MINISTRIES)
       .select({
@@ -165,6 +259,15 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
+    const useNeon = useNeonDatabase();
+
+    if (useNeon) {
+      // ===== NEON DATABASE PATH =====
+      await ministriesService.deleteMinistry(id);
+      return NextResponse.json({ success: true });
+    }
+
+    // ===== AIRTABLE DATABASE PATH (Legacy) =====
     const base = getAirtableBase();
     await base(TABLE_NAMES.MINISTRIES).destroy([id]);
 

@@ -5,6 +5,10 @@ import { Client } from '@microsoft/microsoft-graph-client';
 import { TokenCredentialAuthenticationProvider } from '@microsoft/microsoft-graph-client/authProviders/azureTokenCredentials';
 import { ClientSecretCredential } from '@azure/identity';
 
+// New Neon database imports
+import { useNeonDatabase } from '../../lib/db';
+import * as websiteUpdatesService from '../../lib/db/services/website-updates';
+
 type WebsiteUpdatesFormData = {
   name: string;
   email: string;
@@ -123,20 +127,36 @@ export async function POST(request: NextRequest) {
     // Fix: Convert the urgent boolean to a proper Yes/No string for Airtable
     const urgentValue = data.urgent ? 'Yes' : 'No';
 
-    // Create a record in Airtable
-    await base(websiteUpdatesTable).create([
-      {
-        fields: {
-          Name: data.name,
-          Email: data.email,
-          Urgent: urgentValue, // Fixed: Pass string instead of boolean
-          'Page to Update': data.pageToUpdate,
-          Description: data.description,
-          'Sign-Up URL': data.signUpUrl || '',
-          'File Links': fileLinksString,
+    const useNeon = useNeonDatabase();
+
+    if (useNeon) {
+      // ===== NEON DATABASE PATH =====
+      await websiteUpdatesService.createWebsiteUpdate({
+        name: data.name,
+        email: data.email,
+        urgent: data.urgent,
+        pageToUpdate: data.pageToUpdate,
+        description: data.description,
+        signUpUrl: data.signUpUrl || null,
+        fileLinks: wordpressFileLinks.length > 0 ? wordpressFileLinks : null,
+      });
+    } else {
+      // ===== AIRTABLE DATABASE PATH (Legacy) =====
+      // Create a record in Airtable
+      await base(websiteUpdatesTable).create([
+        {
+          fields: {
+            Name: data.name,
+            Email: data.email,
+            Urgent: urgentValue, // Fixed: Pass string instead of boolean
+            'Page to Update': data.pageToUpdate,
+            Description: data.description,
+            'Sign-Up URL': data.signUpUrl || '',
+            'File Links': fileLinksString,
+          },
         },
-      },
-    ]);
+      ]);
+    }
 
     // Send confirmation email via Microsoft Graph
     const client = getGraphClient();

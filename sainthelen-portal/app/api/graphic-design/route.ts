@@ -5,6 +5,10 @@ import { Client } from '@microsoft/microsoft-graph-client';
 import { TokenCredentialAuthenticationProvider } from '@microsoft/microsoft-graph-client/authProviders/azureTokenCredentials';
 import { ClientSecretCredential } from '@azure/identity';
 
+// New Neon database imports
+import { useNeonDatabase } from '../../lib/db';
+import * as graphicDesignService from '../../lib/db/services/graphic-design';
+
 type GraphicDesignFormData = {
   name: string;
   email: string;
@@ -76,14 +80,34 @@ export async function POST(request: NextRequest) {
     };
 
     console.log('Creating record with fields:', fields);
-    
-    // Create record in Airtable
-    try {
-      const records = await base(graphicDesignTable).create([{ fields }]);
-      console.log('Airtable record created successfully:', records);
-    } catch (airtableError: any) {
-      console.error('Airtable error details:', airtableError);
-      throw new Error(`Airtable error: ${airtableError.message || 'Unknown error'}`);
+
+    const useNeon = useNeonDatabase();
+
+    if (useNeon) {
+      // ===== NEON DATABASE PATH =====
+      await graphicDesignService.createGraphicDesignRequest({
+        name: data.name,
+        email: data.email,
+        ministry: data.ministry || null,
+        projectType: data.projectType,
+        projectDescription: data.projectDescription,
+        deadline: data.deadline || null,
+        priority: data.priority,
+        requiredDimensions: data.dimensions || null,
+        fileLinks: data.fileLinks.length > 0 ? data.fileLinks : null,
+        status: 'New',
+      });
+      console.log('Neon record created successfully');
+    } else {
+      // ===== AIRTABLE DATABASE PATH (Legacy) =====
+      // Create record in Airtable
+      try {
+        const records = await base(graphicDesignTable).create([{ fields }]);
+        console.log('Airtable record created successfully:', records);
+      } catch (airtableError: any) {
+        console.error('Airtable error details:', airtableError);
+        throw new Error(`Airtable error: ${airtableError.message || 'Unknown error'}`);
+      }
     }
 
     // Send confirmation email via Microsoft Graph

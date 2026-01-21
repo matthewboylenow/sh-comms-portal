@@ -6,6 +6,10 @@ import { getAirtableBaseSafe, TABLE_NAMES } from '../../lib/airtable';
 import { Client } from '@microsoft/microsoft-graph-client';
 import { ClientSecretCredential } from '@azure/identity';
 
+// New Neon database imports
+import { useNeonDatabase } from '../../lib/db';
+import * as commentsService from '../../lib/db/services/comments';
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -19,6 +23,30 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const useNeon = useNeonDatabase();
+
+    if (useNeon) {
+      // ===== NEON DATABASE PATH =====
+      const comments = await commentsService.getCommentsForRecord(recordId, tableName);
+
+      const formattedComments = comments.map(comment => ({
+        id: comment.id,
+        fields: {
+          'Record ID': comment.recordId,
+          'Table Name': comment.tableName,
+          'Message': comment.message,
+          'Created At': comment.createdAt?.toISOString(),
+          'Is Public': comment.isPublic,
+          'Public Name': comment.publicName,
+          'Public Email': comment.publicEmail,
+          'Admin User': comment.adminUser,
+        }
+      }));
+
+      return NextResponse.json({ comments: formattedComments });
+    }
+
+    // ===== AIRTABLE DATABASE PATH (Legacy) =====
     const base = getAirtableBaseSafe();
     if (!base) {
       return NextResponse.json(
@@ -70,6 +98,51 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const useNeon = useNeonDatabase();
+    let createdComment: any;
+
+    if (useNeon) {
+      // ===== NEON DATABASE PATH =====
+      if (isPublic) {
+        createdComment = await commentsService.createPublicComment(
+          recordId,
+          tableName,
+          message,
+          publicName,
+          publicEmail
+        );
+      } else {
+        const adminUser = session?.user?.name || session?.user?.email || 'Admin';
+        createdComment = await commentsService.createAdminComment(
+          recordId,
+          tableName,
+          message,
+          adminUser
+        );
+      }
+
+      // Send email notification to the original requester
+      await sendCommentNotification(recordId, tableName, message, useNeon);
+
+      return NextResponse.json({
+        success: true,
+        comment: {
+          id: createdComment.id,
+          fields: {
+            'Record ID': createdComment.recordId,
+            'Table Name': createdComment.tableName,
+            'Message': createdComment.message,
+            'Created At': createdComment.createdAt?.toISOString(),
+            'Is Public': createdComment.isPublic,
+            'Public Name': createdComment.publicName,
+            'Public Email': createdComment.publicEmail,
+            'Admin User': createdComment.adminUser,
+          }
+        }
+      });
+    }
+
+    // ===== AIRTABLE DATABASE PATH (Legacy) =====
     const base = getAirtableBaseSafe();
     if (!base) {
       return NextResponse.json(
@@ -97,10 +170,10 @@ export async function POST(request: NextRequest) {
       commentData['Public Email'] = '';
     }
 
-    const createdComment = await base(TABLE_NAMES.COMMENTS || 'Comments').create([commentData]);
+    createdComment = await base(TABLE_NAMES.COMMENTS || 'Comments').create([commentData]);
 
     // Send email notification to the original requester
-    await sendCommentNotification(recordId, tableName, message);
+    await sendCommentNotification(recordId, tableName, message, useNeon);
 
     return NextResponse.json({
       success: true,
@@ -141,8 +214,10 @@ function getGraphClient() {
   return graphClient;
 }
 
-async function sendCommentNotification(recordId: string, tableName: string, message: string) {
+async function sendCommentNotification(recordId: string, tableName: string, message: string, useNeon: boolean) {
   try {
+    // For now, use Airtable to get the original record details
+    // This will be updated once all tables are migrated
     const base = getAirtableBaseSafe();
     if (!base) return;
 
@@ -195,7 +270,7 @@ async function sendCommentNotification(recordId: string, tableName: string, mess
 
     // Send email using Microsoft Graph directly
     const client = getGraphClient();
-    
+
     // Prepare email message
     const emailMessage = {
       subject: `New Comment on Your ${tableName.replace(/([A-Z])/g, ' $1').toLowerCase()} Request`,
@@ -204,11 +279,11 @@ async function sendCommentNotification(recordId: string, tableName: string, mess
         content: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2 style="color: #2563eb; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px;">New Comment on Your Request</h2>
-            
+
             <p>Hello ${record.fields['Name'] || 'there'},</p>
-            
+
             <p><strong>Matthew Boyle</strong> has left a comment on your request:</p>
-            
+
             <div style="background-color: #f8fafc; border-left: 4px solid #2563eb; padding: 16px; margin: 20px 0;">
               <p style="margin: 0; color: #374151; font-style: italic;">${message.replace(/\n/g, '<br>')}</p>
             </div>
@@ -217,21 +292,21 @@ async function sendCommentNotification(recordId: string, tableName: string, mess
               <h3 style="color: #374151; margin-top: 0; margin-bottom: 15px;">Your Original Submission:</h3>
               ${submissionDetails}
             </div>
-            
+
             <div style="background-color: #e8f4fd; border: 1px solid #2563eb; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
               <h3 style="color: #2563eb; margin-top: 0; margin-bottom: 15px;">Want to Respond?</h3>
               <p style="margin-bottom: 15px; color: #374151;">Click the button below to respond to this comment:</p>
-              <a href="${publicResponseLink}" 
-                 style="display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; 
-                        text-decoration: none; border-radius: 6px; font-weight: bold; 
+              <a href="${publicResponseLink}"
+                 style="display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px;
+                        text-decoration: none; border-radius: 6px; font-weight: bold;
                         box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);">
                 Respond to Comment
               </a>
             </div>
-            
+
             <p>Thank you!</p>
             <p><em>Saint Helen Communications Team</em></p>
-            
+
             <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
             <p style="font-size: 12px; color: #6b7280; text-align: center;">
               Saint Helen Parish • <a href="https://sainthelen.org" style="color: #2563eb;">sainthelen.org</a>

@@ -5,6 +5,10 @@ import { Client } from '@microsoft/microsoft-graph-client';
 import { TokenCredentialAuthenticationProvider } from '@microsoft/microsoft-graph-client/authProviders/azureTokenCredentials';
 import { ClientSecretCredential } from '@azure/identity';
 
+// New Neon database imports
+import { useNeonDatabase } from '../../lib/db';
+import * as avRequestsService from '../../lib/db/services/av-requests';
+
 type DateTimeEntry = {
   id: string;
   date: string;
@@ -70,27 +74,48 @@ export async function POST(request: NextRequest) {
 
     const fileLinksString = data.fileLinks?.length ? data.fileLinks.join('\n') : '';
 
-    // Create record in Airtable
-    const record = await base(avRequestsTable).create([
-      {
-        fields: {
-          Name: data.name,
-          Email: data.email,
-          Ministry: data.ministry || '',
-          'Event Name': data.eventName,
-          'Event Dates and Times': dateTimeEntriesFormatted,
-          'Description': data.description,
-          'Location': data.location,
-          'Needs Livestream': data.needsLivestream,
-          'A/V Needs': data.avNeeds,
-          'Expected Attendees': data.expectedAttendees || '',
-          'Additional Notes': data.additionalNotes || '',
-          'File Links': fileLinksString,
-        },
-      },
-    ]);
+    const useNeon = useNeonDatabase();
 
-    console.log('Airtable record created:', record);
+    if (useNeon) {
+      // ===== NEON DATABASE PATH =====
+      await avRequestsService.createAVRequest({
+        name: data.name,
+        email: data.email,
+        ministry: data.ministry || null,
+        eventName: data.eventName,
+        dateTimeEntries: data.dateTimeEntries,
+        description: data.description,
+        location: data.location,
+        needsLivestream: data.needsLivestream,
+        avNeeds: data.avNeeds,
+        expectedAttendees: data.expectedAttendees || null,
+        additionalNotes: data.additionalNotes || null,
+        fileLinks: data.fileLinks?.length ? data.fileLinks : null,
+      });
+      console.log('Neon record created');
+    } else {
+      // ===== AIRTABLE DATABASE PATH (Legacy) =====
+      // Create record in Airtable
+      const record = await base(avRequestsTable).create([
+        {
+          fields: {
+            Name: data.name,
+            Email: data.email,
+            Ministry: data.ministry || '',
+            'Event Name': data.eventName,
+            'Event Dates and Times': dateTimeEntriesFormatted,
+            'Description': data.description,
+            'Location': data.location,
+            'Needs Livestream': data.needsLivestream,
+            'A/V Needs': data.avNeeds,
+            'Expected Attendees': data.expectedAttendees || '',
+            'Additional Notes': data.additionalNotes || '',
+            'File Links': fileLinksString,
+          },
+        },
+      ]);
+      console.log('Airtable record created:', record);
+    }
 
     // Send confirmation email via Microsoft Graph
     const client = getGraphClient();
