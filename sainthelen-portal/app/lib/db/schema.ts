@@ -43,6 +43,7 @@ export const announcements = pgTable('announcements', {
   addToEventsCalendar: boolean('add_to_events_calendar').default(false),
   externalEvent: boolean('external_event').default(false),
   fileLinks: text('file_links').array(), // Array of URLs
+  signUpUrl: varchar('sign_up_url', { length: 500 }),
   approvalStatus: varchar('approval_status', { length: 50 }).default('pending').notNull(),
   requiresApproval: boolean('requires_approval').default(false).notNull(),
   approvedBy: varchar('approved_by', { length: 255 }),

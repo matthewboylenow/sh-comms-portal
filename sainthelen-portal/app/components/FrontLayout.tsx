@@ -5,50 +5,31 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  SunIcon, 
-  MoonIcon, 
-  HomeIcon, 
-  InformationCircleIcon, 
-  MegaphoneIcon, 
-  GlobeAltIcon, 
-  ChatBubbleLeftRightIcon,
-  VideoCameraIcon,
-  DocumentTextIcon,
-  ChevronDownIcon,
-  PencilSquareIcon
+import {
+  SunIcon,
+  MoonIcon,
+  HomeIcon,
+  InformationCircleIcon,
+  Bars3Icon,
+  XMarkIcon
 } from '@heroicons/react/24/outline';
 
 interface FrontLayoutProps {
   children: React.ReactNode;
   title?: string;
+  showHero?: boolean;
 }
 
-export default function FrontLayout({ children, title = 'Saint Helen Communications Portal' }: FrontLayoutProps) {
+export default function FrontLayout({
+  children,
+  title = 'Saint Helen Communications Portal',
+  showHero = true
+}: FrontLayoutProps) {
   const [isDark, setIsDark] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setDropdownOpen(false);
-      }
-    }
-    
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
-
-  // Close dropdown when route changes
-  useEffect(() => {
-    setDropdownOpen(false);
-  }, [pathname]);
+  const isHomePage = pathname === '/';
 
   useEffect(() => {
     const htmlEl = document.documentElement;
@@ -65,267 +46,244 @@ export default function FrontLayout({ children, title = 'Saint Helen Communicati
   const handleToggleTheme = () => {
     const htmlEl = document.documentElement;
     if (htmlEl.classList.contains('dark')) {
-      // Switch to light mode
       htmlEl.classList.remove('dark');
       localStorage.setItem('theme', 'light');
       setIsDark(false);
     } else {
-      // Switch to dark mode
       htmlEl.classList.add('dark');
       localStorage.setItem('theme', 'dark');
       setIsDark(true);
     }
   };
 
-  const toggleMobileMenu = () => {
-    setMobileMenuOpen(!mobileMenuOpen);
-  };
-
-  // Removed form links as requested
-
-  // No form pages anymore
-  const isFormPage = false;
+  const navLinks = [
+    { href: '/', label: 'Home', icon: HomeIcon },
+    { href: '/guidelines', label: 'Guidelines', icon: InformationCircleIcon },
+  ];
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-925 dark:via-gray-900 dark:to-gray-850">
-      {/* Top Navigation */}
-      <header className="bg-sh-primary/95 dark:bg-sh-primary-dark/95 backdrop-blur-sm text-white border-b border-white/10 sticky top-0 z-50">
-        <div className="container mx-auto flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
-          {/* Logo and title */}
-          <motion.div 
-            className="flex items-center"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.3 }}
-          >
+    <div className="flex flex-col min-h-screen bg-sh-cream dark:bg-slate-900">
+      {/* Navigation */}
+      <header className="bg-sh-navy dark:bg-slate-800 text-white sticky top-0 z-50 shadow-md">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            {/* Logo */}
             <Link href="/" className="flex items-center group">
-              <motion.img 
-                src="/images/Saint-Helen-Logo-White.png" 
-                alt="Saint Helen Logo" 
+              <img
+                src="/images/Saint-Helen-Logo-White.png"
+                alt="Saint Helen"
                 className="h-8 w-auto transition-transform duration-200 group-hover:scale-105"
-                whileHover={{ scale: 1.05 }}
-                transition={{ type: "spring", stiffness: 300, damping: 30 }}
               />
-              <span className="text-xl font-bold ml-3 bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent">
+              <span className="ml-3 font-serif font-bold text-lg hidden sm:block">
                 Communications Portal
               </span>
             </Link>
-          </motion.div>
 
-          {/* Desktop navigation */}
-          <nav className="hidden md:flex space-x-2">
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: 0.1 }}
-            >
-              <Link 
-                href="/" 
-                className={`flex items-center text-white/90 hover:text-white transition-all duration-200 px-4 py-2.5 rounded-xl hover:bg-white/10 group ${
-                  pathname === '/' ? 'bg-white/15 text-white' : ''
-                }`}
-              >
-                <HomeIcon className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform duration-200" />
-                <span className="font-medium">Home</span>
-              </Link>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: 0.2 }}
-            >
-              <Link 
-                href="/guidelines" 
-                className={`flex items-center text-white/90 hover:text-white transition-all duration-200 px-4 py-2.5 rounded-xl hover:bg-white/10 group ${
-                  pathname === '/guidelines' ? 'bg-white/15 text-white' : ''
-                }`}
-              >
-                <InformationCircleIcon className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform duration-200" />
-                <span className="font-medium">Guidelines</span>
-              </Link>
-            </motion.div>
-          </nav>
-
-          {/* Theme toggle and mobile menu button */}
-          <div className="flex items-center space-x-2">
-            <motion.button
-              onClick={handleToggleTheme}
-              className="p-2.5 rounded-xl hover:bg-white/10 transition-all duration-200 group"
-              aria-label="Toggle Dark Mode"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.div
-                  key={isDark ? 'sun' : 'moon'}
-                  initial={{ y: -20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  exit={{ y: 20, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
+            {/* Desktop Navigation */}
+            <nav className="hidden md:flex items-center space-x-1">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`
+                    flex items-center px-4 py-2 rounded-button text-sm font-medium
+                    transition-all duration-200
+                    ${pathname === link.href
+                      ? 'bg-white/15 text-white'
+                      : 'text-white/80 hover:text-white hover:bg-white/10'
+                    }
+                  `}
                 >
-                  {isDark ? (
-                    <SunIcon className="h-5 w-5 group-hover:text-amber-300 transition-colors duration-200" />
-                  ) : (
-                    <MoonIcon className="h-5 w-5 group-hover:text-blue-200 transition-colors duration-200" />
-                  )}
-                </motion.div>
-              </AnimatePresence>
-            </motion.button>
+                  <link.icon className="w-5 h-5 mr-2" />
+                  {link.label}
+                </Link>
+              ))}
+
+              {/* Theme Toggle */}
+              <button
+                onClick={handleToggleTheme}
+                className="p-2 ml-2 rounded-button text-white/80 hover:text-white hover:bg-white/10 transition-all duration-200"
+                aria-label="Toggle theme"
+              >
+                {isDark ? (
+                  <SunIcon className="w-5 h-5" />
+                ) : (
+                  <MoonIcon className="w-5 h-5" />
+                )}
+              </button>
+            </nav>
 
             {/* Mobile menu button */}
-            <motion.button
-              onClick={toggleMobileMenu}
-              className="md:hidden p-2.5 rounded-xl hover:bg-white/10 transition-all duration-200"
-              aria-label="Toggle Mobile Menu"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <motion.div
-                animate={{ rotate: mobileMenuOpen ? 180 : 0 }}
-                transition={{ duration: 0.3 }}
+            <div className="flex md:hidden items-center space-x-2">
+              <button
+                onClick={handleToggleTheme}
+                className="p-2 rounded-button text-white/80 hover:text-white hover:bg-white/10 transition-all duration-200"
+                aria-label="Toggle theme"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              </motion.div>
-            </motion.button>
+                {isDark ? (
+                  <SunIcon className="w-5 h-5" />
+                ) : (
+                  <MoonIcon className="w-5 h-5" />
+                )}
+              </button>
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="p-2 rounded-button text-white/80 hover:text-white hover:bg-white/10 transition-all duration-200"
+                aria-label="Toggle menu"
+              >
+                {mobileMenuOpen ? (
+                  <XMarkIcon className="w-6 h-6" />
+                ) : (
+                  <Bars3Icon className="w-6 h-6" />
+                )}
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Mobile menu */}
+        {/* Mobile Navigation */}
         <AnimatePresence>
           {mobileMenuOpen && (
-            <motion.div 
-              className="md:hidden"
+            <motion.div
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.3, ease: 'easeInOut' }}
+              transition={{ duration: 0.2 }}
+              className="md:hidden border-t border-white/10"
             >
-              <div className="bg-sh-primary/90 dark:bg-sh-primary/90 backdrop-blur-sm border-t border-white/10">
-                <div className="container mx-auto px-4 py-3 space-y-1">
-                  <motion.div
-                    initial={{ x: -20, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    transition={{ duration: 0.2, delay: 0.1 }}
+              <div className="px-4 py-3 space-y-1">
+                {navLinks.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`
+                      flex items-center px-4 py-3 rounded-button text-sm font-medium
+                      transition-all duration-200
+                      ${pathname === link.href
+                        ? 'bg-white/15 text-white'
+                        : 'text-white/80 hover:text-white hover:bg-white/10'
+                      }
+                    `}
                   >
-                    <Link 
-                      href="/" 
-                      className={`flex items-center text-white/90 hover:text-white hover:bg-white/10 px-4 py-3 rounded-xl transition-all duration-200 group ${
-                        pathname === '/' ? 'bg-white/15 text-white' : ''
-                      }`}
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      <HomeIcon className="h-5 w-5 mr-3 group-hover:scale-110 transition-transform duration-200" />
-                      <span className="font-medium">Home</span>
-                    </Link>
-                  </motion.div>
-                  <motion.div
-                    initial={{ x: -20, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    transition={{ duration: 0.2, delay: 0.2 }}
-                  >
-                    <Link 
-                      href="/guidelines" 
-                      className={`flex items-center text-white/90 hover:text-white hover:bg-white/10 px-4 py-3 rounded-xl transition-all duration-200 group ${
-                        pathname === '/guidelines' ? 'bg-white/15 text-white' : ''
-                      }`}
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      <InformationCircleIcon className="h-5 w-5 mr-3 group-hover:scale-110 transition-transform duration-200" />
-                      <span className="font-medium">Guidelines</span>
-                    </Link>
-                  </motion.div>
-                </div>
+                    <link.icon className="w-5 h-5 mr-3" />
+                    {link.label}
+                  </Link>
+                ))}
               </div>
             </motion.div>
           )}
         </AnimatePresence>
       </header>
 
-      {/* Hero banner */}
-      <div className="relative bg-gradient-to-br from-sh-primary via-sh-primary-dark to-gray-900 text-white overflow-hidden">
-        <div className="absolute inset-0">
-          <img 
-            src="/images/hero.jpg" 
-            alt="Saint Helen Communications" 
-            className="w-full h-full object-cover opacity-30"
-          />
-          <div className="absolute inset-0 bg-gradient-to-br from-sh-primary/60 via-sh-primary-dark/70 to-gray-900/80"></div>
-        </div>
-        <div className="container relative mx-auto py-32 sm:py-40 text-center">
-          <div className="max-w-4xl mx-auto">
-            <h1 className="text-5xl font-black tracking-tight sm:text-6xl lg:text-7xl bg-gradient-to-r from-white via-gray-100 to-sh-sage-light bg-clip-text text-transparent">
-              Saint Helen Communications Portal
-            </h1>
-            <p className="mt-8 max-w-2xl mx-auto text-xl text-gray-200 leading-relaxed">
-              Simple forms and tools to help promote your ministry and events
-            </p>
-            <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
-              <Link 
-                href="#forms" 
-                className="bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white px-8 py-4 rounded-2xl font-semibold transition-all duration-300 border border-white/20"
-              >
-                Get Started
-              </Link>
-              <Link 
-                href="/guidelines" 
-                className="bg-sh-sage/20 backdrop-blur-sm hover:bg-sh-sage/30 text-white px-8 py-4 rounded-2xl font-semibold transition-all duration-300 border border-sh-sage/30"
-              >
-                View Guidelines
-              </Link>
-            </div>
+      {/* Hero Section - Only on homepage */}
+      {isHomePage && showHero && (
+        <div className="relative bg-sh-navy dark:bg-slate-800 overflow-hidden">
+          {/* Background image with overlay */}
+          <div className="absolute inset-0">
+            <img
+              src="/images/hero.jpg"
+              alt=""
+              className="w-full h-full object-cover opacity-20"
+            />
+            <div className="absolute inset-0 bg-gradient-to-br from-sh-navy via-sh-navy-700 to-sh-navy-900 opacity-90" />
           </div>
-        </div>
-        
-        {/* Floating elements for visual interest */}
-        <div className="absolute top-20 left-10 w-20 h-20 bg-sh-sage/20 rounded-full blur-xl"></div>
-        <div className="absolute bottom-20 right-20 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
-        <div className="absolute top-1/2 right-10 w-16 h-16 bg-sh-sage/15 rounded-full blur-lg"></div>
-      </div>
 
-      {/* Page title - only shown if not on homepage */}
-      {title !== 'Saint Helen Communications Portal' && (
-        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-b border-gray-200/50 dark:border-gray-700/50">
-          <div className="container mx-auto py-8">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white bg-gradient-to-r from-sh-primary to-sh-primary-light bg-clip-text text-transparent">{title}</h1>
+          {/* Decorative elements */}
+          <div className="absolute top-10 left-10 w-32 h-32 bg-sh-rust/20 rounded-full blur-3xl" />
+          <div className="absolute bottom-10 right-10 w-48 h-48 bg-white/5 rounded-full blur-3xl" />
+
+          {/* Content */}
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28">
+            <motion.div
+              className="text-center"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+            >
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-white mb-6">
+                Saint Helen
+                <span className="block">Communications Portal</span>
+              </h1>
+              <p className="text-xl text-white/80 max-w-2xl mx-auto mb-10">
+                Simple forms and tools to help promote your ministry and events
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link
+                  href="#forms"
+                  className="inline-flex items-center justify-center px-8 py-4 bg-sh-rust hover:bg-sh-rust-600 text-white rounded-button font-medium transition-all duration-300 hover:-translate-y-1 hover:shadow-button-hover"
+                >
+                  Get Started
+                </Link>
+                <Link
+                  href="/guidelines"
+                  className="inline-flex items-center justify-center px-8 py-4 bg-white/10 hover:bg-white/20 text-white rounded-button font-medium border border-white/20 transition-all duration-300 hover:-translate-y-1"
+                >
+                  View Guidelines
+                </Link>
+              </div>
+            </motion.div>
           </div>
         </div>
       )}
 
-      {/* Main content */}
+      {/* Page Title - For non-homepage */}
+      {!isHomePage && title && (
+        <div className="bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <h1 className="text-3xl md:text-4xl font-serif font-bold text-sh-navy dark:text-white">
+              {title}
+            </h1>
+          </div>
+        </div>
+      )}
+
+      {/* Main Content */}
       <main className="flex-1">
         {children}
       </main>
 
       {/* Footer */}
-      <footer className="bg-gradient-to-r from-sh-primary via-sh-primary-dark to-sh-secondary text-white relative overflow-hidden">
-        <div className="absolute inset-0 bg-black/10"></div>
-        <div className="container relative mx-auto py-12">
+      <footer className="bg-sh-navy dark:bg-slate-800 text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="mb-6 md:mb-0">
-              <div className="flex items-center mb-2">
-                <img 
-                  src="/images/Saint-Helen-Logo-White.png" 
-                  alt="Saint Helen Logo" 
+            <div className="mb-6 md:mb-0 text-center md:text-left">
+              <div className="flex items-center justify-center md:justify-start mb-3">
+                <img
+                  src="/images/Saint-Helen-Logo-White.png"
+                  alt="Saint Helen"
                   className="h-8 w-auto mr-3"
                 />
-                <span className="font-bold text-lg">Saint Helen Church</span>
+                <span className="font-serif font-bold text-lg">Saint Helen Church</span>
               </div>
-              <p className="text-sm text-gray-200">© {new Date().getFullYear()} Saint Helen Church, Westfield, NJ</p>
+              <p className="text-sm text-white/60">
+                © {new Date().getFullYear()} Saint Helen Church, Westfield, NJ
+              </p>
             </div>
-            <div className="flex space-x-6">
-              <Link href="/admin" className="text-sm text-white/90 hover:text-white transition-all duration-200 px-3 py-2 rounded-lg hover:bg-white/10">
+            <div className="flex items-center space-x-4">
+              <Link
+                href="/admin"
+                className="text-sm text-white/70 hover:text-white px-3 py-2 rounded-button hover:bg-white/10 transition-all duration-200"
+              >
                 Admin Login
               </Link>
-              <Link href="/guidelines" className="text-sm text-white/90 hover:text-white transition-all duration-200 px-3 py-2 rounded-lg hover:bg-white/10">
+              <Link
+                href="/guidelines"
+                className="text-sm text-white/70 hover:text-white px-3 py-2 rounded-button hover:bg-white/10 transition-all duration-200"
+              >
                 Guidelines
               </Link>
+              <a
+                href="https://sainthelen.org"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-white/70 hover:text-white px-3 py-2 rounded-button hover:bg-white/10 transition-all duration-200"
+              >
+                Main Website
+              </a>
             </div>
           </div>
         </div>
-        <div className="absolute bottom-0 left-0 w-20 h-20 bg-sh-sage/20 rounded-full blur-xl"></div>
-        <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full blur-lg"></div>
       </footer>
     </div>
   );

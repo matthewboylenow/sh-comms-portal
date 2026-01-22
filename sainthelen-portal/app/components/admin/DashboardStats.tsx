@@ -1,19 +1,19 @@
 // app/components/admin/DashboardStats.tsx
-import { Card, CardContent } from '../ui/Card';
-import { 
+'use client';
+
+import {
   MegaphoneIcon,
   GlobeAltIcon,
   ChatBubbleLeftRightIcon,
-  ExclamationTriangleIcon,
   VideoCameraIcon,
   DocumentTextIcon,
   PencilSquareIcon,
-  ChartBarIcon,
-  ClockIcon
+  CalendarDaysIcon,
+  EnvelopeIcon,
+  NewspaperIcon
 } from '@heroicons/react/24/outline';
 import { motion } from 'framer-motion';
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
-import { format, parseISO, subDays, eachDayOfInterval } from 'date-fns';
+import { getCurrentWeekRange, formatFullDate, formatTime, isDateInRange } from '../../utils/dateUtils';
 
 type DashboardStatsProps = {
   announcements: any[];
@@ -34,336 +34,139 @@ export default function DashboardStats({
   graphicDesign,
   hideCompleted
 }: DashboardStatsProps) {
-  // Calculate totals
+  // Get current week range for bulletin cycle
+  const weekRange = getCurrentWeekRange();
+
+  // Calculate pending counts
   const pendingAnnouncements = announcements.filter(r => !r.fields.Completed).length;
   const pendingWebsiteUpdates = websiteUpdates.filter(r => !r.fields.Completed).length;
   const pendingSmsRequests = smsRequests.filter(r => !r.fields.Completed).length;
   const pendingAvRequests = avRequests.filter(r => !r.fields.Completed).length;
   const pendingFlyerReviews = flyerReviews.filter(r => !r.fields.Completed).length;
   const pendingGraphicDesign = graphicDesign.filter(r => !r.fields.Completed).length;
-  
-  // Calculate urgent counts
-  const urgentWebsiteUpdates = websiteUpdates.filter(r => !r.fields.Completed && r.fields.Urgent).length;
-  const urgentFlyerReviews = flyerReviews.filter(r => !r.fields.Completed && r.fields.Urgency === 'urgent').length;
-  const livestreamRequests = avRequests.filter(r => !r.fields.Completed && r.fields['Needs Livestream']).length;
-  const urgentGraphicDesign = graphicDesign.filter(r => !r.fields.Completed && r.fields.Priority === 'Urgent').length;
 
-  // Stats card animation variants
-  const cardVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: (custom: number) => ({
-      opacity: 1,
-      y: 0,
-      transition: { 
-        delay: custom * 0.1,
-        duration: 0.5,
-        ease: "easeOut"
-      }
-    })
-  };
+  const totalPending = pendingAnnouncements + pendingWebsiteUpdates + pendingSmsRequests +
+    pendingAvRequests + pendingFlyerReviews + pendingGraphicDesign;
 
-  // Stats for each card
+  // Get this week's events from announcements
+  const thisWeekEvents = announcements.filter(r => {
+    if (r.fields.Completed) return false;
+    const eventDate = r.fields['Date of Event'];
+    return isDateInRange(eventDate, weekRange.start, weekRange.end);
+  });
+
+  // Stats configuration - simpler, cleaner
   const stats = [
-    {
-      title: "Announcements",
-      count: pendingAnnouncements,
-      icon: <MegaphoneIcon className="h-5 w-5" />,
-      color: "from-blue-500 to-blue-600",
-      textColor: "text-blue-600 dark:text-blue-400",
-      bgColor: "bg-blue-50 dark:bg-blue-900/20",
-      urgent: 0,
-      link: "#announcements"
-    },
-    {
-      title: "Website Updates",
-      count: pendingWebsiteUpdates,
-      icon: <GlobeAltIcon className="h-5 w-5" />,
-      color: "from-emerald-500 to-green-600",
-      textColor: "text-green-600 dark:text-green-400",
-      bgColor: "bg-green-50 dark:bg-green-900/20",
-      urgent: urgentWebsiteUpdates,
-      link: "#websiteUpdates"
-    },
-    {
-      title: "SMS Requests",
-      count: pendingSmsRequests,
-      icon: <ChatBubbleLeftRightIcon className="h-5 w-5" />,
-      color: "from-purple-500 to-purple-600",
-      textColor: "text-purple-600 dark:text-purple-400",
-      bgColor: "bg-purple-50 dark:bg-purple-900/20",
-      urgent: 0,
-      link: "#smsRequests"
-    },
-    {
-      title: "A/V Requests",
-      count: pendingAvRequests,
-      icon: <VideoCameraIcon className="h-5 w-5" />,
-      color: "from-red-500 to-red-600",
-      textColor: "text-red-600 dark:text-red-400",
-      bgColor: "bg-red-50 dark:bg-red-900/20",
-      urgent: livestreamRequests,
-      link: "#avRequests",
-      urgentLabel: "Livestream"
-    },
-    {
-      title: "Flyer Reviews",
-      count: pendingFlyerReviews,
-      icon: <DocumentTextIcon className="h-5 w-5" />,
-      color: "from-amber-500 to-amber-600",
-      textColor: "text-amber-600 dark:text-amber-400",
-      bgColor: "bg-amber-50 dark:bg-amber-900/20",
-      urgent: urgentFlyerReviews,
-      link: "#flyerReviews"
-    },
-    {
-      title: "Graphic Design",
-      count: pendingGraphicDesign,
-      icon: <PencilSquareIcon className="h-5 w-5" />,
-      color: "from-indigo-500 to-indigo-600",
-      textColor: "text-indigo-600 dark:text-indigo-400",
-      bgColor: "bg-indigo-50 dark:bg-indigo-900/20",
-      urgent: urgentGraphicDesign,
-      link: "#graphicDesign"
-    }
+    { title: "Announcements", count: pendingAnnouncements, icon: MegaphoneIcon, color: "text-sh-navy-600", bg: "bg-sh-navy-50 dark:bg-sh-navy-900/30" },
+    { title: "Website", count: pendingWebsiteUpdates, icon: GlobeAltIcon, color: "text-sh-rust-600", bg: "bg-sh-rust-50 dark:bg-sh-rust-900/30" },
+    { title: "SMS", count: pendingSmsRequests, icon: ChatBubbleLeftRightIcon, color: "text-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-900/30" },
+    { title: "A/V", count: pendingAvRequests, icon: VideoCameraIcon, color: "text-purple-600", bg: "bg-purple-50 dark:bg-purple-900/30" },
+    { title: "Flyers", count: pendingFlyerReviews, icon: DocumentTextIcon, color: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-900/30" },
+    { title: "Design", count: pendingGraphicDesign, icon: PencilSquareIcon, color: "text-rose-600", bg: "bg-rose-50 dark:bg-rose-900/30" }
   ];
 
-  // Calculate total pending requests
-  const totalPending = stats.reduce((sum, stat) => sum + stat.count, 0);
-
-  // Prepare data for charts
-  const pieData = stats.map(stat => ({
-    name: stat.title,
-    value: stat.count,
-    color: stat.textColor.includes('blue') ? '#3B82F6' :
-           stat.textColor.includes('green') ? '#10B981' :
-           stat.textColor.includes('purple') ? '#8B5CF6' :
-           stat.textColor.includes('red') ? '#EF4444' :
-           stat.textColor.includes('amber') ? '#F59E0B' :
-           '#6366F1'
-  })).filter(item => item.value > 0);
-
-  // Calculate submissions over the last 7 days
-  const last7Days = eachDayOfInterval({
-    start: subDays(new Date(), 6),
-    end: new Date()
-  });
-
-  const submissionTrendData = last7Days.map(day => {
-    const dayStr = format(day, 'yyyy-MM-dd');
-    const daySubmissions = [...announcements, ...websiteUpdates, ...smsRequests, ...avRequests, ...flyerReviews, ...graphicDesign]
-      .filter(record => {
-        const submittedDate = record.fields['Submitted At'];
-        if (!submittedDate) return false;
-        return submittedDate.startsWith(dayStr);
-      }).length;
-
-    return {
-      date: format(day, 'MMM dd'),
-      submissions: daySubmissions,
-      fullDate: dayStr
-    };
-  });
-
-  // Calculate completion rate data
-  const allRecords = [...announcements, ...websiteUpdates, ...smsRequests, ...avRequests, ...flyerReviews, ...graphicDesign];
-  const completionData = stats.map(stat => {
-    const tableName = stat.title;
-    let records = [];
-    
-    switch (tableName) {
-      case 'Announcements': records = announcements; break;
-      case 'Website Updates': records = websiteUpdates; break;
-      case 'SMS Requests': records = smsRequests; break;
-      case 'A/V Requests': records = avRequests; break;
-      case 'Flyer Reviews': records = flyerReviews; break;
-      case 'Graphic Design': records = graphicDesign; break;
-    }
-
-    const total = records.length;
-    const completed = records.filter(r => r.fields.Completed).length;
-    const pending = total - completed;
-    
-    return {
-      category: tableName.replace(' Requests', '').replace(' Updates', ''),
-      completed,
-      pending,
-      total,
-      completionRate: total > 0 ? Math.round((completed / total) * 100) : 0
-    };
-  }).filter(item => item.total > 0);
-
   return (
-    <div className="mb-8">
-      {/* Total pending stats */}
-      <motion.div 
-        className="mb-8 p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700"
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5 }}
+    <div className="space-y-6 mb-8">
+      {/* Week Header */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 p-6"
       >
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+          {/* Week Info */}
           <div>
-            <h2 className="text-2xl font-bold mb-1 text-gray-900 dark:text-white">Communications Dashboard</h2>
-            <p className="text-gray-600 dark:text-gray-400">{hideCompleted ? 'Showing pending items only' : 'Showing all items'}</p>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 bg-sh-navy-100 dark:bg-sh-navy-900/30 rounded-xl flex items-center justify-center">
+                <CalendarDaysIcon className="w-5 h-5 text-sh-navy-600" />
+              </div>
+              <div>
+                <h2 className="text-xl font-serif font-bold text-sh-navy dark:text-white">
+                  This Week: {weekRange.label}
+                </h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Email blast & bulletin cycle
+                </p>
+              </div>
+            </div>
           </div>
-          <div className="mt-4 md:mt-0 bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
-            <div className="text-center">
-              <p className="text-sm font-medium text-blue-600 dark:text-blue-400">TOTAL PENDING</p>
-              <p className="text-3xl font-bold text-blue-700 dark:text-blue-300">{totalPending}</p>
+
+          {/* Quick Stats */}
+          <div className="flex gap-4">
+            <div className="flex items-center gap-3 px-4 py-2 bg-sh-navy-50 dark:bg-sh-navy-900/30 rounded-xl">
+              <EnvelopeIcon className="w-5 h-5 text-sh-navy-600" />
+              <div>
+                <p className="text-2xl font-bold text-sh-navy-700 dark:text-sh-navy-300">{thisWeekEvents.length}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">This Week</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 px-4 py-2 bg-sh-rust-50 dark:bg-sh-rust-900/30 rounded-xl">
+              <NewspaperIcon className="w-5 h-5 text-sh-rust-600" />
+              <div>
+                <p className="text-2xl font-bold text-sh-rust-700 dark:text-sh-rust-300">{totalPending}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Total Pending</p>
+              </div>
             </div>
           </div>
         </div>
+
+        {/* This Week's Events Preview */}
+        {thisWeekEvents.length > 0 && (
+          <div className="mt-6 pt-6 border-t border-gray-100 dark:border-slate-700">
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide mb-3">
+              Events This Week
+            </h3>
+            <div className="space-y-2">
+              {thisWeekEvents.slice(0, 5).map((event) => (
+                <div
+                  key={event.id}
+                  className="flex items-center justify-between py-2 px-3 bg-gray-50 dark:bg-slate-700/50 rounded-lg"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                      {event.fields.Name || event.fields.Ministry || 'Untitled'}
+                    </span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      {event.fields.Ministry}
+                    </span>
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-300 whitespace-nowrap">
+                    {formatFullDate(event.fields['Date of Event']).split(',').slice(0, 2).join(',')}
+                    {event.fields['Time of Event'] && (
+                      <span className="ml-1 text-gray-500">
+                        {formatTime(event.fields['Time of Event'])}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {thisWeekEvents.length > 5 && (
+                <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-1">
+                  +{thisWeekEvents.length - 5} more events
+                </p>
+              )}
+            </div>
+          </div>
+        )}
       </motion.div>
 
-      {/* Stats Cards Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+      {/* Stats Grid - Simple counts */}
+      <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
         {stats.map((stat, index) => (
-          <motion.div 
+          <motion.div
             key={stat.title}
-            className="col-span-1"
-            custom={index}
-            initial="hidden"
-            animate="visible"
-            variants={cardVariants}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.05 }}
+            className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-4 text-center"
           >
-            <a href={stat.link} className="block h-full group">
-              <Card className="border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-200 h-full group-hover:-translate-y-1">
-                <CardContent className="p-0 h-full">
-                  <div className="flex flex-col h-full">
-                    <div className={`h-20 w-full ${stat.bgColor} rounded-t-xl flex items-center justify-center`}>
-                      <div className={`h-10 w-10 ${stat.textColor} flex items-center justify-center`}>
-                        {stat.icon}
-                      </div>
-                    </div>
-                    <div className="p-4 text-center flex-grow">
-                      <h3 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">{stat.title}</h3>
-                      <div className="flex items-center justify-center">
-                        <p className={`text-2xl font-bold ${stat.textColor}`}>{stat.count}</p>
-                        {stat.urgent > 0 && (
-                          <div className="ml-2 flex flex-col">
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-xs font-medium bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300">
-                              <ExclamationTriangleIcon className="h-3 w-3 mr-0.5" />
-                              {stat.urgentLabel || stat.urgent}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </a>
+            <div className={`w-10 h-10 ${stat.bg} rounded-lg flex items-center justify-center mx-auto mb-2`}>
+              <stat.icon className={`w-5 h-5 ${stat.color}`} />
+            </div>
+            <p className={`text-2xl font-bold ${stat.color}`}>{stat.count}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{stat.title}</p>
           </motion.div>
         ))}
-      </div>
-
-      {/* Analytics Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
-        {/* Pending Requests Distribution */}
-        {pieData.length > 0 && (
-          <motion.div
-            className="lg:col-span-1"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.5 }}
-          >
-            <Card className="border border-gray-200 dark:border-gray-700 shadow-sm h-full">
-              <CardContent className="p-6">
-                <div className="flex items-center mb-4">
-                  <ChartBarIcon className="h-5 w-5 text-blue-600 dark:text-blue-400 mr-2" />
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Pending Distribution</h3>
-                </div>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={pieData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={40}
-                        outerRadius={80}
-                        paddingAngle={2}
-                        dataKey="value"
-                      >
-                        {pieData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
-
-        {/* Submission Trend (Last 7 Days) */}
-        <motion.div
-          className="lg:col-span-1"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4, duration: 0.5 }}
-        >
-          <Card className="border border-gray-200 dark:border-gray-700 shadow-sm h-full">
-            <CardContent className="p-6">
-              <div className="flex items-center mb-4">
-                <ClockIcon className="h-5 w-5 text-green-600 dark:text-green-400 mr-2" />
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">7-Day Trend</h3>
-              </div>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={submissionTrendData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <Tooltip />
-                    <Line 
-                      type="monotone" 
-                      dataKey="submissions" 
-                      stroke="#10B981" 
-                      strokeWidth={2}
-                      dot={{ fill: '#10B981', strokeWidth: 2, r: 4 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Completion Rates */}
-        {completionData.length > 0 && (
-          <motion.div
-            className="lg:col-span-2 xl:col-span-1"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5, duration: 0.5 }}
-          >
-            <Card className="border border-gray-200 dark:border-gray-700 shadow-sm h-full">
-              <CardContent className="p-6">
-                <div className="flex items-center mb-4">
-                  <ExclamationTriangleIcon className="h-5 w-5 text-purple-600 dark:text-purple-400 mr-2" />
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Completion Status</h3>
-                </div>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={completionData} layout="horizontal">
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis type="number" />
-                      <YAxis dataKey="category" type="category" width={80} />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="completed" stackId="a" fill="#10B981" name="Completed" />
-                      <Bar dataKey="pending" stackId="a" fill="#F59E0B" name="Pending" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
       </div>
     </div>
   );

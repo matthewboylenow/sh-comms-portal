@@ -1,16 +1,19 @@
 // app/components/admin/GraphicDesignCard.tsx
+'use client';
 
 import { useState } from 'react';
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../ui/Card';
 import { Badge } from '../ui/Badge';
-import { 
-  ChevronDownIcon, 
+import CommentsSection from './CommentsSection';
+import { motion } from 'framer-motion';
+import {
+  ChevronDownIcon,
   ChevronUpIcon,
   ArrowTopRightOnSquareIcon,
-  PencilSquareIcon,
+  PaintBrushIcon,
   CalendarIcon,
   ExclamationTriangleIcon,
-  ClockIcon
+  ClockIcon,
+  SwatchIcon
 } from '@heroicons/react/24/outline';
 import { formatCreatedTime, getAgeIndicator, getAgeIndicatorColor, formatEventDate, extractTimestamp } from '../../utils/dateUtils';
 
@@ -32,15 +35,11 @@ export default function GraphicDesignCard({
 }: GraphicDesignCardProps) {
   const [expanded, setExpanded] = useState(false);
   const f = record.fields;
-  
-  // Extract timestamp with fallbacks
+
   const timestamp = extractTimestamp(f, record);
-  
-  // Age indicators for visual priority
   const ageIndicator = getAgeIndicator(timestamp);
   const ageColor = getAgeIndicatorColor(ageIndicator);
-  
-  // Extract relevant fields with fallbacks
+
   const projectType = f['Project Type'] || 'Unnamed Project';
   const description = f['Project Description'] || 'No description provided.';
   const deadline = f['Deadline'] || '';
@@ -50,148 +49,176 @@ export default function GraphicDesignCard({
   const brandColors = f['Brand Colors Required'] || [];
   const isUrgent = priority === 'Urgent';
   const fileLinks = f['File Links'] || '';
-  
-  // Generate appropriate badge color based on status
+
   const getStatusBadge = () => {
-    switch(status) {
+    switch (status) {
       case 'Pending':
-        return <Badge className="ml-2">Pending</Badge>;
+        return <Badge size="sm">Pending</Badge>;
       case 'In Design':
-        return <Badge variant="primary" className="ml-2">In Design</Badge>;
+        return <Badge variant="primary" size="sm">In Design</Badge>;
       case 'Review':
-        return <Badge variant="warning" className="ml-2">Review</Badge>;
+        return <Badge variant="warning" size="sm">Review</Badge>;
       case 'Completed':
-        return <Badge variant="success" className="ml-2">Completed</Badge>;
+        return <Badge variant="success" size="sm">Completed</Badge>;
       case 'Canceled':
-        return <Badge variant="danger" className="ml-2">Canceled</Badge>;
+        return <Badge variant="danger" size="sm">Canceled</Badge>;
       default:
-        return <Badge className="ml-2">{status}</Badge>;
+        return <Badge size="sm">{status}</Badge>;
     }
   };
 
-  // Generate priority badge
-  const getPriorityBadge = () => {
-    switch(priority) {
+  const getPriorityStyle = () => {
+    switch (priority) {
       case 'Low':
-        return <Badge className="mr-2">Low Priority</Badge>;
+        return 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300';
       case 'Medium':
-        return <Badge variant="primary" className="mr-2">Medium Priority</Badge>;
+        return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300';
       case 'High':
-        return <Badge variant="warning" className="mr-2">High Priority</Badge>;
+        return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300';
       case 'Urgent':
-        return <Badge variant="danger" className="mr-2">
-          <ExclamationTriangleIcon className="h-3 w-3 mr-1" />
-          Urgent
-        </Badge>;
+        return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300';
       default:
-        return null;
+        return 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300';
     }
   };
-
-  // Note: formatDate moved to dateUtils.ts as formatEventDate
 
   return (
-    <Card className={`mb-4 ${isUrgent ? 'border-l-4 border-l-red-500' : ''}`}>
-      <CardHeader className="flex flex-row items-start justify-between">
-        <div>
-          <div className="flex items-center">
-            <CardTitle className="flex items-center">
-              <PencilSquareIcon className="h-5 w-5 mr-2 text-gray-500" />
-              {projectType}
-            </CardTitle>
-            {getStatusBadge()}
-          </div>
-          <div className="flex items-center justify-between text-sm text-gray-500 mt-1">
-            <div className="flex items-center">
-              <span className="font-medium mr-2">{f.Name || 'No Name'}</span>
-              <span>• {f.Ministry || ''}</span>
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={`bg-white dark:bg-slate-800 rounded-2xl border overflow-hidden shadow-card hover:shadow-card-hover transition-all duration-300 ${
+        isUrgent ? 'border-l-4 border-l-red-500 border-gray-200 dark:border-slate-700' : 'border-gray-200 dark:border-slate-700'
+      }`}
+    >
+      {/* Gradient top bar */}
+      <div className="h-1 bg-gradient-to-r from-rose-500 to-rose-600" />
+
+      {/* Header */}
+      <div className="p-5 pb-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-4 min-w-0">
+            {/* Icon */}
+            <div className="flex-shrink-0 w-12 h-12 bg-rose-50 dark:bg-rose-900/30 rounded-xl flex items-center justify-center">
+              <PaintBrushIcon className="w-6 h-6 text-rose-600 dark:text-rose-400" />
             </div>
-            <div className={`flex items-center text-xs ${ageColor}`}>
-              <ClockIcon className="h-3 w-3 mr-1" />
-              <span>Submitted {formatCreatedTime(timestamp)}</span>
+
+            {/* Title & Meta */}
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-serif font-bold text-lg text-sh-navy dark:text-white truncate">
+                  {projectType}
+                </h3>
+                {getStatusBadge()}
+                {isUrgent && (
+                  <Badge variant="danger" size="sm">
+                    <ExclamationTriangleIcon className="w-3 h-3 mr-1" />
+                    Urgent
+                  </Badge>
+                )}
+              </div>
+              <div className="flex items-center gap-3 mt-1 text-sm text-gray-600 dark:text-gray-300">
+                <span className="font-medium">{f.Name || 'No Name'}</span>
+                {f.Ministry && (
+                  <span className="text-gray-500 dark:text-gray-400">• {f.Ministry}</span>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-        <div className="flex items-center space-x-2">
-          <div className="flex items-center">
+
+          {/* Completed Toggle */}
+          <label className="flex items-center gap-2 cursor-pointer group flex-shrink-0">
+            <div className={`relative w-10 h-6 rounded-full transition-colors duration-200 ${f.Completed ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-slate-600'}`}>
+              <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200 ${f.Completed ? 'translate-x-4' : 'translate-x-0'}`} />
+            </div>
             <input
               type="checkbox"
-              id={`completed-${record.id}`}
               checked={!!f.Completed}
               onChange={() => onToggleCompleted('graphicDesign', record.id, !!f.Completed)}
-              className="h-4 w-4 text-green-600 rounded border-gray-300 focus:ring-green-500"
+              className="sr-only"
             />
-            <label htmlFor={`completed-${record.id}`} className="ml-2 text-sm text-gray-600 dark:text-gray-300">
-              Completed
-            </label>
-          </div>
+            <span className="text-sm text-gray-600 dark:text-gray-300 group-hover:text-sh-navy dark:group-hover:text-white transition-colors">
+              {f.Completed ? 'Done' : 'Mark Done'}
+            </span>
+          </label>
         </div>
-      </CardHeader>
 
-      <CardContent>
-        <div className="flex flex-wrap gap-2 mb-3">
-          {getPriorityBadge()}
-          
+        {/* Timestamp */}
+        <div className={`flex items-center gap-1 text-xs mt-3 ${ageColor}`}>
+          <ClockIcon className="w-3.5 h-3.5" />
+          <span>Submitted {formatCreatedTime(timestamp)}</span>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="px-5 pb-4">
+        {/* Priority & Deadline */}
+        <div className="flex flex-wrap gap-3 mb-4">
+          <span className={`inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-lg ${getPriorityStyle()}`}>
+            {priority} Priority
+          </span>
           {deadline && (
-            <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
-              <CalendarIcon className="h-4 w-4 mr-1" />
+            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+              <CalendarIcon className="w-4 h-4 text-rose-600" />
               <span>Deadline: {formatEventDate(deadline)}</span>
             </div>
           )}
         </div>
 
+        {/* Description */}
         <div className="relative">
-          <div 
-            className={`prose prose-sm dark:prose-invert max-w-none ${!expanded && 'max-h-24 overflow-hidden'}`}
-          >
-            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Project Description:</h4>
-            <p>{description}</p>
-            
+          <div className={`space-y-4 ${!expanded && 'max-h-24 overflow-hidden'}`}>
+            <div className="bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 p-4 rounded-xl">
+              <label className="block text-xs font-medium text-rose-700 dark:text-rose-300 uppercase tracking-wide mb-2">
+                Project Description
+              </label>
+              <p className="text-sm text-gray-800 dark:text-gray-200">
+                {description}
+              </p>
+            </div>
+
             {sizeDimensions && (
-              <div className="mt-3">
-                <strong>Required Dimensions:</strong> {sizeDimensions}
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Required Dimensions</label>
+                <p className="text-sm text-gray-700 dark:text-gray-300">{sizeDimensions}</p>
               </div>
             )}
-            
+
             {brandColors && brandColors.length > 0 && (
-              <div className="mt-3">
-                <strong>Brand Colors:</strong> {brandColors.join(', ')}
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Brand Colors</label>
+                <div className="flex items-center gap-2">
+                  <SwatchIcon className="w-4 h-4 text-gray-400" />
+                  <span className="text-sm text-gray-700 dark:text-gray-300">{brandColors.join(', ')}</span>
+                </div>
               </div>
             )}
           </div>
-          
-          {!expanded && description && description.length > 150 && (
-            <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-white dark:from-gray-800 to-transparent"></div>
+
+          {!expanded && description?.length > 150 && (
+            <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-white dark:from-slate-800 to-transparent" />
           )}
         </div>
 
-        {description && description.length > 150 && (
+        {description?.length > 150 && (
           <button
             onClick={() => setExpanded(!expanded)}
-            className="flex items-center text-sm font-medium text-sh-primary dark:text-blue-400 mt-2"
+            className="flex items-center gap-1 text-sm font-medium text-sh-rust hover:text-sh-rust-600 mt-2 transition-colors"
           >
-            {expanded ? (
-              <>
-                <ChevronUpIcon className="h-4 w-4 mr-1" />
-                Show Less
-              </>
-            ) : (
-              <>
-                <ChevronDownIcon className="h-4 w-4 mr-1" />
-                Show More
-              </>
-            )}
+            {expanded ? <><ChevronUpIcon className="w-4 h-4" />Show Less</> : <><ChevronDownIcon className="w-4 h-4" />Show More</>}
           </button>
         )}
-        
-        {/* Status selector if onUpdateStatus is provided */}
+      </div>
+
+      {/* Footer */}
+      <div className="px-5 py-4 bg-sh-cream dark:bg-slate-900 border-t border-gray-100 dark:border-slate-700 space-y-4">
+        {/* Status Selector */}
         {onUpdateStatus && (
-          <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <div>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
               Update Status
             </label>
             <select
-              className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 dark:bg-gray-700 focus:outline-none focus:ring-sh-primary focus:border-sh-primary sm:text-sm rounded-md"
+              className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-sh-navy focus:border-transparent transition-all"
               value={status}
               onChange={(e) => onUpdateStatus(record.id, e.target.value)}
             >
@@ -203,29 +230,24 @@ export default function GraphicDesignCard({
             </select>
           </div>
         )}
-      </CardContent>
 
-      {fileLinks && (
-        <CardFooter className="bg-gray-50 dark:bg-gray-800">
-          <div className="w-full">
-            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Attachments</h4>
+        {/* Attachments */}
+        {fileLinks && (
+          <div>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Attachments</label>
             <div className="space-y-2">
               {fileLinks.split(/\s+/).filter(Boolean).map((link: string, idx: number) => (
-                <a
-                  key={idx}
-                  href={link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center text-sm text-blue-600 dark:text-blue-400 hover:underline"
-                >
-                  <ArrowTopRightOnSquareIcon className="h-4 w-4 mr-1" />
-                  {link.split('/').pop() || `Attachment ${idx + 1}`}
+                <a key={idx} href={link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-sh-rust hover:text-sh-rust-600 transition-colors group">
+                  <ArrowTopRightOnSquareIcon className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                  <span className="truncate">{link.split('/').pop() || `Attachment ${idx + 1}`}</span>
                 </a>
               ))}
             </div>
           </div>
-        </CardFooter>
-      )}
-    </Card>
+        )}
+
+        <CommentsSection recordId={record.id} tableName="graphicDesign" requesterEmail={f.Email} requesterName={f.Name} />
+      </div>
+    </motion.div>
   );
 }

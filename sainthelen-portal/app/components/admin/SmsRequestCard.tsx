@@ -1,9 +1,10 @@
 // app/components/admin/SmsRequestCard.tsx
+'use client';
 
-import { useState } from 'react';
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../ui/Card';
 import { Badge } from '../ui/Badge';
-import { 
+import CommentsSection from './CommentsSection';
+import { motion } from 'framer-motion';
+import {
   CalendarIcon,
   ChatBubbleLeftEllipsisIcon,
   ArrowTopRightOnSquareIcon,
@@ -21,63 +22,83 @@ type SmsRequestCardProps = {
   onToggleCompleted: (tableName: 'smsRequests', recordId: string, currentValue: boolean) => void;
 };
 
-// Note: formatDate moved to dateUtils.ts as formatEventDate
-
 export default function SmsRequestCard({
   record,
   onToggleCompleted
 }: SmsRequestCardProps) {
   const f = record.fields;
-  
-  // Extract timestamp with fallbacks
+
   const timestamp = extractTimestamp(f, record);
-  
-  // Age indicators for visual priority
   const ageIndicator = getAgeIndicator(timestamp);
   const ageColor = getAgeIndicatorColor(ageIndicator);
-  
+
   return (
-    <Card className="mb-4">
-      <CardHeader className="flex flex-row items-start justify-between">
-        <div>
-          <CardTitle className="flex items-center">
-            <ChatBubbleLeftEllipsisIcon className="h-5 w-5 mr-2 text-gray-500" />
-            {f.Name || 'Unnamed Request'}
-          </CardTitle>
-          <div className="flex items-center justify-between text-sm text-gray-500 mt-1">
-            <span className="font-medium mr-2">{f.Ministry || 'No Ministry'}</span>
-            <div className={`flex items-center text-xs ${ageColor}`}>
-              <ClockIcon className="h-3 w-3 mr-1" />
-              <span>Submitted {formatCreatedTime(timestamp)}</span>
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 overflow-hidden shadow-card hover:shadow-card-hover transition-all duration-300"
+    >
+      {/* Gradient top bar */}
+      <div className="h-1 bg-gradient-to-r from-emerald-500 to-emerald-600" />
+
+      {/* Header */}
+      <div className="p-5 pb-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-4 min-w-0">
+            {/* Icon */}
+            <div className="flex-shrink-0 w-12 h-12 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center">
+              <ChatBubbleLeftEllipsisIcon className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+            </div>
+
+            {/* Title & Meta */}
+            <div className="min-w-0 flex-1">
+              <h3 className="font-serif font-bold text-lg text-sh-navy dark:text-white truncate">
+                {f.Name || 'Unnamed Request'}
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-300 font-medium mt-1">
+                {f.Ministry || 'No Ministry'}
+              </p>
             </div>
           </div>
-        </div>
-        <div className="flex items-center space-x-2">
-          <div className="flex items-center">
+
+          {/* Completed Toggle */}
+          <label className="flex items-center gap-2 cursor-pointer group flex-shrink-0">
+            <div className={`relative w-10 h-6 rounded-full transition-colors duration-200 ${f.Completed ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-slate-600'}`}>
+              <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200 ${f.Completed ? 'translate-x-4' : 'translate-x-0'}`} />
+            </div>
             <input
               type="checkbox"
-              id={`completed-${record.id}`}
               checked={!!f.Completed}
               onChange={() => onToggleCompleted('smsRequests', record.id, !!f.Completed)}
-              className="h-4 w-4 text-green-600 rounded border-gray-300 focus:ring-green-500"
+              className="sr-only"
             />
-            <label htmlFor={`completed-${record.id}`} className="ml-2 text-sm text-gray-600 dark:text-gray-300">
-              Completed
-            </label>
-          </div>
+            <span className="text-sm text-gray-600 dark:text-gray-300 group-hover:text-sh-navy dark:group-hover:text-white transition-colors">
+              {f.Completed ? 'Done' : 'Mark Done'}
+            </span>
+          </label>
         </div>
-      </CardHeader>
 
-      <CardContent>
+        {/* Timestamp */}
+        <div className={`flex items-center gap-1 text-xs mt-3 ${ageColor}`}>
+          <ClockIcon className="w-3.5 h-3.5" />
+          <span>Submitted {formatCreatedTime(timestamp)}</span>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="px-5 pb-4">
         {f['Requested Date'] && (
-          <div className="flex items-center text-sm text-gray-600 dark:text-gray-300 mb-3">
-            <CalendarIcon className="h-4 w-4 mr-1" />
+          <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 mb-4">
+            <CalendarIcon className="w-4 h-4 text-emerald-600" />
             <span>Requested Date: {formatEventDate(f['Requested Date'])}</span>
           </div>
         )}
 
-        <div className="bg-gray-100 dark:bg-gray-700 p-3 rounded-md mb-4">
-          <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">SMS Message:</h3>
+        {/* SMS Message */}
+        <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 p-4 rounded-xl mb-4">
+          <label className="block text-xs font-medium text-emerald-700 dark:text-emerald-300 uppercase tracking-wide mb-2">
+            SMS Message
+          </label>
           <p className="text-sm text-gray-800 dark:text-gray-200">
             {f['SMS Message'] || 'No message provided.'}
           </p>
@@ -85,35 +106,34 @@ export default function SmsRequestCard({
 
         {f['Additional Info'] && (
           <div>
-            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Additional Information:</h3>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+              Additional Information
+            </label>
             <p className="text-sm text-gray-600 dark:text-gray-400">
               {f['Additional Info']}
             </p>
           </div>
         )}
-      </CardContent>
+      </div>
 
-      <CardFooter className="bg-gray-50 dark:bg-gray-800">
+      {/* Footer */}
+      <div className="px-5 py-4 bg-sh-cream dark:bg-slate-900 border-t border-gray-100 dark:border-slate-700 space-y-4">
         {f['File Links'] && (
-          <div className="w-full">
-            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Attachments</h4>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Attachments</label>
             <div className="space-y-2">
               {f['File Links'].split(/\s+/).filter(Boolean).map((link: string, idx: number) => (
-                <a
-                  key={idx}
-                  href={link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center text-sm text-blue-600 dark:text-blue-400 hover:underline"
-                >
-                  <ArrowTopRightOnSquareIcon className="h-4 w-4 mr-1" />
-                  {link.split('/').pop() || `Attachment ${idx + 1}`}
+                <a key={idx} href={link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-sh-rust hover:text-sh-rust-600 transition-colors group">
+                  <ArrowTopRightOnSquareIcon className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                  <span className="truncate">{link.split('/').pop() || `Attachment ${idx + 1}`}</span>
                 </a>
               ))}
             </div>
           </div>
         )}
-      </CardFooter>
-    </Card>
+
+        <CommentsSection recordId={record.id} tableName="smsRequests" requesterEmail={f.Email} requesterName={f.Name} />
+      </div>
+    </motion.div>
   );
 }

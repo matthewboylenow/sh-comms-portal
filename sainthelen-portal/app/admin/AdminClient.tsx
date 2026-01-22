@@ -657,29 +657,7 @@ export default function AdminClient() {
                   <span className="hidden xs:inline">Refresh</span>
                 </Button>
 
-                {activeTab === 'announcements' && (
-                  <>
-                    <Button
-                      onClick={handleSummarizeSelected}
-                      variant="primary"
-                      className="rounded-lg sm:rounded-xl h-9 sm:h-11 text-xs sm:text-sm px-3 sm:px-4 flex-1 sm:flex-initial"
-                      disabled={loadingData || Object.keys(summarizeMap).filter(key => summarizeMap[key]).length === 0}
-                      icon={<DocumentTextIcon className="h-4 w-4 sm:h-5 sm:w-5" />}
-                    >
-                      <span className="hidden xs:inline">Summarize</span>
-                    </Button>
-                    
-                    <Button
-                      onClick={handleAddToCalendar}
-                      variant="success"
-                      className="rounded-lg sm:rounded-xl h-9 sm:h-11 text-xs sm:text-sm px-3 sm:px-4 flex-1 sm:flex-initial"
-                      disabled={creatingEvents || Object.keys(calendarMap).filter(key => calendarMap[key]).length === 0}
-                      icon={<CalendarIcon className="h-4 w-4 sm:h-5 sm:w-5" />}
-                    >
-                      <span className="hidden xs:inline">Calendar</span>
-                    </Button>
-                  </>
-                )}
+{/* Summarize and Calendar buttons hidden for now */}
               </div>
 
               {/* Hide completed toggle - optimized for mobile */}
@@ -856,80 +834,7 @@ export default function AdminClient() {
         </div>
       )}
 
-      {/* Claude Summary */}
-      {summary && (
-        <div className="mb-6 bg-white dark:bg-slate-800 rounded-xl shadow-lg overflow-hidden">
-          <div className="bg-gradient-to-r from-purple-500 to-indigo-600 px-6 py-4 flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <h3 className="text-lg font-medium text-white">Generated Summary</h3>
-          </div>
-          <div className="p-6">
-            <div className="bg-gray-50 dark:bg-slate-700 p-5 rounded-lg whitespace-pre-wrap text-sm shadow-inner border border-gray-100 dark:border-slate-600">
-              {summary}
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {/* Calendar Results */}
-      {calendarResults && calendarResults.length > 0 && (
-        <div className="mb-6 bg-white dark:bg-slate-800 rounded-xl shadow-lg overflow-hidden">
-          <div className="bg-gradient-to-r from-blue-500 to-cyan-600 px-6 py-4 flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            <h3 className="text-lg font-medium text-white">Calendar Events Created</h3>
-          </div>
-          <div className="p-6">
-            <div className="overflow-x-auto bg-gray-50 dark:bg-slate-700 rounded-lg shadow-inner">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-600">
-                <thead>
-                  <tr>
-                    <th scope="col" className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Event</th>
-                    <th scope="col" className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-slate-600">
-                  {calendarResults.map((result, index) => (
-                    <tr key={index}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-white">
-                        Event #{index + 1} <span className="text-gray-500 dark:text-gray-400 text-xs">(ID: {result.eventId})</span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm flex space-x-3">
-                        <a 
-                          href={result.editUrl} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors flex items-center"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                          Edit
-                        </a>
-                        <a 
-                          href={result.eventUrl} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="px-3 py-1 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors flex items-center"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                          </svg>
-                          View
-                        </a>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
+{/* Claude Summary and Calendar Results sections hidden for now */}
 
       {/* Loading indicator - modern pulse effect */}
       {loadingData && (

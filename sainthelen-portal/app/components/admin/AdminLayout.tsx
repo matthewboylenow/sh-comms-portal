@@ -3,27 +3,26 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import { useNotificationContext } from '../../context/NotificationContext';
 import { usePermissions } from '../../hooks/usePermissions';
-import { 
-  MegaphoneIcon, 
-  GlobeAltIcon, 
-  ChatBubbleLeftRightIcon, 
-  HomeIcon, 
-  ChevronDoubleLeftIcon, 
-  ChevronDoubleRightIcon,
+import {
+  HomeIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
   CheckCircleIcon,
   MoonIcon,
   SunIcon,
   ArrowRightOnRectangleIcon,
-  VideoCameraIcon, 
   DocumentTextIcon,
-  PencilSquareIcon,
   ChartBarIcon,
   BellIcon,
   BuildingOffice2Icon,
-  ClockIcon
+  ClockIcon,
+  Bars3Icon,
+  XMarkIcon,
+  MegaphoneIcon
 } from '@heroicons/react/24/outline';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -35,621 +34,385 @@ interface AdminLayoutProps {
 export default function AdminLayout({ children, title }: AdminLayoutProps) {
   const { data: session } = useSession();
   const notificationContext = useNotificationContext();
+  const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [isDark, setIsDark] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [userPreferences, setUserPreferences] = useState(false);
-  const [notificationCenter, setNotificationCenter] = useState(false);
-  
-  // Get user permissions
-  const { permissions, loading: permissionsLoading } = usePermissions();
+  const [notificationOpen, setNotificationOpen] = useState(false);
+
+  const { permissions } = usePermissions();
 
   useEffect(() => {
-    // Initialize dark mode based on localStorage
     const isDarkMode = localStorage.getItem('theme') === 'dark';
     setIsDark(isDarkMode);
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    }
 
-    // Check if on mobile
     const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-      if (window.innerWidth < 768) {
-        setCollapsed(true);
-      }
+      const mobile = window.innerWidth < 1024;
+      setIsMobile(mobile);
+      if (mobile) setCollapsed(true);
     };
 
-    // Initial check
     handleResize();
-
-    // Listen for resize events
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const toggleSidebar = () => {
-    setCollapsed(!collapsed);
-  };
-
-  const toggleMobileMenu = () => {
-    setMobileMenuOpen(!mobileMenuOpen);
-  };
-
   const handleToggleTheme = () => {
     const htmlEl = document.documentElement;
     if (htmlEl.classList.contains('dark')) {
-      // Switch to light mode
       htmlEl.classList.remove('dark');
       localStorage.setItem('theme', 'light');
       setIsDark(false);
     } else {
-      // Switch to dark mode
       htmlEl.classList.add('dark');
       localStorage.setItem('theme', 'dark');
       setIsDark(true);
     }
   };
 
-  const handleSignOut = () => {
-    signOut();
-  };
-
   if (!session) return null;
 
-  // Animation variants for sidebar
-  const sidebarVariants = {
-    expanded: { width: '16rem' }, 
-    collapsed: { width: '4.5rem' }
-  };
+  const navItems = [
+    { href: '/admin', label: 'Dashboard', icon: HomeIcon, permission: permissions?.canAccessMainDashboard, color: 'sh-navy' },
+    { href: '/admin/approvals', label: permissions?.role === 'adult_faith_approver' ? 'Adult Faith Approvals' : 'Approvals', icon: ClockIcon, permission: permissions?.canAccessApprovals, color: 'sh-rust' },
+    { href: '/admin/completed', label: 'Completed', icon: CheckCircleIcon, permission: permissions?.canAccessCompleted, color: 'emerald' },
+    { href: '/admin/analytics', label: 'Analytics', icon: ChartBarIcon, permission: permissions?.canAccessAnalytics, color: 'purple' },
+    { href: '/admin/reports', label: 'Reports', icon: DocumentTextIcon, permission: permissions?.canAccessAnalytics, color: 'sky' },
+    { href: '/admin/ministries', label: 'Ministries', icon: BuildingOffice2Icon, permission: permissions?.canAccessMinistries, color: 'amber' },
+  ].filter(item => item.permission);
 
-  // Animation variants for mobile menu
-  const mobileMenuVariants = {
-    open: { x: 0, opacity: 1 },
-    closed: { x: '-100%', opacity: 0 }
-  };
+  const isActive = (href: string) => pathname === href;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white font-inter">
-      {/* Desktop Sidebar */}
-      <AnimatePresence initial={false}>
-        <motion.div 
-          className={`fixed z-20 h-full bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 shadow-sm hidden md:block ${isMobile ? 'hidden' : 'block'}`}
-          animate={collapsed ? 'collapsed' : 'expanded'}
-          variants={sidebarVariants}
-          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-        >
-          {/* Sidebar header with logo */}
-          <div className="flex h-16 items-center justify-between px-4 border-b border-gray-200 dark:border-gray-800">
-            {!collapsed && (
-              <Link href="/admin" className="text-gray-900 dark:text-gray-100 font-bold flex items-center space-x-2">
-                <span className="text-xl tracking-tight">Saint Helen</span>
-              </Link>
-            )}
-            <button 
-              onClick={toggleSidebar}
-              className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200"
+    <div className="flex h-screen bg-sh-cream dark:bg-slate-900">
+      {/* Sidebar - Desktop */}
+      <motion.aside
+        className="hidden lg:flex flex-col fixed inset-y-0 left-0 z-30 bg-white dark:bg-slate-800 border-r border-gray-200 dark:border-slate-700 shadow-soft"
+        animate={{ width: collapsed ? 80 : 280 }}
+        transition={{ duration: 0.3, ease: 'easeInOut' }}
+      >
+        {/* Logo Section */}
+        <div className="h-16 flex items-center justify-between px-4 border-b border-gray-100 dark:border-slate-700">
+          <Link href="/admin" className="flex items-center">
+            <div className="w-10 h-10 bg-sh-navy rounded-xl flex items-center justify-center flex-shrink-0">
+              <span className="text-white font-serif font-bold text-lg">SH</span>
+            </div>
+            <AnimatePresence>
+              {!collapsed && (
+                <motion.span
+                  initial={{ opacity: 0, width: 0 }}
+                  animate={{ opacity: 1, width: 'auto' }}
+                  exit={{ opacity: 0, width: 0 }}
+                  className="ml-3 font-serif font-bold text-sh-navy dark:text-white text-lg whitespace-nowrap overflow-hidden"
+                >
+                  Admin Portal
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </Link>
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            className="p-2 rounded-lg text-gray-400 hover:text-sh-navy dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+          >
+            {collapsed ? <ChevronRightIcon className="w-5 h-5" /> : <ChevronLeftIcon className="w-5 h-5" />}
+          </button>
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto">
+          {navItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`
+                flex items-center px-3 py-3 rounded-xl transition-all duration-200 group relative
+                ${isActive(item.href)
+                  ? 'bg-sh-navy text-white shadow-md'
+                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700'
+                }
+              `}
             >
-              {collapsed ? 
-                <ChevronDoubleRightIcon className="h-4 w-4" /> : 
-                <ChevronDoubleLeftIcon className="h-4 w-4" />
-              }
-            </button>
-          </div>
-
-          {/* Sidebar main navigation */}
-          <div className="py-6 flex flex-col h-[calc(100%-4rem)] justify-between">
-            <nav className="px-3 space-y-1">
-              {/* Dashboard link - only for admins */}
-              {permissions?.canAccessMainDashboard && (
-                <Link 
-                  href="/admin" 
-                  className="flex items-center px-3 py-2.5 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-all duration-200 group"
-                >
-                  <div className="flex items-center justify-center w-8 h-8 text-gray-500 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-200">
-                    <HomeIcon className="h-5 w-5" />
-                  </div>
-                  {!collapsed && <span className="ml-3 font-medium">Dashboard</span>}
-                </Link>
+              {/* Active indicator */}
+              {isActive(item.href) && (
+                <motion.div
+                  layoutId="activeIndicator"
+                  className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-sh-rust rounded-r-full"
+                />
               )}
+              <item.icon className={`w-6 h-6 flex-shrink-0 ${isActive(item.href) ? '' : 'group-hover:text-sh-navy dark:group-hover:text-white'}`} />
+              <AnimatePresence>
+                {!collapsed && (
+                  <motion.span
+                    initial={{ opacity: 0, width: 0 }}
+                    animate={{ opacity: 1, width: 'auto' }}
+                    exit={{ opacity: 0, width: 0 }}
+                    className="ml-3 font-medium whitespace-nowrap overflow-hidden"
+                  >
+                    {item.label}
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </Link>
+          ))}
+        </nav>
 
-              {/* Approvals link - for both admins and approvers */}
-              {permissions?.canAccessApprovals && (
-                <Link 
-                  href="/admin/approvals" 
-                  className="flex items-center px-3 py-2.5 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-all duration-200 group"
-                >
-                  <div className="flex items-center justify-center w-8 h-8 text-gray-500 dark:text-gray-400 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors duration-200">
-                    <ClockIcon className="h-5 w-5" />
+        {/* Bottom Actions */}
+        <div className="p-3 border-t border-gray-100 dark:border-slate-700 space-y-1">
+          <button
+            onClick={handleToggleTheme}
+            className="w-full flex items-center px-3 py-3 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors group"
+          >
+            {isDark ? <SunIcon className="w-6 h-6" /> : <MoonIcon className="w-6 h-6" />}
+            {!collapsed && <span className="ml-3 font-medium">{isDark ? 'Light Mode' : 'Dark Mode'}</span>}
+          </button>
+          <button
+            onClick={() => signOut()}
+            className="w-full flex items-center px-3 py-3 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 transition-colors group"
+          >
+            <ArrowRightOnRectangleIcon className="w-6 h-6" />
+            {!collapsed && <span className="ml-3 font-medium">Sign Out</span>}
+          </button>
+        </div>
+      </motion.aside>
+
+      {/* Mobile Sidebar Overlay */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+              onClick={() => setMobileMenuOpen(false)}
+            />
+            <motion.aside
+              initial={{ x: -300 }}
+              animate={{ x: 0 }}
+              exit={{ x: -300 }}
+              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              className="fixed inset-y-0 left-0 w-72 bg-white dark:bg-slate-800 z-50 lg:hidden shadow-2xl"
+            >
+              <div className="h-16 flex items-center justify-between px-4 border-b border-gray-100 dark:border-slate-700">
+                <Link href="/admin" className="flex items-center">
+                  <div className="w-10 h-10 bg-sh-navy rounded-xl flex items-center justify-center">
+                    <span className="text-white font-serif font-bold text-lg">SH</span>
                   </div>
-                  {!collapsed && <span className="ml-3 font-medium">
-                    {permissions.role === 'adult_faith_approver' ? 'Adult Faith Approvals' : 'Approvals'}
-                  </span>}
+                  <span className="ml-3 font-serif font-bold text-sh-navy dark:text-white text-lg">Admin Portal</span>
                 </Link>
-              )}
-
-              {/* Completed Items - only for admins */}
-              {permissions?.canAccessCompleted && (
-                <Link 
-                  href="/admin/completed" 
-                  className="flex items-center px-3 py-2.5 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-all duration-200 group"
+                <button
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="p-2 rounded-lg text-gray-400 hover:text-gray-600"
                 >
-                  <div className="flex items-center justify-center w-8 h-8 text-gray-500 dark:text-gray-400 group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors duration-200">
-                    <CheckCircleIcon className="h-5 w-5" />
-                  </div>
-                  {!collapsed && <span className="ml-3 font-medium">Completed Items</span>}
-                </Link>
-              )}
-
-              {/* Analytics - only for admins */}
-              {permissions?.canAccessAnalytics && (
-                <Link 
-                  href="/admin/analytics" 
-                  className="flex items-center px-3 py-2.5 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-all duration-200 group"
-                >
-                  <div className="flex items-center justify-center w-8 h-8 text-gray-500 dark:text-gray-400 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors duration-200">
-                    <ChartBarIcon className="h-5 w-5" />
-                  </div>
-                  {!collapsed && <span className="ml-3 font-medium">Analytics</span>}
-                </Link>
-              )}
-
-              {/* Reports - only for admins */}
-              {permissions?.canAccessAnalytics && (
-                <Link 
-                  href="/admin/reports" 
-                  className="flex items-center px-3 py-2.5 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-all duration-200 group"
-                >
-                  <div className="flex items-center justify-center w-8 h-8 text-gray-500 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-200">
-                    <DocumentTextIcon className="h-5 w-5" />
-                  </div>
-                  {!collapsed && <span className="ml-3 font-medium">Weekly Reports</span>}
-                </Link>
-              )}
-
-              {/* Ministries - only for admins */}
-              {permissions?.canAccessMinistries && (
-                <Link 
-                  href="/admin/ministries" 
-                  className="flex items-center px-3 py-2.5 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-all duration-200 group"
-                >
-                  <div className="flex items-center justify-center w-8 h-8 text-gray-500 dark:text-gray-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200">
-                    <BuildingOffice2Icon className="h-5 w-5" />
-                  </div>
-                  {!collapsed && <span className="ml-3 font-medium">Ministries</span>}
-                </Link>
-              )}
-            </nav>
-
-            {/* Sidebar footer */}
-            <div className="mt-auto border-t border-gray-200 dark:border-gray-800 pt-4 px-3">
-              <div className="flex flex-col space-y-1">
-                {/* Toggle theme button */}
+                  <XMarkIcon className="w-6 h-6" />
+                </button>
+              </div>
+              <nav className="px-3 py-6 space-y-1">
+                {navItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`
+                      flex items-center px-3 py-3 rounded-xl transition-all duration-200
+                      ${isActive(item.href)
+                        ? 'bg-sh-navy text-white'
+                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700'
+                      }
+                    `}
+                  >
+                    <item.icon className="w-6 h-6" />
+                    <span className="ml-3 font-medium">{item.label}</span>
+                  </Link>
+                ))}
+              </nav>
+              <div className="absolute bottom-0 left-0 right-0 p-3 border-t border-gray-100 dark:border-slate-700 space-y-1">
                 <button
                   onClick={handleToggleTheme}
-                  className="flex items-center px-3 py-2.5 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-all duration-200 group"
+                  className="w-full flex items-center px-3 py-3 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
                 >
-                  <div className="flex items-center justify-center w-8 h-8 text-gray-500 dark:text-gray-400 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors duration-200">
-                    {isDark ? <SunIcon className="h-5 w-5" /> : <MoonIcon className="h-5 w-5" />}
-                  </div>
-                  {!collapsed && (
-                    <span className="ml-3 font-medium">
-                      {isDark ? 'Light Mode' : 'Dark Mode'}
-                    </span>
-                  )}
+                  {isDark ? <SunIcon className="w-6 h-6" /> : <MoonIcon className="w-6 h-6" />}
+                  <span className="ml-3 font-medium">{isDark ? 'Light Mode' : 'Dark Mode'}</span>
                 </button>
-                
-                {/* Sign out button */}
                 <button
-                  onClick={handleSignOut}
-                  className="flex items-center px-3 py-2.5 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 transition-all duration-200 group"
+                  onClick={() => signOut()}
+                  className="w-full flex items-center px-3 py-3 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 transition-colors"
                 >
-                  <div className="flex items-center justify-center w-8 h-8 text-gray-500 dark:text-gray-400 group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors duration-200">
-                    <ArrowRightOnRectangleIcon className="h-5 w-5" />
-                  </div>
-                  {!collapsed && <span className="ml-3 font-medium">Sign Out</span>}
+                  <ArrowRightOnRectangleIcon className="w-6 h-6" />
+                  <span className="ml-3 font-medium">Sign Out</span>
                 </button>
               </div>
-            </div>
-          </div>
-        </motion.div>
-      </AnimatePresence>
-
-      {/* Mobile menu backdrop */}
-      {isMobile && mobileMenuOpen && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-20"
-          onClick={toggleMobileMenu}
-        />
-      )}
-
-      {/* Mobile sidebar */}
-      <AnimatePresence>
-        {isMobile && mobileMenuOpen && (
-          <motion.div 
-            className="fixed inset-y-0 left-0 w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 shadow-lg z-30"
-            initial="closed"
-            animate="open"
-            exit="closed"
-            variants={mobileMenuVariants}
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-          >
-            <div className="flex h-16 items-center justify-between px-4 border-b border-gray-200 dark:border-gray-800">
-              <Link href="/admin" className="text-gray-900 dark:text-gray-100 font-bold flex items-center space-x-2">
-                <span className="text-xl tracking-tight">Saint Helen</span>
-              </Link>
-              <button 
-                onClick={toggleMobileMenu}
-                className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200"
-              >
-                <ChevronDoubleLeftIcon className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="py-6 flex flex-col h-[calc(100%-4rem)] justify-between">
-              <nav className="px-3 space-y-1">
-                {/* Mobile navigation - role-based like desktop */}
-                {permissions?.canAccessMainDashboard && (
-                  <Link 
-                    href="/admin" 
-                    className="flex items-center px-3 py-2.5 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-all duration-200 group"
-                    onClick={toggleMobileMenu}
-                  >
-                    <div className="flex items-center justify-center w-8 h-8 text-gray-500 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-200">
-                      <HomeIcon className="h-5 w-5" />
-                    </div>
-                    <span className="ml-3 font-medium">Dashboard</span>
-                  </Link>
-                )}
-
-                {permissions?.canAccessApprovals && (
-                  <Link 
-                    href="/admin/approvals" 
-                    className="flex items-center px-3 py-2.5 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-all duration-200 group"
-                    onClick={toggleMobileMenu}
-                  >
-                    <div className="flex items-center justify-center w-8 h-8 text-gray-500 dark:text-gray-400 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors duration-200">
-                      <ClockIcon className="h-5 w-5" />
-                    </div>
-                    <span className="ml-3 font-medium">
-                      {permissions.role === 'adult_faith_approver' ? 'Adult Faith Approvals' : 'Approvals'}
-                    </span>
-                  </Link>
-                )}
-
-                {permissions?.canAccessCompleted && (
-                  <Link 
-                    href="/admin/completed" 
-                    className="flex items-center px-3 py-2.5 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-all duration-200 group"
-                    onClick={toggleMobileMenu}
-                  >
-                    <div className="flex items-center justify-center w-8 h-8 text-gray-500 dark:text-gray-400 group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors duration-200">
-                      <CheckCircleIcon className="h-5 w-5" />
-                    </div>
-                    <span className="ml-3 font-medium">Completed Items</span>
-                  </Link>
-                )}
-
-                {permissions?.canAccessAnalytics && (
-                  <Link 
-                    href="/admin/analytics" 
-                    className="flex items-center px-3 py-2.5 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-all duration-200 group"
-                    onClick={toggleMobileMenu}
-                  >
-                    <div className="flex items-center justify-center w-8 h-8 text-gray-500 dark:text-gray-400 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors duration-200">
-                      <ChartBarIcon className="h-5 w-5" />
-                    </div>
-                    <span className="ml-3 font-medium">Analytics</span>
-                  </Link>
-                )}
-
-                {permissions?.canAccessMinistries && (
-                  <Link 
-                    href="/admin/ministries" 
-                    className="flex items-center px-3 py-2.5 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-all duration-200 group"
-                    onClick={toggleMobileMenu}
-                  >
-                    <div className="flex items-center justify-center w-8 h-8 text-gray-500 dark:text-gray-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200">
-                      <BuildingOffice2Icon className="h-5 w-5" />
-                    </div>
-                    <span className="ml-3 font-medium">Ministries</span>
-                  </Link>
-                )}
-              </nav>
-
-              <div className="mt-auto border-t border-gray-200 dark:border-gray-800 pt-4 px-3">
-                <div className="flex flex-col space-y-1">
-                  <button
-                    onClick={handleToggleTheme}
-                    className="flex items-center px-3 py-2.5 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-all duration-200 group"
-                  >
-                    <div className="flex items-center justify-center w-8 h-8 text-gray-500 dark:text-gray-400 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors duration-200">
-                      {isDark ? <SunIcon className="h-5 w-5" /> : <MoonIcon className="h-5 w-5" />}
-                    </div>
-                    <span className="ml-3 font-medium">
-                      {isDark ? 'Light Mode' : 'Dark Mode'}
-                    </span>
-                  </button>
-                  
-                  <button
-                    onClick={handleSignOut}
-                    className="flex items-center px-3 py-2.5 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 transition-all duration-200 group"
-                  >
-                    <div className="flex items-center justify-center w-8 h-8 text-gray-500 dark:text-gray-400 group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors duration-200">
-                      <ArrowRightOnRectangleIcon className="h-5 w-5" />
-                    </div>
-                    <span className="ml-3 font-medium">Sign Out</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </motion.div>
+            </motion.aside>
+          </>
         )}
       </AnimatePresence>
 
-      {/* Main content */}
-      <div className={`flex flex-col flex-1 overflow-hidden transition-all duration-300 ${isMobile ? '' : (collapsed ? 'ml-[4.5rem]' : 'ml-64')}`}>
-        {/* Top navigation */}
-        <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 z-10 relative">
-          <div className="px-4 h-16 flex items-center justify-between">
+      {/* Main Content */}
+      <div className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ${!isMobile ? (collapsed ? 'lg:ml-20' : 'lg:ml-[280px]') : ''}`}>
+        {/* Top Header */}
+        <header className="sticky top-0 z-20 bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border-b border-gray-200 dark:border-slate-700">
+          <div className="h-16 px-4 lg:px-6 flex items-center justify-between">
             <div className="flex items-center">
-              {/* Mobile menu button */}
               <button
-                onClick={toggleMobileMenu}
-                className="md:hidden p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-all duration-200 mr-3"
+                onClick={() => setMobileMenuOpen(true)}
+                className="lg:hidden p-2 -ml-2 mr-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
-                </svg>
+                <Bars3Icon className="w-6 h-6" />
               </button>
-              
-              {/* Page title */}
-              <h1 className="text-xl font-semibold font-baskerville">{title}</h1>
+              <div>
+                <h1 className="text-xl lg:text-2xl font-serif font-bold text-sh-navy dark:text-white">{title}</h1>
+                <p className="text-sm text-gray-500 dark:text-gray-400 hidden sm:block">
+                  Welcome back, {session?.user?.name?.split(' ')[0]}
+                </p>
+              </div>
             </div>
-            
-            {/* Right side actions */}
-            <div className="flex items-center">
-              {/* Notifications dropdown */}
+
+            <div className="flex items-center gap-2">
+              {/* Notifications */}
               <div className="relative">
-                <button 
-                  onClick={() => setNotificationCenter(!notificationCenter)}
-                  className="relative p-2.5 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white rounded-xl transition-all duration-200 mr-2"
+                <button
+                  onClick={() => setNotificationOpen(!notificationOpen)}
+                  className="relative p-2 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
                 >
-                  <BellIcon className="h-6 w-6" />
+                  <BellIcon className="w-6 h-6" />
                   {notificationContext.unreadCount > 0 && (
-                    <span className="absolute top-1 right-1 inline-flex items-center justify-center h-5 w-5 rounded-full bg-red-500 text-white text-xs font-medium">
-                      {notificationContext.unreadCount}
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-sh-rust text-white text-xs font-bold rounded-full flex items-center justify-center">
+                      {notificationContext.unreadCount > 9 ? '9+' : notificationContext.unreadCount}
                     </span>
                   )}
                 </button>
-                
-                {notificationCenter && (
-                  <div className="absolute right-0 mt-2 w-80 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 z-50">
-                    <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-                      <h3 className="text-sm font-medium text-gray-700 dark:text-gray-200">Notifications</h3>
-                      <button 
-                        onClick={() => notificationContext.markAllAsRead()}
-                        className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
-                      >
-                        Mark all as read
-                      </button>
-                    </div>
-                    <div className="max-h-60 overflow-y-auto">
-                      {notificationContext.loading ? (
-                        <div className="px-4 py-6 text-center">
-                          <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-solid border-blue-600 border-r-transparent dark:border-blue-400 dark:border-r-transparent"></div>
-                        </div>
-                      ) : notificationContext.notifications.length > 0 ? (
-                        notificationContext.notifications.map(notification => (
-                          <div key={notification.id} className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
-                            <div className="flex items-start">
-                              <div className="flex-shrink-0 pt-0.5">
-                                <div className={`h-8 w-8 rounded-full ${
-                                  notification.type === 'info' ? 'bg-blue-100 dark:bg-blue-900' :
-                                  notification.type === 'success' ? 'bg-green-100 dark:bg-green-900' :
-                                  notification.type === 'warning' ? 'bg-yellow-100 dark:bg-yellow-900' :
-                                  'bg-red-100 dark:bg-red-900'
-                                } flex items-center justify-center`}>
-                                  {notification.relatedRecordType === 'Announcements' ? (
-                                    <MegaphoneIcon className={`h-4 w-4 ${
-                                      notification.type === 'info' ? 'text-blue-600 dark:text-blue-400' :
-                                      notification.type === 'success' ? 'text-green-600 dark:text-green-400' :
-                                      notification.type === 'warning' ? 'text-yellow-600 dark:text-yellow-400' :
-                                      'text-red-600 dark:text-red-400'
-                                    }`} />
-                                  ) : (
-                                    <BellIcon className={`h-4 w-4 ${
-                                      notification.type === 'info' ? 'text-blue-600 dark:text-blue-400' :
-                                      notification.type === 'success' ? 'text-green-600 dark:text-green-400' :
-                                      notification.type === 'warning' ? 'text-yellow-600 dark:text-yellow-400' :
-                                      'text-red-600 dark:text-red-400'
-                                    }`} />
-                                  )}
-                                </div>
-                              </div>
-                              <div className="ml-3 w-0 flex-1">
-                                <div className="flex justify-between items-start">
-                                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                    {notification.message}
-                                  </p>
-                                  {!notification.isRead && (
-                                    <button 
-                                      onClick={() => notificationContext.markAsRead(notification.id)}
-                                      className="ml-2 flex-shrink-0 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
-                                    >
-                                      Mark read
-                                    </button>
-                                  )}
-                                </div>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">
-                                  {new Date(notification.createdAt).toLocaleString()}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
-                          No notifications
-                        </div>
-                      )}
-                    </div>
-                    {notificationContext.notifications.length > 0 && (
-                      <div className="px-4 py-2 border-t border-gray-200 dark:border-gray-700">
-                        <button 
-                          onClick={() => {
-                            // Here you would navigate to a full notifications page
-                            setNotificationCenter(false);
-                          }}
-                          className="w-full text-center text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+
+                <AnimatePresence>
+                  {notificationOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-gray-200 dark:border-slate-700 overflow-hidden"
+                    >
+                      <div className="px-4 py-3 bg-sh-navy text-white flex justify-between items-center">
+                        <h3 className="font-semibold">Notifications</h3>
+                        <button
+                          onClick={() => notificationContext.markAllAsRead()}
+                          className="text-xs text-white/80 hover:text-white"
                         >
-                          View all notifications
+                          Mark all read
                         </button>
                       </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* User profile dropdown */}
-              <div className="relative">
-                <button 
-                  onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex text-sm rounded-full bg-gray-100 dark:bg-gray-800 p-1 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200"
-                >
-                  <div className="h-8 w-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-medium">
-                    {session?.user?.name?.charAt(0) || 'U'}
-                  </div>
-                </button>
-                
-                {userMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 z-50">
-                    <div className="px-4 py-2 text-sm text-gray-700 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700">
-                      <p className="font-medium">{session?.user?.name}</p>
-                      <p className="text-gray-500 dark:text-gray-400 truncate">{session?.user?.email}</p>
-                    </div>
-                    <button onClick={handleToggleTheme} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
-                      {isDark ? 'Light Mode' : 'Dark Mode'}
-                    </button>
-                    <button onClick={() => setUserPreferences(!userPreferences)} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
-                      Preferences
-                    </button>
-                    <button onClick={handleSignOut} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
-                      Sign Out
-                    </button>
-                  </div>
-                )}
-                
-                {userPreferences && (
-                  <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="preferences-modal" role="dialog" aria-modal="true">
-                    <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                      <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onClick={() => setUserPreferences(false)}></div>
-                      <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-                      <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                        <div className="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                          <div className="sm:flex sm:items-start">
-                            <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                              <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-gray-100" id="modal-title">
-                                User Preferences
-                              </h3>
-                              <div className="mt-6 space-y-4">
-                                <div>
-                                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Theme</label>
-                                  <select 
-                                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 dark:bg-gray-700 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-                                    value={isDark ? 'dark' : 'light'}
-                                    onChange={(e) => {
-                                      const htmlEl = document.documentElement;
-                                      if (e.target.value === 'dark') {
-                                        htmlEl.classList.add('dark');
-                                        localStorage.setItem('theme', 'dark');
-                                        setIsDark(true);
-                                      } else {
-                                        htmlEl.classList.remove('dark');
-                                        localStorage.setItem('theme', 'light');
-                                        setIsDark(false);
-                                      }
-                                    }}
-                                  >
-                                    <option value="light">Light</option>
-                                    <option value="dark">Dark</option>
-                                    <option value="system">System</option>
-                                  </select>
+                      <div className="max-h-80 overflow-y-auto">
+                        {notificationContext.notifications.length > 0 ? (
+                          notificationContext.notifications.slice(0, 5).map((notification) => (
+                            <div
+                              key={notification.id}
+                              className={`px-4 py-3 border-b border-gray-100 dark:border-slate-700 last:border-0 ${
+                                !notification.isRead ? 'bg-sh-cream dark:bg-slate-700/50' : ''
+                              }`}
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                                  notification.type === 'success' ? 'bg-emerald-100 text-emerald-600' :
+                                  notification.type === 'warning' ? 'bg-amber-100 text-amber-600' :
+                                  notification.type === 'error' ? 'bg-red-100 text-red-600' :
+                                  'bg-sh-navy-100 text-sh-navy'
+                                }`}>
+                                  <MegaphoneIcon className="w-4 h-4" />
                                 </div>
-                                <div>
-                                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Notifications</label>
-                                  <div className="mt-2 space-y-2">
-                                    <div className="flex items-center">
-                                      <input 
-                                        id="notify-new-requests" 
-                                        type="checkbox" 
-                                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                                        defaultChecked
-                                      />
-                                      <label htmlFor="notify-new-requests" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
-                                        New request notifications
-                                      </label>
-                                    </div>
-                                    <div className="flex items-center">
-                                      <input 
-                                        id="notify-status-updates" 
-                                        type="checkbox" 
-                                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                                        defaultChecked
-                                      />
-                                      <label htmlFor="notify-status-updates" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
-                                        Status update notifications
-                                      </label>
-                                    </div>
-                                    <div className="flex items-center">
-                                      <input 
-                                        id="notify-completion" 
-                                        type="checkbox" 
-                                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                                        defaultChecked
-                                      />
-                                      <label htmlFor="notify-completion" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
-                                        Request completion notifications
-                                      </label>
-                                    </div>
-                                  </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm text-gray-900 dark:text-white">{notification.message}</p>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                    {new Date(notification.createdAt).toLocaleDateString()}
+                                  </p>
                                 </div>
                               </div>
                             </div>
+                          ))
+                        ) : (
+                          <div className="px-4 py-8 text-center text-gray-500">
+                            <BellIcon className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                            <p>No notifications</p>
                           </div>
-                        </div>
-                        <div className="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                          <button 
-                            type="button" 
-                            className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
-                            onClick={() => setUserPreferences(false)}
-                          >
-                            Save
-                          </button>
-                          <button 
-                            type="button" 
-                            className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-800 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-                            onClick={() => setUserPreferences(false)}
-                          >
-                            Cancel
-                          </button>
-                        </div>
+                        )}
                       </div>
-                    </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* User Menu */}
+              <div className="relative">
+                <button
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  className="flex items-center gap-3 p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+                >
+                  <div className="w-9 h-9 bg-gradient-to-br from-sh-navy to-sh-navy-700 rounded-xl flex items-center justify-center text-white font-medium">
+                    {session?.user?.name?.charAt(0) || 'U'}
                   </div>
-                )}
+                  <span className="hidden md:block text-sm font-medium text-gray-700 dark:text-gray-200">
+                    {session?.user?.name?.split(' ')[0]}
+                  </span>
+                </button>
+
+                <AnimatePresence>
+                  {userMenuOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-gray-200 dark:border-slate-700 overflow-hidden"
+                    >
+                      <div className="px-4 py-3 border-b border-gray-100 dark:border-slate-700">
+                        <p className="font-medium text-gray-900 dark:text-white">{session?.user?.name}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{session?.user?.email}</p>
+                      </div>
+                      <div className="py-1">
+                        <button
+                          onClick={handleToggleTheme}
+                          className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center gap-2"
+                        >
+                          {isDark ? <SunIcon className="w-4 h-4" /> : <MoonIcon className="w-4 h-4" />}
+                          {isDark ? 'Light Mode' : 'Dark Mode'}
+                        </button>
+                        <Link
+                          href="/"
+                          className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center gap-2"
+                        >
+                          <HomeIcon className="w-4 h-4" />
+                          Back to Portal
+                        </Link>
+                        <button
+                          onClick={() => signOut()}
+                          className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
+                        >
+                          <ArrowRightOnRectangleIcon className="w-4 h-4" />
+                          Sign Out
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </div>
           </div>
         </header>
 
-        {/* Page content with nice glass effect */}
-        <main className="flex-1 overflow-y-auto p-6 pb-24 bg-gray-50 dark:bg-gray-900">
-          <div className="max-w-7xl mx-auto">
-            <div className="mb-8">
-              {children}
-            </div>
+        {/* Page Content */}
+        <main className="flex-1 overflow-y-auto">
+          <div className="px-4 lg:px-6 py-6 max-w-7xl mx-auto">
+            {children}
           </div>
         </main>
+
+        {/* Footer */}
+        <footer className="border-t border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 py-4 px-6">
+          <p className="text-center text-sm text-gray-500 dark:text-gray-400">
+            Saint Helen Communications Portal
+          </p>
+        </footer>
       </div>
     </div>
   );

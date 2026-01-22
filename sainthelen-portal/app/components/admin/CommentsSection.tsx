@@ -6,15 +6,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useSession } from 'next-auth/react';
 import {
   ChatBubbleLeftRightIcon,
-  PlusIcon,
   UserCircleIcon,
   ClockIcon,
   PaperAirplaneIcon,
   LinkIcon,
   ExclamationTriangleIcon,
-  CheckCircleIcon
+  CheckCircleIcon,
+  ChevronDownIcon,
+  ChevronUpIcon
 } from '@heroicons/react/24/outline';
-import { Button } from '../ui/Button';
 import { format, parseISO } from 'date-fns';
 
 interface Comment {
@@ -55,7 +55,6 @@ export default function CommentsSection({
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Fetch comments when expanded
   useEffect(() => {
     if (showComments) {
       fetchComments();
@@ -65,10 +64,9 @@ export default function CommentsSection({
   const fetchComments = async () => {
     setIsLoading(true);
     setError('');
-    
+
     try {
       const response = await fetch(`/api/comments?recordId=${recordId}&tableName=${tableName}`);
-      
       if (response.ok) {
         const data = await response.json();
         setComments(data.comments || []);
@@ -92,9 +90,7 @@ export default function CommentsSection({
     try {
       const response = await fetch('/api/comments', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           recordId,
           tableName,
@@ -105,11 +101,9 @@ export default function CommentsSection({
 
       if (response.ok) {
         setNewComment('');
-        setSuccess('Comment sent successfully!');
-        fetchComments(); // Reload comments
+        setSuccess('Comment sent!');
+        fetchComments();
         onCommentAdded?.();
-        
-        // Clear success message after 3 seconds
         setTimeout(() => setSuccess(''), 3000);
       } else {
         const data = await response.json();
@@ -124,14 +118,12 @@ export default function CommentsSection({
 
   const generatePublicResponseLink = () => {
     if (!requesterEmail || !requesterName) return '';
-    
     const baseUrl = window.location.origin;
     const params = new URLSearchParams({
       table: tableName,
       name: requesterName,
       email: requesterEmail
     });
-    
     return `${baseUrl}/comment/${recordId}?${params.toString()}`;
   };
 
@@ -140,7 +132,7 @@ export default function CommentsSection({
     if (link) {
       try {
         await navigator.clipboard.writeText(link);
-        setSuccess('Public response link copied to clipboard!');
+        setSuccess('Link copied!');
         setTimeout(() => setSuccess(''), 3000);
       } catch (err) {
         setError('Failed to copy link');
@@ -150,130 +142,127 @@ export default function CommentsSection({
 
   const formatCommentDate = (dateString: string) => {
     try {
-      const date = parseISO(dateString);
-      return format(date, 'MMM d, yyyy h:mm a');
+      return format(parseISO(dateString), 'MMM d, h:mm a');
     } catch {
-      return 'Unknown date';
+      return 'Unknown';
     }
   };
 
   return (
-    <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
-      {/* Comments Header */}
-      <div className="flex items-center justify-between mb-3">
+    <div className="border-t border-gray-200 dark:border-slate-700 pt-4 mt-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <button
           onClick={() => setShowComments(!showComments)}
-          className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+          className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-sh-navy dark:hover:text-white transition-colors group"
         >
-          <ChatBubbleLeftRightIcon className="h-4 w-4 mr-2" />
-          Comments ({comments.length})
+          <div className="w-8 h-8 bg-sh-navy-50 dark:bg-sh-navy-900/30 rounded-lg flex items-center justify-center group-hover:bg-sh-navy-100 dark:group-hover:bg-sh-navy-900/50 transition-colors">
+            <ChatBubbleLeftRightIcon className="w-4 h-4 text-sh-navy dark:text-sh-navy-300" />
+          </div>
+          <span>Comments</span>
+          {comments.length > 0 && (
+            <span className="px-2 py-0.5 bg-sh-navy text-white text-xs font-bold rounded-full">
+              {comments.length}
+            </span>
+          )}
           {showComments ? (
-            <ChevronUpIcon className="h-4 w-4 ml-1" />
+            <ChevronUpIcon className="w-4 h-4" />
           ) : (
-            <ChevronDownIcon className="h-4 w-4 ml-1" />
+            <ChevronDownIcon className="w-4 h-4" />
           )}
         </button>
 
-        {/* Public Response Link Button */}
         {requesterEmail && requesterName && (
-          <Button
-            size="sm"
-            variant="outline"
+          <button
             onClick={copyPublicLink}
-            className="text-xs"
-            icon={<LinkIcon className="h-3 w-3" />}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-sh-rust hover:text-sh-rust-600 bg-sh-rust-50 hover:bg-sh-rust-100 dark:bg-sh-rust-900/20 dark:hover:bg-sh-rust-900/30 rounded-lg transition-all"
           >
+            <LinkIcon className="w-3.5 h-3.5" />
             Copy Public Link
-          </Button>
+          </button>
         )}
       </div>
 
-      {/* Success/Error Messages */}
+      {/* Messages */}
       <AnimatePresence>
-        {success && (
+        {(success || error) && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="flex items-center text-green-600 dark:text-green-400 text-sm mb-3"
+            className={`flex items-center gap-2 text-sm mt-3 px-3 py-2 rounded-lg ${
+              success
+                ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
+                : 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300'
+            }`}
           >
-            <CheckCircleIcon className="h-4 w-4 mr-2" />
-            {success}
-          </motion.div>
-        )}
-        
-        {error && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="flex items-center text-red-600 dark:text-red-400 text-sm mb-3"
-          >
-            <ExclamationTriangleIcon className="h-4 w-4 mr-2" />
-            {error}
+            {success ? (
+              <CheckCircleIcon className="w-4 h-4" />
+            ) : (
+              <ExclamationTriangleIcon className="w-4 h-4" />
+            )}
+            {success || error}
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Comments Section */}
+      {/* Comments Panel */}
       <AnimatePresence>
         {showComments && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3 }}
-            className="space-y-4"
+            transition={{ duration: 0.2 }}
+            className="mt-4 space-y-4"
           >
-            {/* Loading State */}
+            {/* Loading */}
             {isLoading && (
-              <div className="flex justify-center py-4">
-                <div className="animate-spin h-6 w-6 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+              <div className="flex justify-center py-6">
+                <div className="w-6 h-6 border-2 border-sh-navy border-t-transparent rounded-full animate-spin" />
               </div>
             )}
 
             {/* Comments List */}
             {!isLoading && comments.length > 0 && (
-              <div className="space-y-3 max-h-64 overflow-y-auto">
+              <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
                 {comments.map((comment) => (
                   <motion.div
                     key={comment.id}
-                    initial={{ opacity: 0, x: -20 }}
+                    initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
-                    className={`p-3 rounded-lg border ${
+                    className={`p-3 rounded-xl ${
                       comment.fields['Is Public']
-                        ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
-                        : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+                        ? 'bg-sh-rust-50 dark:bg-sh-rust-900/20 border border-sh-rust-200 dark:border-sh-rust-800'
+                        : 'bg-gray-50 dark:bg-slate-700/50 border border-gray-200 dark:border-slate-600'
                     }`}
                   >
-                    <div className="flex items-start space-x-3">
-                      <div className={`flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center ${
+                    <div className="flex items-start gap-3">
+                      <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
                         comment.fields['Is Public']
-                          ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
-                          : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                          ? 'bg-sh-rust text-white'
+                          : 'bg-sh-navy text-white'
                       }`}>
-                        <UserCircleIcon className="h-5 w-5" />
+                        <UserCircleIcon className="w-5 h-5" />
                       </div>
-                      
-                      <div className="flex-grow">
-                        <div className="flex items-center justify-between mb-1">
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2 mb-1">
                           <span className="text-sm font-medium text-gray-900 dark:text-white">
-                            {comment.fields['Is Public'] 
-                              ? comment.fields['Public Name'] 
-                              : comment.fields['Admin User'] || 'Admin'
-                            }
-                            {comment.fields['Is Public'] && (
-                              <span className="ml-2 text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 rounded-full">
-                                Public Response
-                              </span>
-                            )}
+                            {comment.fields['Is Public']
+                              ? comment.fields['Public Name']
+                              : comment.fields['Admin User'] || 'Admin'}
                           </span>
-                          <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center">
-                            <ClockIcon className="h-3 w-3 mr-1" />
+                          <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                            <ClockIcon className="w-3 h-3" />
                             {formatCommentDate(comment.fields['Created At'])}
                           </span>
                         </div>
-                        
+                        {comment.fields['Is Public'] && (
+                          <span className="inline-block text-xs px-2 py-0.5 bg-sh-rust text-white rounded-full mb-2">
+                            Public Response
+                          </span>
+                        )}
                         <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
                           {comment.fields.Message}
                         </p>
@@ -284,45 +273,50 @@ export default function CommentsSection({
               </div>
             )}
 
-            {/* No Comments State */}
+            {/* No Comments */}
             {!isLoading && comments.length === 0 && (
-              <div className="text-center py-4 text-gray-500 dark:text-gray-400">
-                <ChatBubbleLeftRightIcon className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">No comments yet</p>
+              <div className="text-center py-6">
+                <ChatBubbleLeftRightIcon className="w-10 h-10 mx-auto text-gray-300 dark:text-gray-600 mb-2" />
+                <p className="text-sm text-gray-500 dark:text-gray-400">No comments yet</p>
               </div>
             )}
 
             {/* Add Comment Form */}
             {session && (
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                <div className="flex space-x-3">
-                  <div className="flex-shrink-0 h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-                    <UserCircleIcon className="h-5 w-5" />
+              <div className="pt-4 border-t border-gray-200 dark:border-slate-700">
+                <div className="flex gap-3">
+                  <div className="flex-shrink-0 w-8 h-8 bg-sh-navy rounded-full flex items-center justify-center text-white">
+                    <UserCircleIcon className="w-5 h-5" />
                   </div>
-                  
-                  <div className="flex-grow">
+
+                  <div className="flex-1">
                     <textarea
                       value={newComment}
                       onChange={(e) => setNewComment(e.target.value)}
                       placeholder="Add a comment..."
                       rows={2}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-sm resize-none"
+                      className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-sh-navy focus:border-transparent resize-none transition-all"
                     />
-                    
+
                     <div className="flex justify-end mt-2">
-                      <Button
-                        size="sm"
+                      <button
                         onClick={handleSendComment}
                         disabled={!newComment.trim() || isSending}
-                        icon={isSending ? (
-                          <div className="animate-spin h-3 w-3 border border-white border-t-transparent rounded-full" />
-                        ) : (
-                          <PaperAirplaneIcon className="h-3 w-3" />
-                        )}
-                        className="text-xs"
+                        className={`
+                          inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl transition-all
+                          ${!newComment.trim() || isSending
+                            ? 'bg-gray-200 dark:bg-slate-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                            : 'bg-sh-navy hover:bg-sh-navy-700 text-white hover:-translate-y-0.5 hover:shadow-button'
+                          }
+                        `}
                       >
+                        {isSending ? (
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <PaperAirplaneIcon className="w-4 h-4" />
+                        )}
                         {isSending ? 'Sending...' : 'Send'}
-                      </Button>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -332,21 +326,5 @@ export default function CommentsSection({
         )}
       </AnimatePresence>
     </div>
-  );
-}
-
-function ChevronUpIcon({ className }: { className: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-    </svg>
-  );
-}
-
-function ChevronDownIcon({ className }: { className: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-    </svg>
   );
 }

@@ -272,17 +272,37 @@ export default function WebsiteUpdatesFormPage() {
                   </div>
                 )}
                 {fileLinks.length > 0 && (
-                  <div className="mt-2">
-                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Uploaded Files:</h4>
-                    <ul className="space-y-1">
+                  <div className="mt-3">
+                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Uploaded Files:</h4>
+                    <div className="space-y-2">
                       {fileLinks.map((link, index) => (
-                        <li key={index} className="text-sm">
-                          <a href={link} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">
+                        <div key={index} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                          <a href={link} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 dark:text-blue-400 hover:underline truncate flex-1 mr-2">
                             {link.split('/').pop() || `File ${index + 1}`}
                           </a>
-                        </li>
+                          <button
+                            type="button"
+                            onClick={() => setFileLinks(prev => prev.filter((_, i) => i !== index))}
+                            className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
+                            title="Remove file"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
                       ))}
-                    </ul>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => document.getElementById('file-upload')?.click()}
+                      className="mt-2 text-sm text-sh-primary hover:text-sh-primary-dark font-medium inline-flex items-center gap-1"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      </svg>
+                      Add another file
+                    </button>
                   </div>
                 )}
               </div>

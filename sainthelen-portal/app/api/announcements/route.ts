@@ -58,6 +58,7 @@ type AnnouncementFormData = {
   addToCalendar?: boolean;
   isExternalEvent?: boolean;
   fileLinks?: string[];
+  signUpUrl?: string;
 };
 
 // 1) Configure Airtable using centralized utility
@@ -117,6 +118,7 @@ export async function POST(request: NextRequest) {
         addToEventsCalendar: data.addToCalendar || false,
         externalEvent: data.isExternalEvent || false,
         fileLinks: data.fileLinks || null,
+        signUpUrl: data.signUpUrl || null,
         approvalStatus,
         requiresApproval,
       });
@@ -150,6 +152,7 @@ export async function POST(request: NextRequest) {
       if (data.addToCalendar !== undefined) fields['Add to Events Calendar'] = data.addToCalendar ? 'Yes' : 'No';
       if (data.isExternalEvent !== undefined) fields['External Event'] = data.isExternalEvent ? 'Yes' : 'No';
       if (fileLinksString) fields['File Links'] = fileLinksString;
+      if (data.signUpUrl) fields['Sign Up URL'] = data.signUpUrl;
       if (ministry?.id) fields['Ministry ID'] = ministry.id;
 
       const base = getAirtableBase();
