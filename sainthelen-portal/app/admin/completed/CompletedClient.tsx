@@ -96,10 +96,10 @@ export default function CompletedClient() {
   function sortRecords(records: AdminRecord[]): AdminRecord[] {
     return [...records].sort((a, b) => {
       if (sortField === 'createdTime') {
-        // Most Airtable records have a createdTime field
-        const aTime = a.fields.createdTime || '';
-        const bTime = b.fields.createdTime || '';
-        return sortDirection === 'asc' 
+        // Use 'Submitted At' field (Neon), fallback to 'Completed Date' or record creation
+        const aTime = a.fields['Submitted At'] || a.fields['Completed Date'] || a.fields.createdTime || '';
+        const bTime = b.fields['Submitted At'] || b.fields['Completed Date'] || b.fields.createdTime || '';
+        return sortDirection === 'asc'
           ? aTime.localeCompare(bTime)
           : bTime.localeCompare(aTime);
       } 

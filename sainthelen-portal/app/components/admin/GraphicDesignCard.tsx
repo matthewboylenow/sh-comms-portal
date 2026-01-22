@@ -86,19 +86,20 @@ export default function GraphicDesignCard({
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`bg-white dark:bg-slate-800 rounded-2xl border overflow-hidden shadow-card hover:shadow-card-hover transition-all duration-300 ${
-        isUrgent ? 'border-l-4 border-l-red-500 border-gray-200 dark:border-slate-700' : 'border-gray-200 dark:border-slate-700'
+      className={`relative overflow-hidden bg-gradient-to-br from-white via-white to-rose-50/30 dark:from-slate-800 dark:via-slate-800 dark:to-rose-900/10 rounded-2xl border transition-all duration-200 hover:shadow-lg ${
+        isUrgent ? 'border-l-4 border-l-red-500 border-gray-200/80 dark:border-slate-700/80' : 'border-gray-200/80 dark:border-slate-700/80 hover:border-gray-300/80 dark:hover:border-slate-600/80'
       }`}
+      style={{ boxShadow: '0 2px 8px -2px rgba(31, 52, 109, 0.06), 0 4px 16px -4px rgba(31, 52, 109, 0.04)' }}
     >
-      {/* Gradient top bar */}
-      <div className="h-1 bg-gradient-to-r from-rose-500 to-rose-600" />
+      {/* Premium gradient accent bar */}
+      {!isUrgent && <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-rose-500 via-rose-400 to-rose-500" />}
 
       {/* Header */}
       <div className="p-5 pb-4">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-4 min-w-0">
             {/* Icon */}
-            <div className="flex-shrink-0 w-12 h-12 bg-rose-50 dark:bg-rose-900/30 rounded-xl flex items-center justify-center">
+            <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-rose-50 to-rose-100/50 dark:from-rose-900/40 dark:to-rose-900/20 rounded-xl flex items-center justify-center border border-rose-100 dark:border-rose-800/50 shadow-sm">
               <PaintBrushIcon className="w-6 h-6 text-rose-600 dark:text-rose-400" />
             </div>
 
@@ -210,7 +211,7 @@ export default function GraphicDesignCard({
       </div>
 
       {/* Footer */}
-      <div className="px-5 py-4 bg-sh-cream dark:bg-slate-900 border-t border-gray-100 dark:border-slate-700 space-y-4">
+      <div className="px-5 py-4 bg-gradient-to-r from-gray-50/80 via-rose-50/30 to-gray-50/80 dark:from-slate-900/80 dark:via-rose-900/10 dark:to-slate-900/80 border-t border-gray-100/80 dark:border-slate-700/80 space-y-4">
         {/* Status Selector */}
         {onUpdateStatus && (
           <div>

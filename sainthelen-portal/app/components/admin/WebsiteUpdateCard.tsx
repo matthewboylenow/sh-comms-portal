@@ -62,12 +62,16 @@ ${f.Description || ''}${f['Sign-Up URL'] ? `\n\nSign up: ${f['Sign-Up URL']}` : 
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`bg-white dark:bg-slate-800 rounded-xl border overflow-hidden ${
-        isUrgent ? 'border-l-4 border-l-red-500 border-gray-200 dark:border-slate-700' : 'border-gray-200 dark:border-slate-700'
+      className={`relative overflow-hidden bg-gradient-to-br from-white via-white to-sh-cream-light/50 dark:from-slate-800 dark:via-slate-800 dark:to-slate-900/50 rounded-2xl border transition-all duration-200 hover:shadow-lg ${
+        isUrgent ? 'border-l-4 border-l-red-500 border-gray-200/80 dark:border-slate-700/80' : 'border-gray-200/80 dark:border-slate-700/80 hover:border-gray-300/80 dark:hover:border-slate-600/80'
       }`}
+      style={{ boxShadow: '0 2px 8px -2px rgba(31, 52, 109, 0.06), 0 4px 16px -4px rgba(31, 52, 109, 0.04)' }}
     >
+      {/* Premium accent bar */}
+      {!isUrgent && <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-sh-rust via-sh-rust-light to-sh-rust" />}
+
       {/* Header */}
-      <div className="p-4 pb-3">
+      <div className="p-5 pb-4">
         <div className="flex items-start justify-between gap-4">
           {/* Main info */}
           <div className="min-w-0 flex-1">
@@ -134,7 +138,7 @@ ${f.Description || ''}${f['Sign-Up URL'] ? `\n\nSign up: ${f['Sign-Up URL']}` : 
       </div>
 
       {/* Body content */}
-      <div className="px-4 pb-3">
+      <div className="px-5 pb-4">
         <div className="relative">
           <div className={`text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap ${!expanded && 'max-h-20 overflow-hidden'}`}>
             {f.Description || 'No description provided.'}
@@ -170,7 +174,7 @@ ${f.Description || ''}${f['Sign-Up URL'] ? `\n\nSign up: ${f['Sign-Up URL']}` : 
       </div>
 
       {/* Footer */}
-      <div className="px-4 py-3 bg-gray-50 dark:bg-slate-900 border-t border-gray-100 dark:border-slate-700">
+      <div className="px-5 py-4 bg-gradient-to-r from-gray-50/80 via-gray-50 to-gray-50/80 dark:from-slate-900/80 dark:via-slate-900 dark:to-slate-900/80 border-t border-gray-100/80 dark:border-slate-700/80">
         {/* Attachments */}
         {f['File Links'] && (
           <div className="flex items-center gap-2 mb-3">

@@ -71,8 +71,11 @@ export default function DashboardStats({
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 p-6"
+        className="relative overflow-hidden bg-gradient-to-br from-white via-white to-sh-cream-light dark:from-slate-800 dark:via-slate-800 dark:to-slate-900 rounded-2xl border border-gray-200/80 dark:border-slate-700/80 p-6"
+        style={{ boxShadow: '0 2px 8px -2px rgba(31, 52, 109, 0.08), 0 4px 16px -4px rgba(31, 52, 109, 0.05)' }}
       >
+        {/* Subtle gradient accent */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-sh-navy via-sh-navy-light to-sh-rust opacity-80" />
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
           {/* Week Info */}
           <div>
@@ -93,18 +96,22 @@ export default function DashboardStats({
 
           {/* Quick Stats */}
           <div className="flex gap-4">
-            <div className="flex items-center gap-3 px-4 py-2 bg-sh-navy-50 dark:bg-sh-navy-900/30 rounded-xl">
-              <EnvelopeIcon className="w-5 h-5 text-sh-navy-600" />
+            <div className="flex items-center gap-3 px-5 py-3 bg-gradient-to-br from-sh-navy-50 to-sh-navy-100/50 dark:from-sh-navy-900/40 dark:to-sh-navy-900/20 rounded-xl border border-sh-navy-100 dark:border-sh-navy-800/50 transition-all duration-200 hover:shadow-md">
+              <div className="w-10 h-10 bg-white dark:bg-slate-800 rounded-lg flex items-center justify-center shadow-sm">
+                <EnvelopeIcon className="w-5 h-5 text-sh-navy-600" />
+              </div>
               <div>
                 <p className="text-2xl font-bold text-sh-navy-700 dark:text-sh-navy-300">{thisWeekEvents.length}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">This Week</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">This Week</p>
               </div>
             </div>
-            <div className="flex items-center gap-3 px-4 py-2 bg-sh-rust-50 dark:bg-sh-rust-900/30 rounded-xl">
-              <NewspaperIcon className="w-5 h-5 text-sh-rust-600" />
+            <div className="flex items-center gap-3 px-5 py-3 bg-gradient-to-br from-sh-rust-50 to-sh-rust-100/50 dark:from-sh-rust-900/40 dark:to-sh-rust-900/20 rounded-xl border border-sh-rust-100 dark:border-sh-rust-800/50 transition-all duration-200 hover:shadow-md">
+              <div className="w-10 h-10 bg-white dark:bg-slate-800 rounded-lg flex items-center justify-center shadow-sm">
+                <NewspaperIcon className="w-5 h-5 text-sh-rust-600" />
+              </div>
               <div>
                 <p className="text-2xl font-bold text-sh-rust-700 dark:text-sh-rust-300">{totalPending}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Total Pending</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Total Pending</p>
               </div>
             </div>
           </div>
@@ -158,13 +165,13 @@ export default function DashboardStats({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.05 }}
-            className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-4 text-center"
+            className="relative overflow-hidden bg-gradient-to-br from-white to-gray-50/50 dark:from-slate-800 dark:to-slate-900/50 rounded-xl border border-gray-200/80 dark:border-slate-700/80 p-4 text-center transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 group"
           >
-            <div className={`w-10 h-10 ${stat.bg} rounded-lg flex items-center justify-center mx-auto mb-2`}>
+            <div className={`w-10 h-10 ${stat.bg} rounded-xl flex items-center justify-center mx-auto mb-2 transition-transform duration-200 group-hover:scale-110`}>
               <stat.icon className={`w-5 h-5 ${stat.color}`} />
             </div>
             <p className={`text-2xl font-bold ${stat.color}`}>{stat.count}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{stat.title}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 font-medium">{stat.title}</p>
           </motion.div>
         ))}
       </div>

@@ -44,19 +44,20 @@ export default function AVRequestCard({
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`bg-white dark:bg-slate-800 rounded-2xl border overflow-hidden shadow-card hover:shadow-card-hover transition-all duration-300 ${
-        needsLivestream ? 'border-l-4 border-l-red-500 border-gray-200 dark:border-slate-700' : 'border-gray-200 dark:border-slate-700'
+      className={`relative overflow-hidden bg-gradient-to-br from-white via-white to-purple-50/30 dark:from-slate-800 dark:via-slate-800 dark:to-purple-900/10 rounded-2xl border transition-all duration-200 hover:shadow-lg ${
+        needsLivestream ? 'border-l-4 border-l-red-500 border-gray-200/80 dark:border-slate-700/80' : 'border-gray-200/80 dark:border-slate-700/80 hover:border-gray-300/80 dark:hover:border-slate-600/80'
       }`}
+      style={{ boxShadow: '0 2px 8px -2px rgba(31, 52, 109, 0.06), 0 4px 16px -4px rgba(31, 52, 109, 0.04)' }}
     >
-      {/* Gradient top bar */}
-      <div className="h-1 bg-gradient-to-r from-purple-500 to-purple-600" />
+      {/* Premium gradient accent bar */}
+      {!needsLivestream && <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 via-purple-400 to-purple-500" />}
 
       {/* Header */}
       <div className="p-5 pb-4">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-4 min-w-0">
             {/* Icon */}
-            <div className="flex-shrink-0 w-12 h-12 bg-purple-50 dark:bg-purple-900/30 rounded-xl flex items-center justify-center">
+            <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-900/40 dark:to-purple-900/20 rounded-xl flex items-center justify-center border border-purple-100 dark:border-purple-800/50 shadow-sm">
               <VideoCameraIcon className="w-6 h-6 text-purple-600 dark:text-purple-400" />
             </div>
 
@@ -167,7 +168,7 @@ export default function AVRequestCard({
       </div>
 
       {/* Footer */}
-      <div className="px-5 py-4 bg-sh-cream dark:bg-slate-900 border-t border-gray-100 dark:border-slate-700 space-y-4">
+      <div className="px-5 py-4 bg-gradient-to-r from-gray-50/80 via-purple-50/30 to-gray-50/80 dark:from-slate-900/80 dark:via-purple-900/10 dark:to-slate-900/80 border-t border-gray-100/80 dark:border-slate-700/80 space-y-4">
         {f['File Links'] && (
           <div>
             <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Attachments</label>

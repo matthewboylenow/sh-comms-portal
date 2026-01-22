@@ -89,10 +89,11 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
   const isActive = (href: string) => pathname === href;
 
   return (
-    <div className="flex h-screen bg-sh-cream dark:bg-slate-900">
+    <div className="flex min-h-screen bg-gradient-to-br from-sh-cream via-white to-sh-cream-light dark:from-slate-900 dark:via-slate-900 dark:to-slate-800">
       {/* Sidebar - Desktop */}
       <motion.aside
-        className="hidden lg:flex flex-col fixed inset-y-0 left-0 z-30 bg-white dark:bg-slate-800 border-r border-gray-200 dark:border-slate-700 shadow-soft"
+        className="hidden lg:flex flex-col fixed inset-y-0 left-0 z-30 bg-gradient-to-b from-white via-white to-sh-cream-light dark:from-slate-800 dark:via-slate-800 dark:to-slate-900 border-r border-gray-200/80 dark:border-slate-700/80"
+        style={{ boxShadow: '2px 0 12px -2px rgba(31, 52, 109, 0.06)' }}
         animate={{ width: collapsed ? 80 : 280 }}
         transition={{ duration: 0.3, ease: 'easeInOut' }}
       >
@@ -255,7 +256,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
       {/* Main Content */}
       <div className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ${!isMobile ? (collapsed ? 'lg:ml-20' : 'lg:ml-[280px]') : ''}`}>
         {/* Top Header */}
-        <header className="sticky top-0 z-20 bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border-b border-gray-200 dark:border-slate-700">
+        <header className="sticky top-0 z-20 bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl border-b border-gray-200/80 dark:border-slate-700/80" style={{ boxShadow: '0 1px 3px rgba(31, 52, 109, 0.04)' }}>
           <div className="h-16 px-4 lg:px-6 flex items-center justify-between">
             <div className="flex items-center">
               <button
@@ -401,14 +402,14 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1">
           <div className="px-4 lg:px-6 py-6 max-w-7xl mx-auto">
             {children}
           </div>
         </main>
 
-        {/* Footer */}
-        <footer className="border-t border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 py-4 px-6">
+        {/* Footer - sticky to bottom */}
+        <footer className="mt-auto border-t border-gray-200/80 dark:border-slate-700/80 bg-gradient-to-r from-white via-sh-cream-light to-white dark:from-slate-800 dark:via-slate-900 dark:to-slate-800 py-4 px-6">
           <p className="text-center text-sm text-gray-500 dark:text-gray-400">
             Saint Helen Communications Portal
           </p>
