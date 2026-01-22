@@ -626,7 +626,7 @@ export default function AdminClient() {
       {/* Mobile-Optimized Toolbar */}
       <div className="mb-6 sm:mb-8">
         {/* Primary toolbar with search and important actions */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-4 sm:p-5 mb-4 sm:mb-5 transition-all">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-200/60 dark:border-slate-700/60 p-4 sm:p-5 mb-4 sm:mb-5 transition-all" style={{ boxShadow: '0 2px 8px -2px rgba(31, 52, 109, 0.06)' }}>
           {/* Mobile-first layout: Search first, then actions */}
           <div className="space-y-4 sm:space-y-0 sm:flex sm:flex-col lg:flex-row lg:items-center gap-4 lg:gap-5">
             {/* Search field - full width on mobile, constrained on desktop */}
@@ -682,7 +682,7 @@ export default function AdminClient() {
         </div>
 
         {/* Mobile-Optimized Secondary toolbar with sorting options */}
-        <div className="bg-white dark:bg-slate-800 backdrop-blur-lg rounded-xl shadow-md p-3 sm:py-3 sm:px-5 transition-all">
+        <div className="bg-[hsl(40,33%,98%)] dark:bg-slate-800/50 backdrop-blur-lg rounded-2xl border border-gray-200/40 dark:border-slate-700/40 p-3 sm:py-3 sm:px-5 transition-all">
           {/* Mobile: Vertical layout, Desktop: Horizontal layout */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex flex-col sm:flex-row sm:items-center gap-3">
@@ -762,7 +762,7 @@ export default function AdminClient() {
       {/* Mobile-Optimized Navigation Tabs */}
       <div className="mb-6 sm:mb-8 overflow-x-auto">
         <div className="min-w-max">
-          <nav className="flex space-x-1 sm:space-x-2 bg-white dark:bg-slate-800 p-2 rounded-lg sm:rounded-xl shadow-md">
+          <nav className="flex space-x-1 sm:space-x-2 bg-white dark:bg-slate-800 p-2 rounded-2xl border border-gray-200/60 dark:border-slate-700/60" style={{ boxShadow: '0 2px 8px -2px rgba(31, 52, 109, 0.06)' }}>
             {[
               { id: 'announcements', label: 'Announcements', shortLabel: 'Announce', count: filteredAnnouncements.length, icon: <MegaphoneIcon className="h-3 w-3 sm:h-4 sm:w-4" /> },
               { id: 'websiteUpdates', label: 'Website Updates', shortLabel: 'Website', count: filteredWebsiteUpdates.length, icon: <GlobeAltIcon className="h-3 w-3 sm:h-4 sm:w-4" /> },

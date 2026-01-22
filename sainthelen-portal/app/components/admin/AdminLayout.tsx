@@ -89,7 +89,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
   const isActive = (href: string) => pathname === href;
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-sh-cream via-white to-sh-cream-light dark:from-slate-900 dark:via-slate-900 dark:to-slate-800">
+    <div className="flex min-h-screen bg-[hsl(35,30%,97%)] dark:bg-slate-900">
       {/* Sidebar - Desktop */}
       <motion.aside
         className="hidden lg:flex flex-col fixed inset-y-0 left-0 z-30 bg-gradient-to-b from-white via-white to-sh-cream-light dark:from-slate-800 dark:via-slate-800 dark:to-slate-900 border-r border-gray-200/80 dark:border-slate-700/80"

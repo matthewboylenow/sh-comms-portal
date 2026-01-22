@@ -606,3 +606,121 @@ body,
 .dark ::-webkit-scrollbar-thumb:hover {
   background: #64748b;
 }
+
+/* ========================================
+   SHADCN/UI VARIABLES - Customized for Saint Helen
+   Using warm tones instead of pure gray
+   ======================================== */
+
+@layer base {
+  :root {
+    /* Warm cream background instead of pure white */
+    --background: 40 33% 98%;
+    --foreground: 224 47% 27%;
+
+    /* Warm card backgrounds */
+    --card: 40 20% 99%;
+    --card-foreground: 224 47% 27%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 47% 27%;
+
+    /* Saint Helen Navy as primary */
+    --primary: 224 56% 27%;
+    --primary-foreground: 0 0% 98%;
+
+    /* Warm secondary */
+    --secondary: 35 25% 95%;
+    --secondary-foreground: 224 47% 27%;
+
+    /* Warm muted tones */
+    --muted: 35 20% 96%;
+    --muted-foreground: 220 10% 46%;
+
+    /* Warm accent */
+    --accent: 35 30% 94%;
+    --accent-foreground: 224 47% 27%;
+
+    /* Saint Helen Rust for destructive */
+    --destructive: 13 67% 50%;
+    --destructive-foreground: 0 0% 98%;
+
+    /* Warm borders */
+    --border: 35 15% 88%;
+    --input: 35 15% 88%;
+    --ring: 224 56% 27%;
+
+    /* Chart colors using brand palette */
+    --chart-1: 224 56% 27%;
+    --chart-2: 13 67% 50%;
+    --chart-3: 160 60% 45%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 280 65% 60%;
+
+    --radius: 0.75rem;
+
+    /* Section backgrounds for visual rhythm */
+    --section-warm: 35 30% 97%;
+    --section-cream: 40 33% 98%;
+    --section-white: 0 0% 100%;
+  }
+
+  .dark {
+    --background: 222 47% 8%;
+    --foreground: 0 0% 98%;
+
+    --card: 222 47% 11%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 222 47% 11%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 0 0% 98%;
+    --primary-foreground: 224 56% 27%;
+
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 217 33% 17%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 217 33% 20%;
+    --input: 217 33% 20%;
+    --ring: 212 100% 70%;
+
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+
+    --section-warm: 222 47% 10%;
+    --section-cream: 222 47% 8%;
+    --section-white: 222 47% 11%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+}
+
+/* Section background utilities for visual rhythm */
+.section-warm {
+  background-color: hsl(var(--section-warm));
+}
+
+.section-cream {
+  background-color: hsl(var(--section-cream));
+}
+
+.section-white {
+  background-color: hsl(var(--section-white));
+}
