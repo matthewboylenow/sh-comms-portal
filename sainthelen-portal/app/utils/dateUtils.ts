@@ -94,9 +94,11 @@ export function formatTime(timeStr: string | null): string {
       return timeStr.trim().toLowerCase().replace(/\s+/g, '');
     }
 
-    // Handle 24-hour format like "19:00"
-    if (/^\d{1,2}:\d{2}$/.test(timeStr.trim())) {
-      const [hours, minutes] = timeStr.split(':').map(Number);
+    // Handle 24-hour format like "19:00" or "18:00:00" (with seconds)
+    if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(timeStr.trim())) {
+      const parts = timeStr.split(':').map(Number);
+      const hours = parts[0];
+      const minutes = parts[1];
       const period = hours >= 12 ? 'pm' : 'am';
       const hour12 = hours % 12 || 12;
       return `${hour12}:${minutes.toString().padStart(2, '0')}${period}`;
