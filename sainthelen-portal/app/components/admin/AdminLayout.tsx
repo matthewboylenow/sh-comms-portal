@@ -125,40 +125,38 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto">
+        <nav className="flex-1 py-6 space-y-1 overflow-y-auto">
           {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`
-                flex items-center px-3 py-3 rounded-xl transition-all duration-200 group relative
-                ${isActive(item.href)
-                  ? 'bg-sh-navy text-white shadow-md'
-                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700'
-                }
-              `}
-            >
-              {/* Active indicator */}
+            <div key={item.href} className="relative px-3">
+              {/* Active indicator - positioned at sidebar edge */}
               {isActive(item.href) && (
-                <motion.div
-                  layoutId="activeIndicator"
-                  className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-sh-rust rounded-r-full"
-                />
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-sh-rust rounded-r-full" />
               )}
-              <item.icon className={`w-6 h-6 flex-shrink-0 ${isActive(item.href) ? '' : 'group-hover:text-sh-navy dark:group-hover:text-white'}`} />
-              <AnimatePresence>
-                {!collapsed && (
-                  <motion.span
-                    initial={{ opacity: 0, width: 0 }}
-                    animate={{ opacity: 1, width: 'auto' }}
-                    exit={{ opacity: 0, width: 0 }}
-                    className="ml-3 font-medium whitespace-nowrap overflow-hidden"
-                  >
-                    {item.label}
-                  </motion.span>
-                )}
-              </AnimatePresence>
-            </Link>
+              <Link
+                href={item.href}
+                className={`
+                  flex items-center px-3 py-3 rounded-xl transition-all duration-200 group
+                  ${isActive(item.href)
+                    ? 'bg-sh-navy text-white shadow-md'
+                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700'
+                  }
+                `}
+              >
+                <item.icon className={`w-6 h-6 flex-shrink-0 ${isActive(item.href) ? '' : 'group-hover:text-sh-navy dark:group-hover:text-white'}`} />
+                <AnimatePresence>
+                  {!collapsed && (
+                    <motion.span
+                      initial={{ opacity: 0, width: 0 }}
+                      animate={{ opacity: 1, width: 'auto' }}
+                      exit={{ opacity: 0, width: 0 }}
+                      className="ml-3 font-medium whitespace-nowrap overflow-hidden"
+                    >
+                      {item.label}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </Link>
+            </div>
           ))}
         </nav>
 
