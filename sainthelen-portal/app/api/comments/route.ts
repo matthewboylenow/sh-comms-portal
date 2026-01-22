@@ -9,6 +9,12 @@ import { ClientSecretCredential } from '@azure/identity';
 // New Neon database imports
 import { useNeonDatabase } from '../../lib/db';
 import * as commentsService from '../../lib/db/services/comments';
+import * as announcementsService from '../../lib/db/services/announcements';
+import * as websiteUpdatesService from '../../lib/db/services/website-updates';
+import * as smsRequestsService from '../../lib/db/services/sms-requests';
+import * as avRequestsService from '../../lib/db/services/av-requests';
+import * as flyerReviewsService from '../../lib/db/services/flyer-reviews';
+import * as graphicDesignService from '../../lib/db/services/graphic-design';
 
 export async function GET(request: NextRequest) {
   try {
@@ -216,39 +222,92 @@ function getGraphClient() {
 
 async function sendCommentNotification(recordId: string, tableName: string, message: string, useNeon: boolean) {
   try {
-    // For now, use Airtable to get the original record details
-    // This will be updated once all tables are migrated
-    const base = getAirtableBaseSafe();
-    if (!base) return;
+    let requesterEmail: string | null = null;
+    let requesterName: string | null = null;
+    let recordFields: any = {};
 
-    // Get the original record to find the requester's email
-    let record;
-    switch (tableName) {
-      case 'announcements':
-        record = await base(TABLE_NAMES.ANNOUNCEMENTS).find(recordId);
-        break;
-      case 'websiteUpdates':
-        record = await base(TABLE_NAMES.WEBSITE_UPDATES).find(recordId);
-        break;
-      case 'smsRequests':
-        record = await base(TABLE_NAMES.SMS_REQUESTS).find(recordId);
-        break;
-      case 'avRequests':
-        record = await base(TABLE_NAMES.AV_REQUESTS).find(recordId);
-        break;
-      case 'flyerReviews':
-        record = await base('Flyer Reviews').find(recordId);
-        break;
-      case 'graphicDesign':
-        record = await base(TABLE_NAMES.GRAPHIC_DESIGN).find(recordId);
-        break;
-      default:
-        return;
+    if (useNeon) {
+      // ===== NEON DATABASE PATH =====
+      let neonRecord: any;
+      switch (tableName) {
+        case 'announcements':
+          neonRecord = await announcementsService.getAnnouncementById(recordId);
+          break;
+        case 'websiteUpdates':
+          neonRecord = await websiteUpdatesService.getWebsiteUpdateById(recordId);
+          break;
+        case 'smsRequests':
+          neonRecord = await smsRequestsService.getSmsRequestById(recordId);
+          break;
+        case 'avRequests':
+          neonRecord = await avRequestsService.getAvRequestById(recordId);
+          break;
+        case 'flyerReviews':
+          neonRecord = await flyerReviewsService.getFlyerReviewById(recordId);
+          break;
+        case 'graphicDesign':
+          neonRecord = await graphicDesignService.getGraphicDesignRequestById(recordId);
+          break;
+        default:
+          return;
+      }
+
+      if (!neonRecord) return;
+
+      requesterEmail = neonRecord.email;
+      requesterName = neonRecord.name;
+      // Convert Neon record to fields format for email template
+      recordFields = {
+        'Name': neonRecord.name,
+        'Email': neonRecord.email,
+        'Description': neonRecord.description || neonRecord.projectDescription || neonRecord.announcementBody,
+        'Page to Update': neonRecord.pageToUpdate,
+        'Sign-Up URL': neonRecord.signUpUrl,
+        'Urgent': neonRecord.urgent ? 'Yes' : 'No',
+        'Created': neonRecord.createdAt?.toISOString(),
+        'Event Name': neonRecord.eventName,
+        'Event Date': neonRecord.eventDate || neonRecord.dateOfEvent,
+        'Priority': neonRecord.priority,
+        'Message': neonRecord.smsMessage,
+        'Send Date': neonRecord.requestedDate,
+        'Equipment Needed': neonRecord.avNeeds,
+      };
+    } else {
+      // ===== AIRTABLE DATABASE PATH (Legacy) =====
+      const base = getAirtableBaseSafe();
+      if (!base) return;
+
+      let record;
+      switch (tableName) {
+        case 'announcements':
+          record = await base(TABLE_NAMES.ANNOUNCEMENTS).find(recordId);
+          break;
+        case 'websiteUpdates':
+          record = await base(TABLE_NAMES.WEBSITE_UPDATES).find(recordId);
+          break;
+        case 'smsRequests':
+          record = await base(TABLE_NAMES.SMS_REQUESTS).find(recordId);
+          break;
+        case 'avRequests':
+          record = await base(TABLE_NAMES.AV_REQUESTS).find(recordId);
+          break;
+        case 'flyerReviews':
+          record = await base('Flyer Reviews').find(recordId);
+          break;
+        case 'graphicDesign':
+          record = await base(TABLE_NAMES.GRAPHIC_DESIGN).find(recordId);
+          break;
+        default:
+          return;
+      }
+
+      if (!record) return;
+
+      requesterEmail = record.fields['Email'] as string || record.fields['Contact Email'] as string;
+      requesterName = record.fields['Name'] as string;
+      recordFields = record.fields;
     }
 
-    if (!record) return;
-
-    const requesterEmail = record.fields['Email'] || record.fields['Contact Email'];
     if (!requesterEmail) return;
 
     // Validate email format
@@ -257,13 +316,13 @@ async function sendCommentNotification(recordId: string, tableName: string, mess
     if (!emailRegex.test(emailStr)) return;
 
     // Extract original submission details based on table type
-    const submissionDetails = getSubmissionDetails(record, tableName);
+    const submissionDetails = getSubmissionDetailsFromFields(recordFields, tableName);
 
     // Generate public response link
     const baseUrl = process.env.NEXTAUTH_URL || 'https://your-domain.com';
     const params = new URLSearchParams({
       table: tableName,
-      name: String(record.fields['Name'] || ''),
+      name: String(requesterName || ''),
       email: emailStr
     });
     const publicResponseLink = `${baseUrl}/comment/${recordId}?${params.toString()}`;
@@ -280,7 +339,7 @@ async function sendCommentNotification(recordId: string, tableName: string, mess
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2 style="color: #2563eb; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px;">New Comment on Your Request</h2>
 
-            <p>Hello ${record.fields['Name'] || 'there'},</p>
+            <p>Hello ${requesterName || 'there'},</p>
 
             <p><strong>Matthew Boyle</strong> has left a comment on your request:</p>
 
@@ -342,8 +401,7 @@ async function sendCommentNotification(recordId: string, tableName: string, mess
   }
 }
 
-function getSubmissionDetails(record: any, tableName: string): string {
-  const fields = record.fields;
+function getSubmissionDetailsFromFields(fields: any, tableName: string): string {
   const formatDate = (dateString: string) => {
     try {
       return new Date(dateString).toLocaleDateString('en-US', {

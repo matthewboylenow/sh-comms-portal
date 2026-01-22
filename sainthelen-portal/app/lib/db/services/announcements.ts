@@ -1,6 +1,6 @@
 import { db } from '../index';
 import { announcements, type Announcement, type NewAnnouncement } from '../schema';
-import { eq, and, or, desc, inArray } from 'drizzle-orm';
+import { eq, and, or, desc, inArray, isNull, not } from 'drizzle-orm';
 
 /**
  * Announcement Service - Database operations for announcements
@@ -19,8 +19,9 @@ export async function getAnnouncements(options: {
   const conditions = [];
 
   // By default, exclude completed items unless explicitly requested
+  // Handle null values: include records where completed is false OR null
   if (!options.includeCompleted) {
-    conditions.push(eq(announcements.completed, false));
+    conditions.push(or(eq(announcements.completed, false), isNull(announcements.completed))!);
   }
 
   if (options.status) {

@@ -1,6 +1,6 @@
 import { db } from '../index';
 import { websiteUpdates, type WebsiteUpdate, type NewWebsiteUpdate } from '../schema';
-import { eq, desc, and } from 'drizzle-orm';
+import { eq, desc, and, or, isNull } from 'drizzle-orm';
 
 /**
  * Website Updates Service
@@ -11,10 +11,11 @@ export async function getAllWebsiteUpdates(options: { includeCompleted?: boolean
   if (options.includeCompleted) {
     return db.select().from(websiteUpdates).orderBy(desc(websiteUpdates.createdAt));
   }
+  // Handle null values: include records where completed is false OR null
   return db
     .select()
     .from(websiteUpdates)
-    .where(eq(websiteUpdates.completed, false))
+    .where(or(eq(websiteUpdates.completed, false), isNull(websiteUpdates.completed)))
     .orderBy(desc(websiteUpdates.createdAt));
 }
 
@@ -57,7 +58,10 @@ export async function getUrgentUpdates(): Promise<WebsiteUpdate[]> {
   return db
     .select()
     .from(websiteUpdates)
-    .where(and(eq(websiteUpdates.urgent, true), eq(websiteUpdates.completed, false)))
+    .where(and(
+      eq(websiteUpdates.urgent, true),
+      or(eq(websiteUpdates.completed, false), isNull(websiteUpdates.completed))
+    ))
     .orderBy(desc(websiteUpdates.createdAt));
 }
 

@@ -1,6 +1,6 @@
 import { db } from '../index';
 import { graphicDesignRequests, type GraphicDesignRequest, type NewGraphicDesignRequest } from '../schema';
-import { eq, desc, and } from 'drizzle-orm';
+import { eq, desc, and, or, isNull } from 'drizzle-orm';
 
 /**
  * Graphic Design Requests Service
@@ -11,10 +11,11 @@ export async function getAllGraphicDesignRequests(options: { includeCompleted?: 
   if (options.includeCompleted) {
     return db.select().from(graphicDesignRequests).orderBy(desc(graphicDesignRequests.createdAt));
   }
+  // Handle null values: include records where completed is false OR null
   return db
     .select()
     .from(graphicDesignRequests)
-    .where(eq(graphicDesignRequests.completed, false))
+    .where(or(eq(graphicDesignRequests.completed, false), isNull(graphicDesignRequests.completed)))
     .orderBy(desc(graphicDesignRequests.createdAt));
 }
 
@@ -29,7 +30,10 @@ export async function getGraphicDesignRequestsByStatus(status: string): Promise<
   return db
     .select()
     .from(graphicDesignRequests)
-    .where(and(eq(graphicDesignRequests.status, status), eq(graphicDesignRequests.completed, false)))
+    .where(and(
+      eq(graphicDesignRequests.status, status),
+      or(eq(graphicDesignRequests.completed, false), isNull(graphicDesignRequests.completed))
+    ))
     .orderBy(desc(graphicDesignRequests.createdAt));
 }
 
@@ -78,7 +82,7 @@ export async function getUrgentGraphicDesignRequests(): Promise<GraphicDesignReq
       and(
         eq(graphicDesignRequests.priority, 'Urgent'),
         eq(graphicDesignRequests.status, 'New'),
-        eq(graphicDesignRequests.completed, false)
+        or(eq(graphicDesignRequests.completed, false), isNull(graphicDesignRequests.completed))
       )
     )
     .orderBy(desc(graphicDesignRequests.createdAt));

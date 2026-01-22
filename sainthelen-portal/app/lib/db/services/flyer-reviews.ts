@@ -1,6 +1,6 @@
 import { db } from '../index';
 import { flyerReviews, type FlyerReview, type NewFlyerReview } from '../schema';
-import { eq, desc, and } from 'drizzle-orm';
+import { eq, desc, and, or, isNull } from 'drizzle-orm';
 
 /**
  * Flyer Reviews Service
@@ -11,10 +11,11 @@ export async function getAllFlyerReviews(options: { includeCompleted?: boolean }
   if (options.includeCompleted) {
     return db.select().from(flyerReviews).orderBy(desc(flyerReviews.createdAt));
   }
+  // Handle null values: include records where completed is false OR null
   return db
     .select()
     .from(flyerReviews)
-    .where(eq(flyerReviews.completed, false))
+    .where(or(eq(flyerReviews.completed, false), isNull(flyerReviews.completed)))
     .orderBy(desc(flyerReviews.createdAt));
 }
 
@@ -29,7 +30,10 @@ export async function getFlyerReviewsByStatus(status: string): Promise<FlyerRevi
   return db
     .select()
     .from(flyerReviews)
-    .where(and(eq(flyerReviews.status, status), eq(flyerReviews.completed, false)))
+    .where(and(
+      eq(flyerReviews.status, status),
+      or(eq(flyerReviews.completed, false), isNull(flyerReviews.completed))
+    ))
     .orderBy(desc(flyerReviews.createdAt));
 }
 
@@ -83,7 +87,7 @@ export async function getUrgentFlyerReviews(): Promise<FlyerReview[]> {
       and(
         eq(flyerReviews.urgency, 'urgent'),
         eq(flyerReviews.status, 'Pending'),
-        eq(flyerReviews.completed, false)
+        or(eq(flyerReviews.completed, false), isNull(flyerReviews.completed))
       )
     )
     .orderBy(desc(flyerReviews.createdAt));

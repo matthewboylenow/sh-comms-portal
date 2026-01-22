@@ -1,6 +1,6 @@
 import { db } from '../index';
 import { smsRequests, type SmsRequest, type NewSmsRequest } from '../schema';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, or, isNull } from 'drizzle-orm';
 
 /**
  * SMS Requests Service
@@ -11,10 +11,11 @@ export async function getAllSmsRequests(options: { includeCompleted?: boolean } 
   if (options.includeCompleted) {
     return db.select().from(smsRequests).orderBy(desc(smsRequests.createdAt));
   }
+  // Handle null values: include records where completed is false OR null
   return db
     .select()
     .from(smsRequests)
-    .where(eq(smsRequests.completed, false))
+    .where(or(eq(smsRequests.completed, false), isNull(smsRequests.completed)))
     .orderBy(desc(smsRequests.createdAt));
 }
 

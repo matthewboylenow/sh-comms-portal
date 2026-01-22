@@ -1,6 +1,6 @@
 import { db } from '../index';
 import { avRequests, type AvRequest, type NewAvRequest } from '../schema';
-import { eq, desc, and } from 'drizzle-orm';
+import { eq, desc, and, or, isNull } from 'drizzle-orm';
 
 /**
  * A/V Requests Service
@@ -11,10 +11,11 @@ export async function getAllAvRequests(options: { includeCompleted?: boolean } =
   if (options.includeCompleted) {
     return db.select().from(avRequests).orderBy(desc(avRequests.createdAt));
   }
+  // Handle null values: include records where completed is false OR null
   return db
     .select()
     .from(avRequests)
-    .where(eq(avRequests.completed, false))
+    .where(or(eq(avRequests.completed, false), isNull(avRequests.completed)))
     .orderBy(desc(avRequests.createdAt));
 }
 
@@ -29,7 +30,10 @@ export async function getLivestreamRequests(): Promise<AvRequest[]> {
   return db
     .select()
     .from(avRequests)
-    .where(and(eq(avRequests.needsLivestream, true), eq(avRequests.completed, false)))
+    .where(and(
+      eq(avRequests.needsLivestream, true),
+      or(eq(avRequests.completed, false), isNull(avRequests.completed))
+    ))
     .orderBy(desc(avRequests.createdAt));
 }
 
