@@ -368,6 +368,7 @@ export default function FlyerReviewFormPage() {
                           type="file"
                           className="sr-only"
                           multiple
+                          accept="image/png,image/jpeg,.png,.jpg,.jpeg,.pdf,application/pdf,.docx,.pptx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.presentationml.presentation"
                           onChange={handleFileUpload}
                           disabled={uploadingFiles}
                           required={fileLinks.length === 0}
@@ -376,7 +377,7 @@ export default function FlyerReviewFormPage() {
                       <p className="pl-1">or drag and drop</p>
                     </div>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                      PDF, PNG, JPG, DOCX, PPTX up to 10MB
+                      PDF, PNG, JPG, JPEG, DOCX, PPTX up to 10MB
                     </p>
                   </div>
                 </div>

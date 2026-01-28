@@ -456,6 +456,7 @@ export default function AnnouncementsFormPage() {
                           type="file"
                           className="sr-only"
                           multiple
+                          accept="image/png,image/jpeg,.png,.jpg,.jpeg,.pdf,application/pdf"
                           onChange={handleFileUpload}
                           disabled={uploadingFiles}
                         />
@@ -463,7 +464,7 @@ export default function AnnouncementsFormPage() {
                       <p className="pl-1">or drag and drop</p>
                     </div>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                      PNG, JPG, PDF up to 10MB
+                      PNG, JPG, JPEG, PDF up to 10MB
                     </p>
                   </div>
                 </div>

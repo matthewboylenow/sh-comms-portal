@@ -464,6 +464,7 @@ export default function AVRequestsFormPage() {
                           type="file"
                           className="sr-only"
                           multiple
+                          accept=".ppt,.pptx,.doc,.docx,.pdf,.mp3,.mp4,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf,audio/mpeg,video/mp4"
                           onChange={handleFileUpload}
                           disabled={uploadingFiles}
                         />
