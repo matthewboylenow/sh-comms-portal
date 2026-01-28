@@ -14,8 +14,10 @@ export function extractTimestamp(fields: Record<string, any>, rawRecord?: any): 
   // Try multiple possible field names in order of preference
   const possibleFields = [
     'Submitted At',
+    'Created At',
     'Created Time',
     'Created',
+    'createdAt',
     'createdTime',
     'created'
   ];

@@ -16,7 +16,7 @@ import {
   UsersIcon,
   SignalIcon
 } from '@heroicons/react/24/outline';
-import { formatCreatedTime, getAgeIndicator, getAgeIndicatorColor, extractTimestamp } from '../../utils/dateUtils';
+import { formatCreatedTime, getAgeIndicator, getAgeIndicatorColor, extractTimestamp, formatFullDate, formatTime } from '../../utils/dateUtils';
 
 type AVRequestRecord = {
   id: string;
@@ -27,6 +27,34 @@ type AVRequestCardProps = {
   record: AVRequestRecord;
   onToggleCompleted: (tableName: 'avRequests', recordId: string, currentValue: boolean) => void;
 };
+
+// Helper to parse and format event date/time entries
+function formatEventDateTimes(dateTimesField: string | undefined): string[] {
+  if (!dateTimesField) return [];
+
+  try {
+    // Try to parse as JSON array
+    const entries = JSON.parse(dateTimesField);
+    if (Array.isArray(entries)) {
+      return entries.map((entry: { date?: string; startTime?: string; endTime?: string }) => {
+        const dateStr = formatFullDate(entry.date || null);
+        const startStr = formatTime(entry.startTime || null);
+        const endStr = formatTime(entry.endTime || null);
+
+        if (startStr && endStr) {
+          return `${dateStr} from ${startStr} to ${endStr}`;
+        } else if (startStr) {
+          return `${dateStr} at ${startStr}`;
+        }
+        return dateStr;
+      });
+    }
+  } catch {
+    // If not valid JSON, return the raw string as a single entry
+    return [dateTimesField];
+  }
+  return [];
+}
 
 export default function AVRequestCard({
   record,
@@ -39,6 +67,9 @@ export default function AVRequestCard({
   const timestamp = extractTimestamp(f, record);
   const ageIndicator = getAgeIndicator(timestamp);
   const ageColor = getAgeIndicatorColor(ageIndicator);
+
+  // Parse and format event dates/times
+  const formattedDateTimes = formatEventDateTimes(f['Event Dates and Times']);
 
   return (
     <motion.div
@@ -113,10 +144,14 @@ export default function AVRequestCard({
       {/* Content */}
       <div className="px-5 pb-4">
         {/* Event Dates */}
-        {f['Event Dates and Times'] && (
+        {formattedDateTimes.length > 0 && (
           <div className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-300 mb-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 p-3 rounded-xl">
             <CalendarIcon className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
-            <span className="whitespace-pre-line">{f['Event Dates and Times']}</span>
+            <div className="space-y-1">
+              {formattedDateTimes.map((dt, idx) => (
+                <div key={idx}>{dt}</div>
+              ))}
+            </div>
           </div>
         )}
 
