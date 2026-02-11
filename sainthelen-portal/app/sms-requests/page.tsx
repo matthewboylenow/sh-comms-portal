@@ -5,6 +5,7 @@ import { useState } from 'react';
 import FrontLayout from '../components/FrontLayout';
 import { FrontCard, FrontCardContent, FrontCardHeader, FrontCardTitle } from '../components/ui/FrontCard';
 import { ExclamationCircleIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
+import { uploadFile } from '@/app/lib/upload';
 
 export default function SMSRequestsFormPage() {
   const [name, setName] = useState('');
@@ -20,7 +21,7 @@ export default function SMSRequestsFormPage() {
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Handle file uploads to Vercel Blob
+  // Handle file uploads using client-side Vercel Blob upload (bypasses 4.5MB serverless limit)
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     if (!e.target.files) return;
     setErrorMessage('');
@@ -32,21 +33,8 @@ export default function SMSRequestsFormPage() {
       const uploadedUrls: string[] = [];
 
       for (const file of filesArray) {
-        const formData = new FormData();
-        formData.append('file', file);
-
-        const res = await fetch('/api/blob-upload', {
-          method: 'POST',
-          body: formData,
-        });
-
-        if (!res.ok) {
-          const error = await res.json();
-          throw new Error(error.error || `Failed to upload file: ${file.name}`);
-        }
-
-        const { url, objectUrl } = await res.json();
-        uploadedUrls.push(objectUrl || url);
+        const result = await uploadFile(file);
+        uploadedUrls.push(result.url);
       }
 
       setFileLinks((prev) => [...prev, ...uploadedUrls]);

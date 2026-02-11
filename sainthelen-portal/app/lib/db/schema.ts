@@ -234,3 +234,105 @@ export type NewNotification = typeof notifications.$inferInsert;
 
 export type PushSubscription = typeof pushSubscriptions.$inferSelect;
 export type NewPushSubscription = typeof pushSubscriptions.$inferInsert;
+
+// ============================================================================
+// COMMAND CENTER - TASKS TABLE
+// ============================================================================
+export const tasks = pgTable('tasks', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userEmail: varchar('user_email', { length: 255 }).notNull(),
+  title: varchar('title', { length: 500 }).notNull(),
+  description: text('description'),
+  category: varchar('category', { length: 100 }).notNull(), // announcement, website, av, flyer, misc
+  priority: varchar('priority', { length: 20 }).default('normal'), // low, normal, high, urgent
+  status: varchar('status', { length: 20 }).default('pending'), // pending, in_progress, completed
+  dueDate: date('due_date'),
+  dueTime: time('due_time'),
+  completedAt: timestamp('completed_at'),
+  linkedRecordId: uuid('linked_record_id'),
+  linkedRecordType: varchar('linked_record_type', { length: 50 }), // announcement, website_update, etc.
+  recurringReminderId: uuid('recurring_reminder_id'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// ============================================================================
+// COMMAND CENTER - NOTES TABLE
+// ============================================================================
+export const notes = pgTable('notes', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userEmail: varchar('user_email', { length: 255 }).notNull(),
+  content: text('content').notNull(),
+  color: varchar('color', { length: 20 }).default('yellow'), // yellow, blue, green, pink, purple
+  isPinned: boolean('is_pinned').default(false),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// ============================================================================
+// COMMAND CENTER - RECURRING REMINDERS TABLE
+// ============================================================================
+export const recurringReminders = pgTable('recurring_reminders', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userEmail: varchar('user_email', { length: 255 }).notNull(),
+  title: varchar('title', { length: 500 }).notNull(),
+  description: text('description'),
+  category: varchar('category', { length: 100 }).notNull(),
+  frequency: varchar('frequency', { length: 20 }).notNull(), // daily, weekly, monthly
+  dayOfWeek: integer('day_of_week'), // 0=Sunday, 1=Monday, etc.
+  dayOfMonth: integer('day_of_month'), // 1-31
+  timeOfDay: time('time_of_day'),
+  priority: varchar('priority', { length: 20 }).default('normal'),
+  isActive: boolean('is_active').default(true),
+  lastGeneratedAt: timestamp('last_generated_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// ============================================================================
+// COMMAND CENTER - USER PREFERENCES TABLE
+// ============================================================================
+export const userPreferences = pgTable('user_preferences', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userEmail: varchar('user_email', { length: 255 }).notNull().unique(),
+  dailyDigestEnabled: boolean('daily_digest_enabled').default(true),
+  dailyDigestTime: time('daily_digest_time').default('07:30:00'),
+  defaultView: varchar('default_view', { length: 20 }).default('daily'), // daily, weekly
+  theme: varchar('theme', { length: 20 }).default('system'), // light, dark, system
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// ============================================================================
+// COMMAND CENTER - SOCIAL MEDIA CONTENT TABLE
+// ============================================================================
+export const socialMediaContent = pgTable('social_media_content', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userEmail: varchar('user_email', { length: 255 }).notNull(),
+  platform: varchar('platform', { length: 50 }).notNull(), // facebook, instagram, x, linkedin, gmb, threads, tiktok
+  contentType: varchar('content_type', { length: 50 }).notNull(), // event_promo, event_recap, inspirational, sermon_clip, homily_clip, ministry_spotlight
+  content: text('content').notNull(),
+  hashtags: text('hashtags'),
+  suggestedDate: date('suggested_date'),
+  sourceRecordId: uuid('source_record_id'),
+  sourceRecordType: varchar('source_record_type', { length: 50 }), // announcement, etc.
+  status: varchar('status', { length: 20 }).default('draft'), // draft, scheduled, posted, archived
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// ============================================================================
+// COMMAND CENTER TYPE EXPORTS
+// ============================================================================
+export type Task = typeof tasks.$inferSelect;
+export type NewTask = typeof tasks.$inferInsert;
+
+export type Note = typeof notes.$inferSelect;
+export type NewNote = typeof notes.$inferInsert;
+
+export type RecurringReminder = typeof recurringReminders.$inferSelect;
+export type NewRecurringReminder = typeof recurringReminders.$inferInsert;
+
+export type UserPreference = typeof userPreferences.$inferSelect;
+export type NewUserPreference = typeof userPreferences.$inferInsert;
+
+export type SocialMediaContent = typeof socialMediaContent.$inferSelect;
+export type NewSocialMediaContent = typeof socialMediaContent.$inferInsert;

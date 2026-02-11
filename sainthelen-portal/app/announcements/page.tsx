@@ -8,6 +8,7 @@ import { FrontCard, FrontCardContent, FrontCardHeader, FrontCardTitle } from '..
 import { Button } from '../components/ui/Button';
 import { ExclamationCircleIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
 import MinistryAutocomplete from '../components/ui/MinistryAutocomplete';
+import { uploadFile } from '../lib/upload';
 
 interface Ministry {
   id: string;
@@ -57,7 +58,7 @@ export default function AnnouncementsFormPage() {
     );
   };
 
-  // 1) Upload files to Vercel Blob
+  // 1) Upload files to Vercel Blob (client-side upload - no 4.5MB limit)
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     if (!e.target.files) return;
     setErrorMessage('');
@@ -69,21 +70,8 @@ export default function AnnouncementsFormPage() {
       const uploadedUrls: string[] = [];
 
       for (const file of filesArray) {
-        const formData = new FormData();
-        formData.append('file', file);
-
-        const res = await fetch('/api/blob-upload', {
-          method: 'POST',
-          body: formData,
-        });
-
-        if (!res.ok) {
-          const error = await res.json();
-          throw new Error(error.error || `Failed to upload file: ${file.name}`);
-        }
-
-        const { url, objectUrl } = await res.json();
-        uploadedUrls.push(objectUrl || url);
+        const result = await uploadFile(file);
+        uploadedUrls.push(result.url);
       }
 
       // Store them in state
