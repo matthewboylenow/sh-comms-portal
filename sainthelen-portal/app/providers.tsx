@@ -3,6 +3,7 @@
 
 import { SessionProvider } from 'next-auth/react';
 import { NotificationProvider } from './context/NotificationContext';
+import { ToastProvider } from './context/ToastContext';
 import { ThemeProvider } from 'next-themes';
 
 export default function Providers({ children }: { children: React.ReactNode }) {
@@ -10,7 +11,9 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     <ThemeProvider attribute="class">
       <SessionProvider>
         <NotificationProvider>
-          {children}
+          <ToastProvider>
+            {children}
+          </ToastProvider>
         </NotificationProvider>
       </SessionProvider>
     </ThemeProvider>

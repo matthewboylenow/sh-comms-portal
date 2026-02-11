@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]/route';
 import * as tasksService from '../../lib/db/services/tasks';
+import { emitEvent } from '../../lib/eventBus';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,10 +32,10 @@ export async function GET(request: NextRequest) {
 
     if (date) {
       // Get tasks for a specific date
-      tasks = await tasksService.getTasksForDate(userEmail, date);
+      tasks = await tasksService.getTasksForDate(userEmail, date, { includeCompleted });
     } else if (startDate && endDate) {
       // Get tasks for a date range
-      tasks = await tasksService.getTasksForDateRange(userEmail, startDate, endDate);
+      tasks = await tasksService.getTasksForDateRange(userEmail, startDate, endDate, { includeCompleted });
     } else {
       // Get all tasks with optional filters
       tasks = await tasksService.getTasksForUser(userEmail, {
@@ -91,6 +92,8 @@ export async function POST(request: NextRequest) {
       linkedRecordType,
     });
 
+    emitEvent('task_created', { task });
+
     return NextResponse.json({
       success: true,
       task,
@@ -136,6 +139,8 @@ export async function PATCH(request: NextRequest) {
 
     const task = await tasksService.updateTask(id, updates);
 
+    emitEvent('task_updated', { task });
+
     return NextResponse.json({
       success: true,
       task,
@@ -180,6 +185,8 @@ export async function DELETE(request: NextRequest) {
     }
 
     await tasksService.deleteTask(id);
+
+    emitEvent('task_deleted', { taskId: id });
 
     return NextResponse.json({
       success: true,

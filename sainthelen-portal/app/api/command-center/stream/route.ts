@@ -3,6 +3,7 @@
 import { NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../auth/[...nextauth]/route';
+import { onEvent, offEvent, type SSEEvent } from '../../../lib/eventBus';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,6 +30,17 @@ export async function GET(request: NextRequest) {
       };
       controller.enqueue(encoder.encode(`data: ${JSON.stringify(connectEvent)}\n\n`));
 
+      // Subscribe to event bus for real-time events
+      const handleEvent = (event: SSEEvent) => {
+        try {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+        } catch {
+          // Connection closed
+          offEvent(handleEvent);
+        }
+      };
+      onEvent(handleEvent);
+
       // Send heartbeat every 30 seconds to keep connection alive
       const heartbeatInterval = setInterval(() => {
         try {
@@ -47,6 +59,7 @@ export async function GET(request: NextRequest) {
       // Handle client disconnect
       request.signal.addEventListener('abort', () => {
         clearInterval(heartbeatInterval);
+        offEvent(handleEvent);
         controller.close();
       });
     },
@@ -61,8 +74,3 @@ export async function GET(request: NextRequest) {
     },
   });
 }
-
-// Helper function to create stream events (for use in other files)
-// Note: In a production environment, you would use a pub/sub system like Redis
-// to broadcast events across multiple server instances. For simplicity,
-// this implementation uses polling on the client side as a fallback.

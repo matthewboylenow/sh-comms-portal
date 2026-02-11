@@ -1,7 +1,7 @@
 // app/command-center/CommandCenterClient.tsx
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { format, startOfWeek, endOfWeek, addDays, isToday, isSameDay } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -9,6 +9,7 @@ import Link from 'next/link';
 import useTasks, { Task } from '../hooks/useTasks';
 import useNotes from '../hooks/useNotes';
 import useCommandCenterStream from '../hooks/useCommandCenterStream';
+import { useToast } from '../context/ToastContext';
 import DayView from './components/DayView';
 import WeekView from './components/WeekView';
 import QuickCapture from './components/QuickCapture';
@@ -34,6 +35,7 @@ type ViewMode = 'daily' | 'weekly';
 
 export default function CommandCenterClient() {
   const { data: session, status } = useSession();
+  const { toast } = useToast();
   const [viewMode, setViewMode] = useState<ViewMode>('daily');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isDark, setIsDark] = useState(false);
@@ -59,6 +61,7 @@ export default function CommandCenterClient() {
     date: viewMode === 'daily' ? format(selectedDate, 'yyyy-MM-dd') : undefined,
     startDate: viewMode === 'weekly' ? format(weekStart, 'yyyy-MM-dd') : undefined,
     endDate: viewMode === 'weekly' ? format(weekEnd, 'yyyy-MM-dd') : undefined,
+    includeCompleted: true,
   });
 
   // Notes hook
@@ -117,6 +120,43 @@ export default function CommandCenterClient() {
     });
     return grouped;
   }, [tasks]);
+
+  // Wrapped task handlers with toast notifications
+  const handleComplete = useCallback(async (id: string) => {
+    try {
+      await completeTask(id);
+      toast.success('Task completed');
+    } catch {
+      toast.error('Failed to complete task');
+    }
+  }, [completeTask, toast]);
+
+  const handleUncomplete = useCallback(async (id: string) => {
+    try {
+      await uncompleteTask(id);
+      toast.success('Task reopened');
+    } catch {
+      toast.error('Failed to reopen task');
+    }
+  }, [uncompleteTask, toast]);
+
+  const handleDelete = useCallback(async (id: string) => {
+    try {
+      await deleteTask(id);
+      toast.success('Task deleted');
+    } catch {
+      toast.error('Failed to delete task');
+    }
+  }, [deleteTask, toast]);
+
+  const handleCreateTask = useCallback(async (task: Parameters<typeof createTask>[0]) => {
+    try {
+      await createTask(task);
+      toast.success('Task created');
+    } catch {
+      toast.error('Failed to create task');
+    }
+  }, [createTask, toast]);
 
   // Loading state
   if (status === 'loading') {
@@ -311,9 +351,9 @@ export default function CommandCenterClient() {
                 <DayView
                   tasks={tasks}
                   date={selectedDate}
-                  onComplete={completeTask}
-                  onUncomplete={uncompleteTask}
-                  onDelete={deleteTask}
+                  onComplete={handleComplete}
+                  onUncomplete={handleUncomplete}
+                  onDelete={handleDelete}
                   onUpdate={updateTask}
                   loading={tasksLoading}
                 />
@@ -321,9 +361,9 @@ export default function CommandCenterClient() {
                 <WeekView
                   tasksByDate={tasksByDate}
                   weekStart={weekStart}
-                  onComplete={completeTask}
-                  onUncomplete={uncompleteTask}
-                  onDelete={deleteTask}
+                  onComplete={handleComplete}
+                  onUncomplete={handleUncomplete}
+                  onDelete={handleDelete}
                   onUpdate={updateTask}
                   onDateSelect={setSelectedDate}
                   loading={tasksLoading}
@@ -354,7 +394,7 @@ export default function CommandCenterClient() {
       </main>
 
       {/* Quick Capture FAB */}
-      <QuickCapture onCreateTask={createTask} />
+      <QuickCapture onCreateTask={handleCreateTask} />
 
       {/* Settings Modal */}
       <SettingsModal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />

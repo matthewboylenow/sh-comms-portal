@@ -14,6 +14,7 @@ import {
   CheckIcon,
   ArrowPathIcon,
 } from '@heroicons/react/24/outline';
+import { useToast } from '../../context/ToastContext';
 
 interface RecurringReminder {
   id: string;
@@ -62,7 +63,172 @@ const priorityOptions = [
   { value: 'urgent', label: 'Urgent' },
 ];
 
+// Extracted to module level to prevent unmount/remount on parent re-renders
+function ReminderForm({ reminder, onSave, onCancel }: {
+  reminder: Partial<RecurringReminder>;
+  onSave: (r: Partial<RecurringReminder>) => void;
+  onCancel: () => void;
+}) {
+  const [form, setForm] = useState({
+    title: reminder.title || '',
+    description: reminder.description || '',
+    category: reminder.category || 'misc',
+    frequency: reminder.frequency || 'weekly',
+    dayOfWeek: reminder.dayOfWeek ?? 1,
+    dayOfMonth: reminder.dayOfMonth ?? 1,
+    timeOfDay: reminder.timeOfDay?.substring(0, 5) || '09:00',
+    priority: reminder.priority || 'normal',
+    isActive: reminder.isActive ?? true,
+  });
+
+  return (
+    <div className="space-y-4 p-4 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          Title *
+        </label>
+        <input
+          type="text"
+          value={form.title}
+          onChange={(e) => setForm({ ...form, title: e.target.value })}
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-slate-700 dark:text-white"
+          placeholder="e.g., Email Blast Deadline"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          Description
+        </label>
+        <input
+          type="text"
+          value={form.description}
+          onChange={(e) => setForm({ ...form, description: e.target.value })}
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-slate-700 dark:text-white"
+          placeholder="Optional details"
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Category
+          </label>
+          <select
+            value={form.category}
+            onChange={(e) => setForm({ ...form, category: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-slate-700 dark:text-white"
+          >
+            {categoryOptions.map(opt => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Priority
+          </label>
+          <select
+            value={form.priority}
+            onChange={(e) => setForm({ ...form, priority: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-slate-700 dark:text-white"
+          >
+            {priorityOptions.map(opt => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Frequency
+          </label>
+          <select
+            value={form.frequency}
+            onChange={(e) => setForm({ ...form, frequency: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-slate-700 dark:text-white"
+          >
+            {frequencyOptions.map(opt => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+        </div>
+
+        {form.frequency === 'weekly' && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Day of Week
+            </label>
+            <select
+              value={form.dayOfWeek}
+              onChange={(e) => setForm({ ...form, dayOfWeek: parseInt(e.target.value) })}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-slate-700 dark:text-white"
+            >
+              {dayNames.map((name, i) => (
+                <option key={i} value={i}>{name}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {form.frequency === 'monthly' && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Day of Month
+            </label>
+            <select
+              value={form.dayOfMonth}
+              onChange={(e) => setForm({ ...form, dayOfMonth: parseInt(e.target.value) })}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-slate-700 dark:text-white"
+            >
+              {Array.from({ length: 31 }, (_, i) => (
+                <option key={i + 1} value={i + 1}>{i + 1}</option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          Time
+        </label>
+        <input
+          type="time"
+          value={form.timeOfDay}
+          onChange={(e) => setForm({ ...form, timeOfDay: e.target.value })}
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-slate-700 dark:text-white"
+        />
+      </div>
+
+      <div className="flex justify-end gap-2 pt-2">
+        <button
+          onClick={onCancel}
+          className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-600 rounded-lg"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={() => onSave({
+            ...reminder,
+            ...form,
+            timeOfDay: form.timeOfDay + ':00',
+          })}
+          disabled={!form.title.trim()}
+          className="px-4 py-2 text-sm bg-sh-primary text-white rounded-lg hover:bg-sh-primary/90 disabled:opacity-50"
+        >
+          Save
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
+  const { toast } = useToast();
   const [selectedTab, setSelectedTab] = useState(0);
   const [reminders, setReminders] = useState<RecurringReminder[]>([]);
   const [preferences, setPreferences] = useState<UserPreferences>({
@@ -109,6 +275,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       }
     } catch (err) {
       console.error('Error fetching settings:', err);
+      toast.error('Failed to load settings');
     } finally {
       setLoading(false);
     }
@@ -122,7 +289,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       setPreferences(newPrefs);
 
       const res = await fetch('/api/user-preferences', {
-        method: 'POST',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           dailyDigestEnabled: newPrefs.dailyDigestEnabled,
@@ -133,8 +300,10 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       });
 
       if (!res.ok) throw new Error('Failed to save');
+      toast.success('Preferences saved');
     } catch (err) {
       console.error('Error saving preferences:', err);
+      toast.error('Failed to save preferences');
     } finally {
       setSaving(false);
     }
@@ -151,9 +320,13 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
       if (res.ok) {
         setReminders(prev => prev.map(r => r.id === id ? { ...r, isActive } : r));
+        toast.success(isActive ? 'Reminder enabled' : 'Reminder disabled');
+      } else {
+        toast.error('Failed to update reminder');
       }
     } catch (err) {
       console.error('Error toggling reminder:', err);
+      toast.error('Failed to update reminder');
     }
   };
 
@@ -168,9 +341,13 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
       if (res.ok) {
         setReminders(prev => prev.filter(r => r.id !== id));
+        toast.success('Reminder deleted');
+      } else {
+        toast.error('Failed to delete reminder');
       }
     } catch (err) {
       console.error('Error deleting reminder:', err);
+      toast.error('Failed to delete reminder');
     }
   };
 
@@ -189,14 +366,19 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         const data = await res.json();
         if (reminder.id) {
           setReminders(prev => prev.map(r => r.id === reminder.id ? data.reminder : r));
+          toast.success('Reminder updated');
         } else {
           setReminders(prev => [...prev, data.reminder]);
+          toast.success('Reminder created');
         }
         setEditingReminder(null);
         setIsCreatingNew(false);
+      } else {
+        toast.error('Failed to save reminder');
       }
     } catch (err) {
       console.error('Error saving reminder:', err);
+      toast.error('Failed to save reminder');
     } finally {
       setSaving(false);
     }
@@ -211,176 +393,16 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       const res = await fetch('/api/recurring-reminders/seed', { method: 'POST' });
       if (res.ok) {
         await fetchData();
+        toast.success('Default reminders loaded');
+      } else {
+        toast.error('Failed to load defaults');
       }
     } catch (err) {
       console.error('Error seeding defaults:', err);
+      toast.error('Failed to load defaults');
     } finally {
       setSaving(false);
     }
-  };
-
-  // Reminder edit form
-  const ReminderForm = ({ reminder, onSave, onCancel }: {
-    reminder: Partial<RecurringReminder>;
-    onSave: (r: Partial<RecurringReminder>) => void;
-    onCancel: () => void;
-  }) => {
-    const [form, setForm] = useState({
-      title: reminder.title || '',
-      description: reminder.description || '',
-      category: reminder.category || 'misc',
-      frequency: reminder.frequency || 'weekly',
-      dayOfWeek: reminder.dayOfWeek ?? 1,
-      dayOfMonth: reminder.dayOfMonth ?? 1,
-      timeOfDay: reminder.timeOfDay?.substring(0, 5) || '09:00',
-      priority: reminder.priority || 'normal',
-      isActive: reminder.isActive ?? true,
-    });
-
-    return (
-      <div className="space-y-4 p-4 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Title *
-          </label>
-          <input
-            type="text"
-            value={form.title}
-            onChange={(e) => setForm({ ...form, title: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-slate-700 dark:text-white"
-            placeholder="e.g., Email Blast Deadline"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Description
-          </label>
-          <input
-            type="text"
-            value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-slate-700 dark:text-white"
-            placeholder="Optional details"
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Category
-            </label>
-            <select
-              value={form.category}
-              onChange={(e) => setForm({ ...form, category: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-slate-700 dark:text-white"
-            >
-              {categoryOptions.map(opt => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Priority
-            </label>
-            <select
-              value={form.priority}
-              onChange={(e) => setForm({ ...form, priority: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-slate-700 dark:text-white"
-            >
-              {priorityOptions.map(opt => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Frequency
-            </label>
-            <select
-              value={form.frequency}
-              onChange={(e) => setForm({ ...form, frequency: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-slate-700 dark:text-white"
-            >
-              {frequencyOptions.map(opt => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
-          </div>
-
-          {form.frequency === 'weekly' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Day of Week
-              </label>
-              <select
-                value={form.dayOfWeek}
-                onChange={(e) => setForm({ ...form, dayOfWeek: parseInt(e.target.value) })}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-slate-700 dark:text-white"
-              >
-                {dayNames.map((name, i) => (
-                  <option key={i} value={i}>{name}</option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {form.frequency === 'monthly' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Day of Month
-              </label>
-              <select
-                value={form.dayOfMonth}
-                onChange={(e) => setForm({ ...form, dayOfMonth: parseInt(e.target.value) })}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-slate-700 dark:text-white"
-              >
-                {Array.from({ length: 28 }, (_, i) => (
-                  <option key={i + 1} value={i + 1}>{i + 1}</option>
-                ))}
-              </select>
-            </div>
-          )}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Time
-          </label>
-          <input
-            type="time"
-            value={form.timeOfDay}
-            onChange={(e) => setForm({ ...form, timeOfDay: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-slate-700 dark:text-white"
-          />
-        </div>
-
-        <div className="flex justify-end gap-2 pt-2">
-          <button
-            onClick={onCancel}
-            className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-600 rounded-lg"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={() => onSave({
-              ...reminder,
-              ...form,
-              timeOfDay: form.timeOfDay + ':00',
-            })}
-            disabled={!form.title.trim()}
-            className="px-4 py-2 text-sm bg-sh-primary text-white rounded-lg hover:bg-sh-primary/90 disabled:opacity-50"
-          >
-            Save
-          </button>
-        </div>
-      </div>
-    );
   };
 
   return (
@@ -506,6 +528,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           {/* New Reminder Form */}
                           {isCreatingNew && editingReminder && (
                             <ReminderForm
+                              key="new"
                               reminder={editingReminder}
                               onSave={saveReminder}
                               onCancel={() => {
@@ -533,6 +556,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                                 <div key={reminder.id}>
                                   {editingReminder?.id === reminder.id && !isCreatingNew ? (
                                     <ReminderForm
+                                      key={editingReminder.id}
                                       reminder={editingReminder}
                                       onSave={saveReminder}
                                       onCancel={() => setEditingReminder(null)}
