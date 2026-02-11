@@ -49,21 +49,27 @@ export async function getTasksForUser(
 // Get tasks for a specific date
 export async function getTasksForDate(
   userEmail: string,
-  date: string
+  date: string,
+  options?: { includeCompleted?: boolean }
 ): Promise<Task[]> {
+  const conditions = [
+    eq(tasks.userEmail, userEmail),
+    eq(tasks.dueDate, date),
+  ];
+
+  if (!options?.includeCompleted) {
+    conditions.push(
+      or(
+        eq(tasks.status, 'pending'),
+        eq(tasks.status, 'in_progress')
+      )!
+    );
+  }
+
   return db
     .select()
     .from(tasks)
-    .where(
-      and(
-        eq(tasks.userEmail, userEmail),
-        eq(tasks.dueDate, date),
-        or(
-          eq(tasks.status, 'pending'),
-          eq(tasks.status, 'in_progress')
-        )
-      )
-    )
+    .where(and(...conditions))
     .orderBy(asc(tasks.dueTime), desc(tasks.priority));
 }
 
@@ -71,18 +77,28 @@ export async function getTasksForDate(
 export async function getTasksForDateRange(
   userEmail: string,
   startDate: string,
-  endDate: string
+  endDate: string,
+  options?: { includeCompleted?: boolean }
 ): Promise<Task[]> {
+  const conditions = [
+    eq(tasks.userEmail, userEmail),
+    gte(tasks.dueDate, startDate),
+    lte(tasks.dueDate, endDate),
+  ];
+
+  if (!options?.includeCompleted) {
+    conditions.push(
+      or(
+        eq(tasks.status, 'pending'),
+        eq(tasks.status, 'in_progress')
+      )!
+    );
+  }
+
   return db
     .select()
     .from(tasks)
-    .where(
-      and(
-        eq(tasks.userEmail, userEmail),
-        gte(tasks.dueDate, startDate),
-        lte(tasks.dueDate, endDate)
-      )
-    )
+    .where(and(...conditions))
     .orderBy(asc(tasks.dueDate), asc(tasks.dueTime), desc(tasks.priority));
 }
 
