@@ -16,6 +16,7 @@ import NotesPanel from './components/NotesPanel';
 import SubmissionsWidget from './components/SubmissionsWidget';
 import DeadlineAlerts from './components/DeadlineAlerts';
 import SocialSuggestions from './components/SocialSuggestions';
+import SettingsModal from './components/SettingsModal';
 import {
   CalendarDaysIcon,
   CalendarIcon,
@@ -37,6 +38,7 @@ export default function CommandCenterClient() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isDark, setIsDark] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Calculate date range for week view
   const weekStart = startOfWeek(selectedDate, { weekStartsOn: 0 });
@@ -225,6 +227,15 @@ export default function CommandCenterClient() {
               {isDark ? <SunIcon className="w-5 h-5" /> : <MoonIcon className="w-5 h-5" />}
             </button>
 
+            {/* Settings */}
+            <button
+              onClick={() => setSettingsOpen(true)}
+              className="p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+              title="Settings"
+            >
+              <Cog6ToothIcon className="w-5 h-5" />
+            </button>
+
             {/* Back to Admin */}
             <Link
               href="/admin"
@@ -344,6 +355,9 @@ export default function CommandCenterClient() {
 
       {/* Quick Capture FAB */}
       <QuickCapture onCreateTask={createTask} />
+
+      {/* Settings Modal */}
+      <SettingsModal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   );
 }
