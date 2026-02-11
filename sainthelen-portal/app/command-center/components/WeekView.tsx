@@ -13,6 +13,7 @@ interface WeekViewProps {
   onComplete: (id: string) => void;
   onUncomplete: (id: string) => void;
   onDelete: (id: string) => void;
+  onUpdate?: (id: string, updates: Partial<Task>) => Promise<void>;
   onDateSelect: (date: Date) => void;
   loading: boolean;
 }
@@ -23,6 +24,7 @@ export default function WeekView({
   onComplete,
   onUncomplete,
   onDelete,
+  onUpdate,
   onDateSelect,
   loading,
 }: WeekViewProps) {
@@ -87,6 +89,7 @@ export default function WeekView({
                         onComplete={onComplete}
                         onUncomplete={onUncomplete}
                         onDelete={onDelete}
+                        onUpdate={onUpdate}
                         compact
                       />
                     ))

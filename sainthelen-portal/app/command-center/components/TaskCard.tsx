@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { format } from 'date-fns';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Task } from '../../hooks/useTasks';
 import {
   CheckCircleIcon,
@@ -14,6 +14,8 @@ import {
   VideoCameraIcon,
   DocumentTextIcon,
   EllipsisHorizontalIcon,
+  PencilIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { CheckCircleIcon as CheckCircleSolidIcon } from '@heroicons/react/24/solid';
 
@@ -22,6 +24,7 @@ interface TaskCardProps {
   onComplete: (id: string) => void;
   onUncomplete: (id: string) => void;
   onDelete: (id: string) => void;
+  onUpdate?: (id: string, updates: Partial<Task>) => Promise<void>;
   compact?: boolean;
 }
 
@@ -53,9 +56,16 @@ export default function TaskCard({
   onComplete,
   onUncomplete,
   onDelete,
+  onUpdate,
   compact = false,
 }: TaskCardProps) {
-  const [showMenu, setShowMenu] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editDate, setEditDate] = useState(task.dueDate || '');
+  const [editTime, setEditTime] = useState(task.dueTime?.substring(0, 5) || '');
+  const [editTitle, setEditTitle] = useState(task.title);
+  const [editPriority, setEditPriority] = useState(task.priority || 'normal');
+  const [saving, setSaving] = useState(false);
+
   const isCompleted = task.status === 'completed';
   const CategoryIcon = categoryIcons[task.category] || EllipsisHorizontalIcon;
 
@@ -67,6 +77,127 @@ export default function TaskCard({
     }
   };
 
+  const handleSaveEdit = async () => {
+    if (!onUpdate) return;
+
+    setSaving(true);
+    try {
+      await onUpdate(task.id, {
+        title: editTitle,
+        dueDate: editDate || null,
+        dueTime: editTime ? `${editTime}:00` : null,
+        priority: editPriority,
+      });
+      setIsEditing(false);
+    } catch (err) {
+      console.error('Failed to update task:', err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditDate(task.dueDate || '');
+    setEditTime(task.dueTime?.substring(0, 5) || '');
+    setEditTitle(task.title);
+    setEditPriority(task.priority || 'normal');
+    setIsEditing(false);
+  };
+
+  // Edit Mode
+  if (isEditing) {
+    return (
+      <motion.div
+        layout
+        className={`
+          bg-white dark:bg-slate-800 rounded-xl border-2 border-sh-primary/50
+          p-4 shadow-lg
+        `}
+      >
+        <div className="space-y-3">
+          {/* Title */}
+          <div>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+              Title
+            </label>
+            <input
+              type="text"
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg
+                         dark:bg-slate-700 dark:text-white focus:ring-2 focus:ring-sh-primary/50 focus:border-sh-primary"
+            />
+          </div>
+
+          {/* Date & Time */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                Due Date
+              </label>
+              <input
+                type="date"
+                value={editDate}
+                onChange={(e) => setEditDate(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg
+                           dark:bg-slate-700 dark:text-white focus:ring-2 focus:ring-sh-primary/50 focus:border-sh-primary"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                Time
+              </label>
+              <input
+                type="time"
+                value={editTime}
+                onChange={(e) => setEditTime(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg
+                           dark:bg-slate-700 dark:text-white focus:ring-2 focus:ring-sh-primary/50 focus:border-sh-primary"
+              />
+            </div>
+          </div>
+
+          {/* Priority */}
+          <div>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+              Priority
+            </label>
+            <select
+              value={editPriority}
+              onChange={(e) => setEditPriority(e.target.value)}
+              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg
+                         dark:bg-slate-700 dark:text-white focus:ring-2 focus:ring-sh-primary/50 focus:border-sh-primary"
+            >
+              <option value="low">Low</option>
+              <option value="normal">Normal</option>
+              <option value="high">High</option>
+              <option value="urgent">Urgent</option>
+            </select>
+          </div>
+
+          {/* Buttons */}
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              onClick={handleCancelEdit}
+              disabled={saving}
+              className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSaveEdit}
+              disabled={saving || !editTitle.trim()}
+              className="px-3 py-1.5 text-sm bg-sh-primary text-white rounded-lg hover:bg-sh-primary/90 transition-colors disabled:opacity-50"
+            >
+              {saving ? 'Saving...' : 'Save'}
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
+
+  // Normal View
   return (
     <motion.div
       layout
@@ -135,6 +266,11 @@ export default function TaskCard({
 
           {/* Meta */}
           <div className="mt-2 flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+            {task.dueDate && (
+              <span className="flex items-center gap-1">
+                {format(new Date(task.dueDate + 'T00:00:00'), 'MMM d')}
+              </span>
+            )}
             {task.dueTime && (
               <span className="flex items-center gap-1">
                 <ClockIcon className="w-3.5 h-3.5" />
@@ -150,13 +286,25 @@ export default function TaskCard({
           </div>
         </div>
 
-        {/* Delete Button (show on hover) */}
-        <button
-          onClick={() => onDelete(task.id)}
-          className="flex-shrink-0 p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 opacity-0 group-hover:opacity-100 transition-all"
-        >
-          <TrashIcon className="w-4 h-4" />
-        </button>
+        {/* Action Buttons (show on hover) */}
+        <div className="flex-shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+          {onUpdate && (
+            <button
+              onClick={() => setIsEditing(true)}
+              className="p-1.5 rounded-lg text-gray-400 hover:text-sh-primary hover:bg-sh-primary/10 transition-colors"
+              title="Edit task"
+            >
+              <PencilIcon className="w-4 h-4" />
+            </button>
+          )}
+          <button
+            onClick={() => onDelete(task.id)}
+            className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+            title="Delete task"
+          >
+            <TrashIcon className="w-4 h-4" />
+          </button>
+        </div>
       </div>
     </motion.div>
   );

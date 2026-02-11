@@ -14,6 +14,7 @@ interface DayViewProps {
   onComplete: (id: string) => void;
   onUncomplete: (id: string) => void;
   onDelete: (id: string) => void;
+  onUpdate?: (id: string, updates: Partial<Task>) => Promise<void>;
   loading: boolean;
 }
 
@@ -33,6 +34,7 @@ export default function DayView({
   onComplete,
   onUncomplete,
   onDelete,
+  onUpdate,
   loading,
 }: DayViewProps) {
   // Group tasks by time slot
@@ -115,6 +117,7 @@ export default function DayView({
                   onComplete={onComplete}
                   onUncomplete={onUncomplete}
                   onDelete={onDelete}
+                  onUpdate={onUpdate}
                 />
               ))}
             </AnimatePresence>
@@ -159,6 +162,7 @@ export default function DayView({
                             onComplete={onComplete}
                             onUncomplete={onUncomplete}
                             onDelete={onDelete}
+                            onUpdate={onUpdate}
                           />
                         ))}
                       </AnimatePresence>

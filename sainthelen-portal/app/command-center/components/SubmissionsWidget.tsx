@@ -58,7 +58,7 @@ export default function SubmissionsWidget() {
             type: 'announcement',
             title: item.fields?.['Announcement Body']?.substring(0, 50) + '...' || 'Announcement',
             submitterName: item.fields?.Name || 'Unknown',
-            submittedAt: item.fields?.['Submitted At'] || item.fields?.createdAt || new Date().toISOString(),
+            submittedAt: item.fields?.['Submitted At'] || item.fields?.['Created At'] || new Date().toISOString(),
           });
         });
 
@@ -69,7 +69,7 @@ export default function SubmissionsWidget() {
             type: 'websiteUpdate',
             title: item.fields?.['Page to Update'] || 'Website Update',
             submitterName: item.fields?.Name || 'Unknown',
-            submittedAt: item.fields?.['Submitted At'] || item.fields?.createdAt || new Date().toISOString(),
+            submittedAt: item.fields?.['Created At'] || item.fields?.['Submitted At'] || new Date().toISOString(),
           });
         });
 
@@ -80,7 +80,7 @@ export default function SubmissionsWidget() {
             type: 'smsRequest',
             title: item.fields?.['SMS Message']?.substring(0, 50) + '...' || 'SMS Request',
             submitterName: item.fields?.Name || 'Unknown',
-            submittedAt: item.fields?.['Submitted At'] || item.fields?.createdAt || new Date().toISOString(),
+            submittedAt: item.fields?.['Created At'] || item.fields?.['Submitted At'] || new Date().toISOString(),
           });
         });
 
@@ -90,7 +90,29 @@ export default function SubmissionsWidget() {
             type: 'avRequest',
             title: item.fields?.['Event Name'] || 'A/V Request',
             submitterName: item.fields?.Name || 'Unknown',
-            submittedAt: item.fields?.['Submitted At'] || item.fields?.createdAt || new Date().toISOString(),
+            submittedAt: item.fields?.['Created At'] || item.fields?.['Submitted At'] || new Date().toISOString(),
+          });
+        });
+
+        // Process flyer reviews
+        (data.flyerReviews || []).forEach((item: any) => {
+          allSubmissions.push({
+            id: item.id,
+            type: 'flyerReview',
+            title: item.fields?.['Event Name'] || 'Flyer Review',
+            submitterName: item.fields?.Name || 'Unknown',
+            submittedAt: item.fields?.['Created At'] || item.fields?.['Submitted At'] || new Date().toISOString(),
+          });
+        });
+
+        // Process graphic design requests
+        (data.graphicDesign || []).forEach((item: any) => {
+          allSubmissions.push({
+            id: item.id,
+            type: 'graphicDesign',
+            title: item.fields?.['Project Type'] || 'Graphic Design',
+            submitterName: item.fields?.Name || 'Unknown',
+            submittedAt: item.fields?.['Created At'] || item.fields?.['Submitted At'] || new Date().toISOString(),
           });
         });
 

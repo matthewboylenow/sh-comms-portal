@@ -49,6 +49,7 @@ export default function CommandCenterClient() {
     error: tasksError,
     fetchTasks,
     createTask,
+    updateTask,
     completeTask,
     uncompleteTask,
     deleteTask,
@@ -302,6 +303,7 @@ export default function CommandCenterClient() {
                   onComplete={completeTask}
                   onUncomplete={uncompleteTask}
                   onDelete={deleteTask}
+                  onUpdate={updateTask}
                   loading={tasksLoading}
                 />
               ) : (
@@ -311,6 +313,7 @@ export default function CommandCenterClient() {
                   onComplete={completeTask}
                   onUncomplete={uncompleteTask}
                   onDelete={deleteTask}
+                  onUpdate={updateTask}
                   onDateSelect={setSelectedDate}
                   loading={tasksLoading}
                 />
