@@ -37,6 +37,14 @@ export default function DayView({
   onUpdate,
   loading,
 }: DayViewProps) {
+  // Sort so completed tasks appear at the bottom
+  const sortTasks = (arr: Task[]) =>
+    [...arr].sort((a, b) => {
+      const aCompleted = a.status === 'completed' ? 1 : 0;
+      const bCompleted = b.status === 'completed' ? 1 : 0;
+      return aCompleted - bCompleted;
+    });
+
   // Group tasks by time slot
   const tasksByTime = useMemo(() => {
     const grouped: Record<string, Task[]> = {
@@ -62,6 +70,11 @@ export default function DayView({
         }
       }
     });
+
+    // Sort each group so completed tasks are at the bottom
+    for (const key of Object.keys(grouped)) {
+      grouped[key] = sortTasks(grouped[key]);
+    }
 
     return grouped;
   }, [tasks]);

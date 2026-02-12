@@ -59,6 +59,7 @@ type AnnouncementFormData = {
   isExternalEvent?: boolean;
   fileLinks?: string[];
   signUpUrl?: string;
+  publicationNotes?: string;
 };
 
 // 1) Configure Airtable using centralized utility
@@ -119,6 +120,7 @@ export async function POST(request: NextRequest) {
         externalEvent: data.isExternalEvent || false,
         fileLinks: data.fileLinks || null,
         signUpUrl: data.signUpUrl || null,
+        publicationNotes: data.publicationNotes || null,
         approvalStatus,
         requiresApproval,
       });
@@ -180,7 +182,8 @@ export async function POST(request: NextRequest) {
       <ul>
         <li><strong>Ministry:</strong> ${data.ministry || 'N/A'}</li>
         <li><strong>Event Date:</strong> ${data.eventDate || 'N/A'} ${data.eventTime || ''}</li>
-        <li><strong>Promotion Start:</strong> ${data.promotionStart || 'N/A'}</li>
+        <li><strong>Requested Publication Weekend:</strong> ${data.promotionStart || 'N/A'}</li>
+        ${data.publicationNotes ? `<li><strong>Publication Notes:</strong> ${data.publicationNotes}</li>` : ''}
         <li><strong>Add to Calendar:</strong> ${data.addToCalendar ? 'Yes' : 'No'}</li>
         <li><strong>External Event:</strong> ${data.isExternalEvent ? 'Yes' : 'No'}</li>
         <li><strong>File Links:</strong><br/>${fileLinksString.replace(/\n/g, '<br/>')}</li>
@@ -216,7 +219,8 @@ export async function POST(request: NextRequest) {
             <li><strong>Submitted by:</strong> ${data.name} (${data.email})</li>
             <li><strong>Ministry:</strong> ${data.ministry}</li>
             <li><strong>Event Date:</strong> ${data.eventDate || 'N/A'} ${data.eventTime || ''}</li>
-            <li><strong>Promotion Start:</strong> ${data.promotionStart || 'N/A'}</li>
+            <li><strong>Requested Publication Weekend:</strong> ${data.promotionStart || 'N/A'}</li>
+            ${data.publicationNotes ? `<li><strong>Publication Notes:</strong> ${data.publicationNotes}</li>` : ''}
             <li><strong>External Event:</strong> ${data.isExternalEvent ? 'Yes' : 'No'}</li>
           </ul>
           <div style="background-color: #f3f4f6; padding: 16px; border-radius: 6px; margin: 16px 0;">

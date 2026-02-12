@@ -81,6 +81,8 @@ export async function GET(request: NextRequest) {
             'Announcement Body': r.announcementBody,
             'Add to Events Calendar': r.addToEventsCalendar ? 'Yes' : 'No',
             'File Links': r.fileLinks?.join('\n') || '',
+            'Sign Up URL': r.signUpUrl,
+            'Publication Notes': r.publicationNotes,
             'Approval Status': r.approvalStatus,
             'Requires Approval': r.requiresApproval,
             Completed: r.completed,

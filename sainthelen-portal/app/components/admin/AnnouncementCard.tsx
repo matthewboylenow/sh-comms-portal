@@ -58,13 +58,49 @@ export default function AnnouncementCard({
   const eventTime = formatTime(f['Time of Event']);
   const eventDateTime = eventTime ? `${eventDate} at ${eventTime}` : eventDate;
 
+  // Format the requested publication weekend
+  const getRequestedWeekendLabel = (dateStr: string | undefined) => {
+    if (!dateStr) return null;
+    try {
+      // dateStr is YYYY-MM-DD (Saturday)
+      const parts = dateStr.split('-');
+      const saturday = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+      const sunday = new Date(saturday);
+      sunday.setDate(saturday.getDate() + 1);
+      const wednesday = new Date(saturday);
+      wednesday.setDate(saturday.getDate() - 3);
+
+      const satMonth = saturday.toLocaleDateString('en-US', { month: 'long' });
+      const sunMonth = sunday.toLocaleDateString('en-US', { month: 'long' });
+      const satDay = saturday.getDate();
+      const sunDay = sunday.getDate();
+      const year = saturday.getFullYear();
+
+      const weekendLabel = satMonth === sunMonth
+        ? `Weekend of ${satMonth} ${satDay}-${sunDay}, ${year}`
+        : `Weekend of ${satMonth} ${satDay} - ${sunMonth} ${sunDay}, ${year}`;
+
+      const emailBlastLabel = wednesday.toLocaleDateString('en-US', {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+      });
+
+      return { weekendLabel, emailBlastLabel };
+    } catch {
+      return null;
+    }
+  };
+
+  const requestedWeekend = getRequestedWeekendLabel(f['Promotion Start Date']);
+
   // Copy formatted content to clipboard
   const handleCopy = async () => {
     const content = `${f.Name || 'Untitled Event'}
 ${f.Ministry || ''}
-${eventDateTime}
+${eventDateTime}${requestedWeekend ? `\nRequested: ${requestedWeekend.weekendLabel}` : ''}
 
-${f['Announcement Body'] || ''}${f['Sign Up URL'] ? `\n\nSign up: ${f['Sign Up URL']}` : ''}`;
+${f['Announcement Body'] || ''}${f['Sign Up URL'] ? `\n\nSign up: ${f['Sign Up URL']}` : ''}${f['Publication Notes'] ? `\n\nPublication Notes: ${f['Publication Notes']}` : ''}`;
 
     try {
       await navigator.clipboard.writeText(content);
@@ -127,6 +163,19 @@ ${f['Announcement Body'] || ''}${f['Sign Up URL'] ? `\n\nSign up: ${f['Sign Up U
               <CalendarIcon className="w-4 h-4" />
               <span>{eventDateTime}</span>
             </div>
+
+            {/* Requested Publication Weekend */}
+            {requestedWeekend && (
+              <div className="mt-2 px-3 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded-lg">
+                <div className="flex items-center gap-2 text-sm font-semibold text-amber-800 dark:text-amber-300">
+                  <ClockIcon className="w-4 h-4" />
+                  <span>{requestedWeekend.weekendLabel}</span>
+                </div>
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5 ml-6">
+                  Email blast: {requestedWeekend.emailBlastLabel}
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Actions */}
@@ -209,6 +258,14 @@ ${f['Announcement Body'] || ''}${f['Sign Up URL'] ? `\n\nSign up: ${f['Sign Up U
             Sign-up link
             <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5" />
           </a>
+        )}
+
+        {/* Publication Notes */}
+        {f['Publication Notes'] && (
+          <div className="mt-3 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50 rounded-lg">
+            <p className="text-xs font-semibold text-blue-700 dark:text-blue-300 mb-1">Publication Notes</p>
+            <p className="text-sm text-blue-800 dark:text-blue-200 whitespace-pre-wrap">{f['Publication Notes']}</p>
+          </div>
         )}
       </div>
 

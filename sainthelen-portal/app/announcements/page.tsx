@@ -29,6 +29,7 @@ export default function AnnouncementsFormPage() {
   const [eventDate, setEventDate] = useState('');
   const [eventTime, setEventTime] = useState('');
   const [promotionStart, setPromotionStart] = useState('');
+  const [publicationNotes, setPublicationNotes] = useState('');
   const [platforms, setPlatforms] = useState<string[]>([]);
   const [announcementBody, setAnnouncementBody] = useState('');
   const [addToCalendar, setAddToCalendar] = useState(false);
@@ -40,6 +41,54 @@ export default function AnnouncementsFormPage() {
   const [submittingForm, setSubmittingForm] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+
+  // Generate next 12 upcoming weekends (Saturday-Sunday pairs)
+  const getUpcomingWeekends = () => {
+    const weekends: { value: string; label: string; emailBlastDate: string }[] = [];
+    const today = new Date();
+    // Find next Saturday
+    const nextSaturday = new Date(today);
+    const dayOfWeek = today.getDay();
+    const daysUntilSaturday = dayOfWeek === 6 ? 7 : (6 - dayOfWeek);
+    nextSaturday.setDate(today.getDate() + daysUntilSaturday);
+
+    for (let i = 0; i < 12; i++) {
+      const saturday = new Date(nextSaturday);
+      saturday.setDate(nextSaturday.getDate() + (i * 7));
+      const sunday = new Date(saturday);
+      sunday.setDate(saturday.getDate() + 1);
+      // Email blast goes out Wednesday before (3 days before Saturday)
+      const wednesday = new Date(saturday);
+      wednesday.setDate(saturday.getDate() - 3);
+
+      const satMonth = saturday.toLocaleDateString('en-US', { month: 'long' });
+      const sunMonth = sunday.toLocaleDateString('en-US', { month: 'long' });
+      const satDay = saturday.getDate();
+      const sunDay = sunday.getDate();
+      const year = saturday.getFullYear();
+
+      // Handle month boundary (e.g., "Weekend of February 28 - March 1, 2026")
+      const label = satMonth === sunMonth
+        ? `Weekend of ${satMonth} ${satDay}-${sunDay}, ${year}`
+        : `Weekend of ${satMonth} ${satDay} - ${sunMonth} ${sunDay}, ${year}`;
+
+      const emailBlastLabel = wednesday.toLocaleDateString('en-US', {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+      });
+
+      // Store Saturday date as the value (YYYY-MM-DD)
+      const value = saturday.toISOString().split('T')[0];
+
+      weekends.push({ value, label, emailBlastDate: emailBlastLabel });
+    }
+    return weekends;
+  };
+
+  const upcomingWeekends = getUpcomingWeekends();
+  const selectedWeekend = upcomingWeekends.find(w => w.value === promotionStart);
 
   // Handle ministry selection
   const handleMinistryChange = (value: string, ministryObj?: Ministry) => {
@@ -125,6 +174,7 @@ export default function AnnouncementsFormPage() {
           isExternalEvent,
           fileLinks,
           signUpUrl,
+          publicationNotes,
         }),
       });
 
@@ -153,6 +203,7 @@ export default function AnnouncementsFormPage() {
       setIsExternalEvent(false);
       setFileLinks([]);
       setSignUpUrl('');
+      setPublicationNotes('');
     } catch (err: any) {
       console.error('Form submission error:', err);
       setErrorMessage(err.message || 'Form submission failed');
@@ -315,17 +366,48 @@ export default function AnnouncementsFormPage() {
                 </div>
               </div>
 
-              {/* Promotion Start Date */}
+              {/* Requested Publication Weekend */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Promotion Start Date
+                  Requested Publication Weekend
                 </label>
-                <input
-                  type="date"
+                <select
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary bg-white text-gray-900 dark:bg-gray-700 dark:text-white"
                   value={promotionStart}
                   onChange={(e) => setPromotionStart(e.target.value)}
+                >
+                  <option value="">Select a weekend...</option>
+                  {upcomingWeekends.map((weekend) => (
+                    <option key={weekend.value} value={weekend.value}>
+                      {weekend.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  This is a request and may be adjusted based on scheduling needs and space availability.
+                </p>
+                {selectedWeekend && (
+                  <p className="mt-1 text-xs text-sh-primary dark:text-blue-400 font-medium">
+                    The email blast for this weekend would go out on {selectedWeekend.emailBlastDate}.
+                  </p>
+                )}
+              </div>
+
+              {/* Publication Notes */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Publication Notes
+                </label>
+                <textarea
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary bg-white text-gray-900 dark:bg-gray-700 dark:text-white"
+                  rows={3}
+                  value={publicationNotes}
+                  onChange={(e) => setPublicationNotes(e.target.value)}
+                  placeholder="Any timing details we should know? e.g., 'Sign-up deadline is March 5', 'Materials need to be ordered 2 weeks prior', 'Would like this to run for 3 consecutive weekends'"
                 />
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Include any deadlines, ordering timelines, or scheduling preferences that would help us plan publication.
+                </p>
               </div>
 
               {/* Platforms */}
