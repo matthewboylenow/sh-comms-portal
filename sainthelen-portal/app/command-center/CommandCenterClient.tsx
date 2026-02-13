@@ -28,7 +28,6 @@ import {
   ArrowPathIcon,
   HomeIcon,
   BellIcon,
-  WifiIcon,
 } from '@heroicons/react/24/outline';
 
 type ViewMode = 'daily' | 'weekly';
@@ -74,11 +73,10 @@ export default function CommandCenterClient() {
     deleteNote,
   } = useNotes();
 
-  // SSE for real-time updates
-  const { connected, lastEvent } = useCommandCenterStream({
-    onTaskEvent: () => fetchTasks(),
-    onNoteEvent: () => {},
-    autoConnect: true,
+  // Auto-refresh tasks every 10 minutes
+  useCommandCenterStream({
+    onRefresh: () => fetchTasks(),
+    autoRefresh: true,
   });
 
   // Theme toggle
@@ -243,11 +241,6 @@ export default function CommandCenterClient() {
           {/* Right: Time and Actions */}
           <div className="flex items-center gap-4">
             <CurrentTime />
-
-            {/* Connection Status */}
-            <div className={`p-2 rounded-lg ${connected ? 'text-emerald-500' : 'text-gray-400'}`}>
-              <WifiIcon className={`w-5 h-5 ${connected ? 'animate-pulse' : ''}`} />
-            </div>
 
             {/* Refresh */}
             <button

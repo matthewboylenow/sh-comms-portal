@@ -4,7 +4,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../auth/[...nextauth]/route';
 import * as tasksService from '../../../lib/db/services/tasks';
-import { emitEvent } from '../../../lib/eventBus';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,11 +41,9 @@ export async function POST(request: NextRequest) {
     if (completed === false) {
       // Uncomplete the task
       task = await tasksService.uncompleteTask(id);
-      emitEvent('task_updated', { task });
     } else {
       // Complete the task
       task = await tasksService.completeTask(id);
-      emitEvent('task_completed', { task });
     }
 
     return NextResponse.json({

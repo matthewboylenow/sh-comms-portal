@@ -1,142 +1,48 @@
 // app/hooks/useCommandCenterStream.ts
+// Lightweight polling replacement for the SSE stream that was causing
+// runaway Vercel serverless invocations. Polls every 10 minutes + manual refresh.
 
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 
-export type StreamEventType =
-  | 'task_created'
-  | 'task_updated'
-  | 'task_completed'
-  | 'task_deleted'
-  | 'note_created'
-  | 'note_updated'
-  | 'note_deleted'
-  | 'submission_created'
-  | 'deadline_approaching'
-  | 'connected'
-  | 'heartbeat';
-
-export interface StreamEvent {
-  type: StreamEventType;
-  data: any;
-  timestamp: string;
+interface UseCommandCenterPollingOptions {
+  onRefresh?: () => void;
+  autoRefresh?: boolean;
+  /** Polling interval in milliseconds. Default: 600000 (10 minutes) */
+  intervalMs?: number;
 }
 
-interface UseCommandCenterStreamOptions {
-  onEvent?: (event: StreamEvent) => void;
-  onTaskEvent?: (event: StreamEvent) => void;
-  onNoteEvent?: (event: StreamEvent) => void;
-  onSubmissionEvent?: (event: StreamEvent) => void;
-  autoConnect?: boolean;
-}
+export default function useCommandCenterStream(options: UseCommandCenterPollingOptions = {}) {
+  const { status } = useSession();
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const onRefreshRef = useRef(options.onRefresh);
+  onRefreshRef.current = options.onRefresh;
 
-export default function useCommandCenterStream(options: UseCommandCenterStreamOptions = {}) {
-  const { data: session, status } = useSession();
-  const [connected, setConnected] = useState(false);
-  const [lastEvent, setLastEvent] = useState<StreamEvent | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const eventSourceRef = useRef<EventSource | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const reconnectAttempts = useRef(0);
-  const maxReconnectAttempts = 5;
+  const refresh = useCallback(() => {
+    onRefreshRef.current?.();
+  }, []);
 
-  const connect = useCallback(() => {
-    if (status !== 'authenticated' || !session?.user?.email) {
+  useEffect(() => {
+    if (status !== 'authenticated' || options.autoRefresh === false) {
       return;
     }
 
-    // Close existing connection
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-    }
-
-    try {
-      const eventSource = new EventSource('/api/command-center/stream');
-      eventSourceRef.current = eventSource;
-
-      eventSource.onopen = () => {
-        setConnected(true);
-        setError(null);
-        reconnectAttempts.current = 0;
-      };
-
-      eventSource.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data) as StreamEvent;
-          setLastEvent(data);
-
-          // Call general event handler
-          options.onEvent?.(data);
-
-          // Call specific handlers based on event type
-          if (data.type.startsWith('task_')) {
-            options.onTaskEvent?.(data);
-          } else if (data.type.startsWith('note_')) {
-            options.onNoteEvent?.(data);
-          } else if (data.type === 'submission_created') {
-            options.onSubmissionEvent?.(data);
-          }
-        } catch (err) {
-          console.error('Error parsing SSE event:', err);
-        }
-      };
-
-      eventSource.onerror = (err) => {
-        console.error('SSE connection error:', err);
-        setConnected(false);
-        eventSource.close();
-
-        // Attempt reconnection with exponential backoff
-        if (reconnectAttempts.current < maxReconnectAttempts) {
-          const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000);
-          reconnectAttempts.current++;
-
-          reconnectTimeoutRef.current = setTimeout(() => {
-            connect();
-          }, delay);
-        } else {
-          setError('Connection lost. Please refresh the page.');
-        }
-      };
-    } catch (err: any) {
-      console.error('Error creating EventSource:', err);
-      setError(err.message || 'Failed to connect to stream');
-    }
-  }, [session, status, options]);
-
-  const disconnect = useCallback(() => {
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-      reconnectTimeoutRef.current = null;
-    }
-
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-      eventSourceRef.current = null;
-    }
-
-    setConnected(false);
-    reconnectAttempts.current = 0;
-  }, []);
-
-  // Auto-connect when authenticated
-  useEffect(() => {
-    if (status === 'authenticated' && options.autoConnect !== false) {
-      connect();
-    }
+    const interval = options.intervalMs ?? 600_000; // 10 minutes
+    intervalRef.current = setInterval(() => {
+      onRefreshRef.current?.();
+    }, interval);
 
     return () => {
-      disconnect();
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
     };
-  }, [status, connect, disconnect, options.autoConnect]);
+  }, [status, options.autoRefresh, options.intervalMs]);
 
   return {
-    connected,
-    lastEvent,
-    error,
-    connect,
-    disconnect,
+    refresh,
   };
 }

@@ -4,7 +4,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]/route';
 import * as tasksService from '../../lib/db/services/tasks';
-import { emitEvent } from '../../lib/eventBus';
 
 export const dynamic = 'force-dynamic';
 
@@ -92,7 +91,6 @@ export async function POST(request: NextRequest) {
       linkedRecordType,
     });
 
-    emitEvent('task_created', { task });
 
     return NextResponse.json({
       success: true,
@@ -139,7 +137,6 @@ export async function PATCH(request: NextRequest) {
 
     const task = await tasksService.updateTask(id, updates);
 
-    emitEvent('task_updated', { task });
 
     return NextResponse.json({
       success: true,
@@ -186,7 +183,6 @@ export async function DELETE(request: NextRequest) {
 
     await tasksService.deleteTask(id);
 
-    emitEvent('task_deleted', { taskId: id });
 
     return NextResponse.json({
       success: true,
