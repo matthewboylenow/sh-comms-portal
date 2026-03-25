@@ -8,6 +8,20 @@
       "when": 1770775763222,
       "tag": "0000_dry_quicksilver",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1770775763223,
+      "tag": "0001_add_publication_notes",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1774684800000,
+      "tag": "0002_add_calendar_fields_and_prefs",
+      "breakpoints": true
     }
   ]
 }

@@ -56,6 +56,14 @@ type AnnouncementFormData = {
   platforms?: string[]; // e.g. ["Email Blast", "Bulletin", "Church Screens"]
   announcementBody: string;
   addToCalendar?: boolean;
+  // Event calendar detail fields (sent when addToCalendar is true)
+  calendarEventName?: string;
+  calendarEventDate?: string;
+  calendarEventStartTime?: string;
+  calendarEventEndTime?: string;
+  calendarEventDescription?: string;
+  calendarEventLocation?: string;
+  calendarEventSignUpLink?: string;
   isExternalEvent?: boolean;
   fileLinks?: string[];
   signUpUrl?: string;
@@ -117,6 +125,14 @@ export async function POST(request: NextRequest) {
         promotionStartDate: data.promotionStart || null,
         platforms: data.platforms || null,
         addToEventsCalendar: data.addToCalendar || false,
+        // Event calendar detail fields
+        calendarEventName: data.calendarEventName || null,
+        calendarEventDate: data.calendarEventDate || null,
+        calendarEventStartTime: data.calendarEventStartTime || null,
+        calendarEventEndTime: data.calendarEventEndTime || null,
+        calendarEventDescription: data.calendarEventDescription || null,
+        calendarEventLocation: data.calendarEventLocation || null,
+        calendarEventSignUpLink: data.calendarEventSignUpLink || null,
         externalEvent: data.isExternalEvent || false,
         fileLinks: data.fileLinks || null,
         signUpUrl: data.signUpUrl || null,
@@ -126,6 +142,35 @@ export async function POST(request: NextRequest) {
       });
 
       console.log('Neon record created:', announcement.id);
+
+      // Auto-create WordPress event draft if calendar is requested
+      if (data.addToCalendar && data.calendarEventName && data.calendarEventDate) {
+        try {
+          const wpResult = await createWordPressEventDraft({
+            eventName: data.calendarEventName,
+            eventDate: data.calendarEventDate,
+            startTime: data.calendarEventStartTime || '',
+            endTime: data.calendarEventEndTime || '',
+            description: data.calendarEventDescription || '',
+            location: data.calendarEventLocation || '',
+            signUpLink: data.calendarEventSignUpLink || '',
+          });
+
+          if (wpResult?.id) {
+            // Update the announcement with WordPress event info
+            const { updateWordPressEventInfo } = await import('../../lib/db/services/announcements');
+            await updateWordPressEventInfo(
+              announcement.id,
+              wpResult.id,
+              wpResult.url || ''
+            );
+            console.log('WordPress draft event created:', wpResult.id);
+          }
+        } catch (wpError) {
+          // Don't fail the submission if WordPress draft creation fails
+          console.error('Failed to create WordPress event draft:', wpError);
+        }
+      }
     } else {
       // ===== AIRTABLE DATABASE PATH (Legacy) =====
       console.log('Using Airtable database');
@@ -264,4 +309,114 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+/**
+ * Creates a draft event in WordPress via the sh-events/v1/create endpoint.
+ * This is called automatically when an announcement is submitted with
+ * "Add to Events Calendar" toggled on.
+ */
+async function createWordPressEventDraft(eventData: {
+  eventName: string;
+  eventDate: string;
+  startTime: string;
+  endTime: string;
+  description: string;
+  location: string;
+  signUpLink: string;
+}): Promise<{ id: number; url: string } | null> {
+  const WP_BASE_URL = process.env.WP_API_URL?.replace('/tribe/events/v1', '') || 'https://sainthelen.org/wp-json';
+  const WP_AUTH_USERNAME = process.env.WP_AUTH_USERNAME || '';
+  const WP_AUTH_PASSWORD = process.env.WP_AUTH_PASSWORD || '';
+
+  if (!WP_AUTH_USERNAME || !WP_AUTH_PASSWORD) {
+    console.log('WordPress credentials not configured, skipping event draft creation');
+    return null;
+  }
+
+  const authString = Buffer.from(`${WP_AUTH_USERNAME}:${WP_AUTH_PASSWORD}`).toString('base64');
+
+  // Build start/end datetime strings
+  const startDateTime = eventData.startTime
+    ? `${eventData.eventDate} ${eventData.startTime}:00`
+    : `${eventData.eventDate} 00:00:00`;
+
+  let endDateTime: string;
+  if (eventData.endTime) {
+    endDateTime = `${eventData.eventDate} ${eventData.endTime}:00`;
+  } else if (eventData.startTime) {
+    // Default to 1 hour after start
+    const [hours, minutes] = eventData.startTime.split(':').map(Number);
+    const endHours = String(hours + 1).padStart(2, '0');
+    endDateTime = `${eventData.eventDate} ${endHours}:${String(minutes).padStart(2, '0')}:00`;
+  } else {
+    endDateTime = `${eventData.eventDate} 23:59:00`;
+  }
+
+  // Build description with sign-up link if provided
+  let fullDescription = eventData.description;
+  if (eventData.signUpLink) {
+    fullDescription += `\n\n<a href="${eventData.signUpLink}">Sign Up Here</a>`;
+  }
+
+  const payload = {
+    title: eventData.eventName,
+    description: fullDescription,
+    start_date: startDateTime,
+    end_date: endDateTime,
+    status: 'draft',
+    venue: eventData.location ? { venue: eventData.location } : undefined,
+    website: eventData.signUpLink || undefined,
+  };
+
+  const response = await fetch(`${WP_BASE_URL}/sh-events/v1/create`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Basic ${authString}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('WordPress event creation failed:', response.status, errorText);
+
+    // Fallback: try the tribe events API
+    const fallbackResponse = await fetch(
+      `${process.env.WP_API_URL || 'https://sainthelen.org/wp-json/tribe/events/v1'}/events`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${authString}`,
+        },
+        body: JSON.stringify({
+          title: eventData.eventName,
+          description: fullDescription,
+          start_date: startDateTime,
+          end_date: endDateTime,
+          status: 'draft',
+          featured: false,
+        }),
+      }
+    );
+
+    if (!fallbackResponse.ok) {
+      const fallbackError = await fallbackResponse.text();
+      throw new Error(`WordPress event creation failed: ${fallbackError}`);
+    }
+
+    const fallbackData = await fallbackResponse.json();
+    return {
+      id: fallbackData.id,
+      url: fallbackData.url || '',
+    };
+  }
+
+  const data = await response.json();
+  return {
+    id: data.id || data.event_id,
+    url: data.url || data.event_url || '',
+  };
 }

@@ -41,6 +41,14 @@ export const announcements = pgTable('announcements', {
   promotionStartDate: date('promotion_start_date'),
   platforms: json('platforms').$type<string[]>(), // Array of platform names
   addToEventsCalendar: boolean('add_to_events_calendar').default(false),
+  // Event calendar detail fields (populated when addToEventsCalendar is true)
+  calendarEventName: varchar('calendar_event_name', { length: 500 }),
+  calendarEventDate: date('calendar_event_date'),
+  calendarEventStartTime: time('calendar_event_start_time'),
+  calendarEventEndTime: time('calendar_event_end_time'),
+  calendarEventDescription: text('calendar_event_description'),
+  calendarEventLocation: varchar('calendar_event_location', { length: 500 }),
+  calendarEventSignUpLink: varchar('calendar_event_sign_up_link', { length: 500 }),
   externalEvent: boolean('external_event').default(false),
   fileLinks: text('file_links').array(), // Array of URLs
   signUpUrl: varchar('sign_up_url', { length: 500 }),
@@ -295,8 +303,9 @@ export const recurringReminders = pgTable('recurring_reminders', {
 export const userPreferences = pgTable('user_preferences', {
   id: uuid('id').primaryKey().defaultRandom(),
   userEmail: varchar('user_email', { length: 255 }).notNull().unique(),
-  dailyDigestEnabled: boolean('daily_digest_enabled').default(true),
+  dailyDigestEnabled: boolean('daily_digest_enabled').default(false),
   dailyDigestTime: time('daily_digest_time').default('07:30:00'),
+  websiteUpdateEmailEnabled: boolean('website_update_email_enabled').default(true),
   defaultView: varchar('default_view', { length: 20 }).default('daily'), // daily, weekly
   theme: varchar('theme', { length: 20 }).default('system'), // light, dark, system
   createdAt: timestamp('created_at').defaultNow().notNull(),

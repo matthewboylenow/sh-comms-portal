@@ -33,6 +33,14 @@ export default function AnnouncementsFormPage() {
   const [platforms, setPlatforms] = useState<string[]>([]);
   const [announcementBody, setAnnouncementBody] = useState('');
   const [addToCalendar, setAddToCalendar] = useState(false);
+  // Event calendar detail fields
+  const [calendarEventName, setCalendarEventName] = useState('');
+  const [calendarEventDate, setCalendarEventDate] = useState('');
+  const [calendarEventStartTime, setCalendarEventStartTime] = useState('');
+  const [calendarEventEndTime, setCalendarEventEndTime] = useState('');
+  const [calendarEventDescription, setCalendarEventDescription] = useState('');
+  const [calendarEventLocation, setCalendarEventLocation] = useState('');
+  const [calendarEventSignUpLink, setCalendarEventSignUpLink] = useState('');
   const [isExternalEvent, setIsExternalEvent] = useState(false);
   const [fileLinks, setFileLinks] = useState<string[]>([]);
   const [signUpUrl, setSignUpUrl] = useState('');
@@ -156,6 +164,33 @@ export default function AnnouncementsFormPage() {
       setSubmittingForm(false);
       return;
     }
+    if (addToCalendar) {
+      if (!calendarEventName.trim()) {
+        setErrorMessage('Event Name is required when adding to the events calendar');
+        setSubmittingForm(false);
+        return;
+      }
+      if (!calendarEventDate) {
+        setErrorMessage('Event Date is required when adding to the events calendar');
+        setSubmittingForm(false);
+        return;
+      }
+      if (!calendarEventStartTime) {
+        setErrorMessage('Event Start Time is required when adding to the events calendar');
+        setSubmittingForm(false);
+        return;
+      }
+      if (!calendarEventDescription.trim()) {
+        setErrorMessage('Short Event Description is required when adding to the events calendar');
+        setSubmittingForm(false);
+        return;
+      }
+      if (!calendarEventLocation.trim()) {
+        setErrorMessage('Event Location is required when adding to the events calendar');
+        setSubmittingForm(false);
+        return;
+      }
+    }
 
     try {
       const res = await fetch('/api/announcements', {
@@ -171,6 +206,16 @@ export default function AnnouncementsFormPage() {
           platforms,
           announcementBody,
           addToCalendar,
+          // Event calendar detail fields (only sent when addToCalendar is true)
+          ...(addToCalendar && {
+            calendarEventName,
+            calendarEventDate,
+            calendarEventStartTime,
+            calendarEventEndTime,
+            calendarEventDescription,
+            calendarEventLocation,
+            calendarEventSignUpLink,
+          }),
           isExternalEvent,
           fileLinks,
           signUpUrl,
@@ -200,6 +245,13 @@ export default function AnnouncementsFormPage() {
       setPlatforms([]);
       setAnnouncementBody('');
       setAddToCalendar(false);
+      setCalendarEventName('');
+      setCalendarEventDate('');
+      setCalendarEventStartTime('');
+      setCalendarEventEndTime('');
+      setCalendarEventDescription('');
+      setCalendarEventLocation('');
+      setCalendarEventSignUpLink('');
       setIsExternalEvent(false);
       setFileLinks([]);
       setSignUpUrl('');
@@ -498,6 +550,125 @@ export default function AnnouncementsFormPage() {
                   Add to Saint Helen Events Calendar?
                 </label>
               </div>
+
+              {/* Conditional Event Calendar Details */}
+              <AnimatePresence>
+                {addToCalendar && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="p-5 bg-blue-50/80 dark:bg-blue-900/20 backdrop-blur-sm border border-blue-200/50 dark:border-blue-800/50 rounded-2xl space-y-4">
+                      <h4 className="font-semibold text-blue-900 dark:text-blue-200 text-sm">
+                        Events Calendar Details
+                      </h4>
+                      <p className="text-xs text-blue-700 dark:text-blue-300">
+                        These details will be used to create an event on the Saint Helen Events Calendar.
+                      </p>
+
+                      {/* Event Name */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Event Name <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary bg-white text-gray-900 dark:bg-gray-700 dark:text-white"
+                          value={calendarEventName}
+                          onChange={(e) => setCalendarEventName(e.target.value)}
+                          placeholder="Name of the event as it should appear on the calendar"
+                        />
+                      </div>
+
+                      {/* Event Date */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Event Date <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="date"
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary bg-white text-gray-900 dark:bg-gray-700 dark:text-white"
+                          value={calendarEventDate}
+                          onChange={(e) => setCalendarEventDate(e.target.value)}
+                        />
+                      </div>
+
+                      {/* Start/End Time */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Event Start Time <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="time"
+                            step="300"
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary bg-white text-gray-900 dark:bg-gray-700 dark:text-white"
+                            value={calendarEventStartTime}
+                            onChange={(e) => setCalendarEventStartTime(e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Event End Time <span className="text-gray-400">(optional)</span>
+                          </label>
+                          <input
+                            type="time"
+                            step="300"
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary bg-white text-gray-900 dark:bg-gray-700 dark:text-white"
+                            value={calendarEventEndTime}
+                            onChange={(e) => setCalendarEventEndTime(e.target.value)}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Short Event Description */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Short Event Description <span className="text-red-500">*</span>
+                        </label>
+                        <textarea
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary bg-white text-gray-900 dark:bg-gray-700 dark:text-white"
+                          rows={3}
+                          value={calendarEventDescription}
+                          onChange={(e) => setCalendarEventDescription(e.target.value)}
+                          placeholder="A brief description of the event for the calendar listing"
+                        />
+                      </div>
+
+                      {/* Event Location */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Event Location <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary bg-white text-gray-900 dark:bg-gray-700 dark:text-white"
+                          value={calendarEventLocation}
+                          onChange={(e) => setCalendarEventLocation(e.target.value)}
+                          placeholder="e.g., Parish Center Room 201, Church, etc."
+                        />
+                      </div>
+
+                      {/* Event Sign Up Link */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Event Sign Up Link <span className="text-gray-400">(optional)</span>
+                        </label>
+                        <input
+                          type="url"
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary bg-white text-gray-900 dark:bg-gray-700 dark:text-white"
+                          value={calendarEventSignUpLink}
+                          onChange={(e) => setCalendarEventSignUpLink(e.target.value)}
+                          placeholder="https://example.com/signup"
+                        />
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* File Upload */}
               <div>

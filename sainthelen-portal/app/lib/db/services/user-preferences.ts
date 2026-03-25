@@ -20,7 +20,7 @@ export async function getPreferencesForUser(userEmail: string): Promise<UserPref
   // Create default preferences if none exist
   const [newPrefs] = await db.insert(userPreferences).values({
     userEmail,
-    dailyDigestEnabled: true,
+    dailyDigestEnabled: false,
     dailyDigestTime: '07:30:00',
     defaultView: 'daily',
     theme: 'system',
@@ -37,6 +37,7 @@ export async function updatePreferences(
   data: Partial<{
     dailyDigestEnabled: boolean;
     dailyDigestTime: string;
+    websiteUpdateEmailEnabled: boolean;
     defaultView: string;
     theme: string;
   }>

@@ -12,6 +12,7 @@ import * as smsRequestsService from '../../../lib/db/services/sms-requests';
 import * as avRequestsService from '../../../lib/db/services/av-requests';
 import * as flyerReviewsService from '../../../lib/db/services/flyer-reviews';
 import * as graphicDesignService from '../../../lib/db/services/graphic-design';
+import * as userPreferencesService from '../../../lib/db/services/user-preferences';
 
 // Force dynamic so Next.js doesn't attempt static generation
 export const dynamic = 'force-dynamic';
@@ -178,6 +179,24 @@ export async function POST(request: NextRequest) {
         });
       }
 
+      // Send completion email for website updates if preference is enabled
+      if (table === 'websiteUpdates' && completed && requesterEmail) {
+        try {
+          // Check if admin has website update emails enabled
+          // Use the admin email (mboyle) as the preference owner
+          const adminEmail = process.env.MAILBOX_TO_SEND_FROM || 'mboyle@sainthelen.org';
+          const prefs = await userPreferencesService.getPreferencesForUser(adminEmail);
+
+          if (prefs.websiteUpdateEmailEnabled) {
+            await sendCompletionEmail(requesterEmail, requestTitle);
+            console.log(`Completion email sent to ${requesterEmail} for website update "${requestTitle}"`);
+          }
+        } catch (emailErr) {
+          console.error('Error sending website update completion email:', emailErr);
+          // Don't fail the request if email fails
+        }
+      }
+
       return NextResponse.json({ success: true });
     }
 
@@ -272,5 +291,83 @@ export async function POST(request: NextRequest) {
       }),
       { status: 500 }
     );
+  }
+}
+
+/**
+ * Send a completion notification email to the requester for website updates
+ */
+async function sendCompletionEmail(toEmail: string, requestTitle: string) {
+  const TENANT_ID = process.env.AZURE_AD_TENANT_ID;
+  const CLIENT_ID = process.env.AZURE_AD_CLIENT_ID;
+  const CLIENT_SECRET = process.env.AZURE_AD_CLIENT_SECRET;
+  const fromAddress = process.env.MAILBOX_TO_SEND_FROM || 'mboyle@sainthelen.org';
+
+  if (!TENANT_ID || !CLIENT_ID || !CLIENT_SECRET) {
+    console.log('Email not configured, skipping completion email');
+    return;
+  }
+
+  // Get access token
+  const tokenResponse = await fetch(
+    `https://login.microsoftonline.com/${TENANT_ID}/oauth2/v2.0/token`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: CLIENT_ID,
+        client_secret: CLIENT_SECRET,
+        scope: 'https://graph.microsoft.com/.default',
+        grant_type: 'client_credentials',
+      }),
+    }
+  );
+
+  if (!tokenResponse.ok) {
+    throw new Error('Failed to get access token for completion email');
+  }
+
+  const { access_token } = await tokenResponse.json();
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"></head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1f2937; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="background: linear-gradient(135deg, #1f346d, #8b3d2b); padding: 24px; border-radius: 12px 12px 0 0;">
+        <h1 style="color: white; margin: 0; font-size: 22px;">Website Update Completed</h1>
+      </div>
+      <div style="background: white; padding: 24px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
+        <p>Hello,</p>
+        <p>Your website update request <strong>"${requestTitle}"</strong> has been completed by the communications team.</p>
+        <p>If you have any questions or need further changes, please submit a new request through the communications portal.</p>
+        <p style="margin-top: 24px;">Thank you,<br/>Saint Helen Communications</p>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const sendResponse = await fetch(
+    `https://graph.microsoft.com/v1.0/users/${fromAddress}/sendMail`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        message: {
+          subject: `Website Update Completed: ${requestTitle}`,
+          body: { contentType: 'HTML', content: htmlContent },
+          toRecipients: [{ emailAddress: { address: toEmail } }],
+        },
+        saveToSentItems: true,
+      }),
+    }
+  );
+
+  if (!sendResponse.ok) {
+    const error = await sendResponse.text();
+    throw new Error(`Failed to send completion email: ${error}`);
   }
 }

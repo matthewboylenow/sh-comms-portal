@@ -32,6 +32,7 @@ interface RecurringReminder {
 interface UserPreferences {
   dailyDigestEnabled: boolean;
   dailyDigestTime: string;
+  websiteUpdateEmailEnabled: boolean;
   defaultView: string;
   theme: string;
 }
@@ -232,8 +233,9 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [selectedTab, setSelectedTab] = useState(0);
   const [reminders, setReminders] = useState<RecurringReminder[]>([]);
   const [preferences, setPreferences] = useState<UserPreferences>({
-    dailyDigestEnabled: true,
+    dailyDigestEnabled: false,
     dailyDigestTime: '07:30',
+    websiteUpdateEmailEnabled: true,
     defaultView: 'daily',
     theme: 'system',
   });
@@ -266,8 +268,9 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         const data = await prefsRes.json();
         if (data.preferences) {
           setPreferences({
-            dailyDigestEnabled: data.preferences.dailyDigestEnabled ?? true,
+            dailyDigestEnabled: data.preferences.dailyDigestEnabled ?? false,
             dailyDigestTime: data.preferences.dailyDigestTime?.substring(0, 5) || '07:30',
+            websiteUpdateEmailEnabled: data.preferences.websiteUpdateEmailEnabled ?? true,
             defaultView: data.preferences.defaultView || 'daily',
             theme: data.preferences.theme || 'system',
           });
@@ -294,6 +297,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         body: JSON.stringify({
           dailyDigestEnabled: newPrefs.dailyDigestEnabled,
           dailyDigestTime: newPrefs.dailyDigestTime + ':00',
+          websiteUpdateEmailEnabled: newPrefs.websiteUpdateEmailEnabled,
           defaultView: newPrefs.defaultView,
           theme: newPrefs.theme,
         }),
@@ -704,6 +708,30 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                             <option value="light">Light</option>
                             <option value="dark">Dark</option>
                           </select>
+                        </div>
+
+                        {/* Website Update Completion Email Toggle */}
+                        <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
+                          <div>
+                            <h3 className="font-medium text-gray-900 dark:text-white">
+                              Website Update Completion Emails
+                            </h3>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                              Send an email to requesters when their website update request is marked as completed.
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => savePreferences({ websiteUpdateEmailEnabled: !preferences.websiteUpdateEmailEnabled })}
+                            className={`
+                              w-12 h-7 rounded-full relative transition-colors flex-shrink-0 ml-4
+                              ${preferences.websiteUpdateEmailEnabled ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-slate-600'}
+                            `}
+                          >
+                            <span className={`
+                              absolute top-1 w-5 h-5 bg-white rounded-full transition-transform shadow
+                              ${preferences.websiteUpdateEmailEnabled ? 'left-6' : 'left-1'}
+                            `} />
+                          </button>
                         </div>
                       </div>
                     </Tab.Panel>

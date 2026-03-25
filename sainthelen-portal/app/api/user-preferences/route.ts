@@ -48,11 +48,12 @@ export async function PATCH(request: NextRequest) {
     const userEmail = session.user.email;
     const body = await request.json();
 
-    const { dailyDigestEnabled, dailyDigestTime, defaultView, theme } = body;
+    const { dailyDigestEnabled, dailyDigestTime, websiteUpdateEmailEnabled, defaultView, theme } = body;
 
     const preferences = await preferencesService.updatePreferences(userEmail, {
       dailyDigestEnabled,
       dailyDigestTime,
+      websiteUpdateEmailEnabled,
       defaultView,
       theme,
     });
