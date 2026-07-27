@@ -234,7 +234,7 @@ export default function CompletedClient() {
       const haystack = Object.values(record.fields)
         .map((value) => {
           if (value == null) return '';
-          if (Array.isArray(value)) return value.join(' ');
+          if (typeof value === 'object') return JSON.stringify(value);
           return String(value);
         })
         .join(' ')

@@ -17,6 +17,7 @@ type WebsiteUpdatesFormData = {
   pageToUpdate: string;
   description: string;
   signUpUrl?: string;
+  signUpLinks?: { label?: string; url: string }[];
   fileLinks?: string[];
 };
 
@@ -139,6 +140,9 @@ export async function POST(request: NextRequest) {
         pageToUpdate: data.pageToUpdate,
         description: data.description,
         signUpUrl: data.signUpUrl || null,
+        // Only include when populated, so inserts still work if the 0003
+        // migration hasn't been applied yet
+        ...(data.signUpLinks?.length ? { signUpLinks: data.signUpLinks } : {}),
         fileLinks: wordpressFileLinks.length > 0 ? wordpressFileLinks : null,
       });
     } else {
@@ -158,6 +162,12 @@ export async function POST(request: NextRequest) {
         },
       ]);
     }
+
+    const signUpLinksHtml = data.signUpLinks?.length
+      ? data.signUpLinks
+          .map((l) => `${l.label ? `${l.label}: ` : ''}<a href="${l.url}">${l.url}</a>`)
+          .join('<br/>')
+      : data.signUpUrl || '';
 
     // Urgent requests: alert the admin right away with a flagged,
     // high-importance email so it doesn't sit unseen in the queue.
@@ -182,7 +192,7 @@ export async function POST(request: NextRequest) {
                   <tr><td style="padding: 6px 8px 6px 0; color: #6b7280; white-space: nowrap;">Submitted by</td><td style="padding: 6px 0;"><strong>${data.name}</strong> (${data.email})</td></tr>
                   <tr><td style="padding: 6px 8px 6px 0; color: #6b7280; white-space: nowrap;">Page</td><td style="padding: 6px 0;"><strong>${data.pageToUpdate}</strong></td></tr>
                   <tr><td style="padding: 6px 8px 6px 0; color: #6b7280; vertical-align: top;">Description</td><td style="padding: 6px 0; white-space: pre-wrap;">${data.description}</td></tr>
-                  ${data.signUpUrl ? `<tr><td style="padding: 6px 8px 6px 0; color: #6b7280;">Sign-up URL</td><td style="padding: 6px 0;">${data.signUpUrl}</td></tr>` : ''}
+                  ${signUpLinksHtml ? `<tr><td style="padding: 6px 8px 6px 0; color: #6b7280; vertical-align: top;">Sign-up link(s)</td><td style="padding: 6px 0;">${signUpLinksHtml}</td></tr>` : ''}
                   ${wordpressFileLinks.length ? `<tr><td style="padding: 6px 8px 6px 0; color: #6b7280;">Files</td><td style="padding: 6px 0;">${wordpressFileLinks.map((l) => `<a href="${l}">${l.split('/').pop()}</a>`).join('<br/>')}</td></tr>` : ''}
                 </table>
                 <div style="margin-top: 20px;">
@@ -210,7 +220,7 @@ export async function POST(request: NextRequest) {
         <li><strong>Urgent:</strong> ${data.urgent ? 'Yes' : 'No'}</li>
         <li><strong>Page to Update:</strong> ${data.pageToUpdate}</li>
         <li><strong>Description:</strong> ${data.description}</li>
-        <li><strong>Sign-Up URL:</strong> ${data.signUpUrl || 'N/A'}</li>
+        <li><strong>Sign-Up Link(s):</strong> ${signUpLinksHtml || 'N/A'}</li>
         <li><strong>File Links:</strong><br/>${fileLinksString.replace(/\n/g, '<br/>')}</li>
       </ul>
       <p>We will review it soon. Thank you!</p>

@@ -40,14 +40,25 @@ export default function WebsiteUpdateCard({
   const ageIndicator = getAgeIndicator(timestamp);
   const ageColor = getAgeIndicatorColor(ageIndicator);
 
+  // Sign-up links: newer records carry a labeled array, older ones a single URL
+  const signUpLinks: Array<{ label?: string; url: string }> =
+    Array.isArray(f['Sign-Up Links']) && f['Sign-Up Links'].length > 0
+      ? f['Sign-Up Links']
+      : f['Sign-Up URL']
+        ? [{ url: f['Sign-Up URL'] }]
+        : [];
+
   // Copy formatted content to clipboard
   const handleCopy = async () => {
+    const signUpText = signUpLinks
+      .map((link) => (link.label ? `${link.label}: ${link.url}` : link.url))
+      .join('\n');
     const content = `Website Update Request
 Page: ${f['Page to Update'] || 'Not specified'}
 Ministry: ${f.Ministry || ''}
 Submitted by: ${f.Name || ''}
 
-${f.Description || ''}${f['Sign-Up URL'] ? `\n\nSign up: ${f['Sign-Up URL']}` : ''}`;
+${f.Description || ''}${signUpText ? `\n\nSign up:\n${signUpText}` : ''}`;
 
     try {
       await navigator.clipboard.writeText(content);
@@ -158,18 +169,23 @@ ${f.Description || ''}${f['Sign-Up URL'] ? `\n\nSign up: ${f['Sign-Up URL']}` : 
           </button>
         )}
 
-        {/* Sign Up URL */}
-        {f['Sign-Up URL'] && (
-          <a
-            href={f['Sign-Up URL']}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 mt-2 text-sm text-sh-rust-600 hover:text-sh-rust-700 font-medium"
-          >
-            <LinkIcon className="w-4 h-4" />
-            Sign-up link
-            <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5" />
-          </a>
+        {/* Sign-Up Links */}
+        {signUpLinks.length > 0 && (
+          <div className="mt-2 flex flex-col gap-1">
+            {signUpLinks.map((link, idx) => (
+              <a
+                key={idx}
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-sm text-sh-rust-600 hover:text-sh-rust-700 font-medium"
+              >
+                <LinkIcon className="w-4 h-4" />
+                {link.label ? `Sign-up: ${link.label}` : 'Sign-up link'}
+                <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5" />
+              </a>
+            ))}
+          </div>
         )}
       </div>
 

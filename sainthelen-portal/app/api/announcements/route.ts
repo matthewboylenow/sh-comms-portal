@@ -52,6 +52,7 @@ type AnnouncementFormData = {
   ministry?: string;
   eventDate?: string;
   eventTime?: string;
+  eventDates?: { date: string; time?: string }[];
   promotionStart?: string;
   platforms?: string[]; // e.g. ["Email Blast", "Bulletin", "Church Screens"]
   announcementBody: string;
@@ -67,6 +68,7 @@ type AnnouncementFormData = {
   isExternalEvent?: boolean;
   fileLinks?: string[];
   signUpUrl?: string;
+  signUpLinks?: { label?: string; url: string }[];
   publicationNotes?: string;
 };
 
@@ -122,6 +124,9 @@ export async function POST(request: NextRequest) {
         announcementBody: data.announcementBody,
         dateOfEvent: data.eventDate || null,
         timeOfEvent: data.eventTime || null,
+        // Only include the multi-value columns when populated, so inserts
+        // still work if the 0003 migration hasn't been applied yet
+        ...(data.eventDates?.length ? { eventDates: data.eventDates } : {}),
         promotionStartDate: data.promotionStart || null,
         platforms: data.platforms || null,
         addToEventsCalendar: data.addToCalendar || false,
@@ -136,6 +141,7 @@ export async function POST(request: NextRequest) {
         externalEvent: data.isExternalEvent || false,
         fileLinks: data.fileLinks || null,
         signUpUrl: data.signUpUrl || null,
+        ...(data.signUpLinks?.length ? { signUpLinks: data.signUpLinks } : {}),
         publicationNotes: data.publicationNotes || null,
         approvalStatus,
         requiresApproval,
@@ -221,12 +227,22 @@ export async function POST(request: NextRequest) {
       ? `<p style="background-color: #fef3c7; padding: 12px; border-radius: 6px; border-left: 4px solid #f59e0b;"><strong>Approval Required:</strong> This announcement requires approval from the Coordinator of Adult Discipleship before being published. You will receive an email notification once it has been reviewed.</p>`
       : `<p style="background-color: #d1fae5; padding: 12px; border-radius: 6px; border-left: 4px solid #10b981;"><strong>Status:</strong> Your announcement has been received and will be processed by our communications team.</p>`;
 
+    const eventDatesText = data.eventDates?.length
+      ? data.eventDates.map((d) => `${d.date}${d.time ? ` ${d.time}` : ''}`).join('; ')
+      : `${data.eventDate || 'N/A'} ${data.eventTime || ''}`;
+    const signUpLinksHtml = data.signUpLinks?.length
+      ? data.signUpLinks
+          .map((l) => `${l.label ? `${l.label}: ` : ''}<a href="${l.url}">${l.url}</a>`)
+          .join('<br/>')
+      : data.signUpUrl || '';
+
     const htmlContent = `
       <p>Hello ${data.name},</p>
       <p>We received your announcement request:</p>
       <ul>
         <li><strong>Ministry:</strong> ${data.ministry || 'N/A'}</li>
-        <li><strong>Event Date:</strong> ${data.eventDate || 'N/A'} ${data.eventTime || ''}</li>
+        <li><strong>Event Date(s):</strong> ${eventDatesText}</li>
+        ${signUpLinksHtml ? `<li><strong>Sign-Up Link(s):</strong><br/>${signUpLinksHtml}</li>` : ''}
         <li><strong>Requested Publication Weekend:</strong> ${data.promotionStart || 'N/A'}</li>
         ${data.publicationNotes ? `<li><strong>Publication Notes:</strong> ${data.publicationNotes}</li>` : ''}
         <li><strong>Add to Calendar:</strong> ${data.addToCalendar ? 'Yes' : 'No'}</li>
@@ -263,7 +279,7 @@ export async function POST(request: NextRequest) {
           <ul>
             <li><strong>Submitted by:</strong> ${data.name} (${data.email})</li>
             <li><strong>Ministry:</strong> ${data.ministry}</li>
-            <li><strong>Event Date:</strong> ${data.eventDate || 'N/A'} ${data.eventTime || ''}</li>
+            <li><strong>Event Date(s):</strong> ${eventDatesText}</li>
             <li><strong>Requested Publication Weekend:</strong> ${data.promotionStart || 'N/A'}</li>
             ${data.publicationNotes ? `<li><strong>Publication Notes:</strong> ${data.publicationNotes}</li>` : ''}
             <li><strong>External Event:</strong> ${data.isExternalEvent ? 'Yes' : 'No'}</li>

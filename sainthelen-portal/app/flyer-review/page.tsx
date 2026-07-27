@@ -329,10 +329,11 @@ export default function FlyerReviewFormPage() {
               {/* File Upload */}
               <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Upload Flyer <span className="text-red-500">*</span>
+                  Upload Flyer(s) <span className="text-red-500">*</span>
                 </label>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-                  Upload your flyer design in PDF, PNG, or JPG format. For editable files, you can also upload source files (DOCX, PPTX, etc.).
+                  Upload your flyer design in PDF, PNG, or JPG format — you can upload more than one.
+                  For editable files, you can also upload source files (DOCX, PPTX, etc.).
                 </p>
                 <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-md">
                   <div className="space-y-1 text-center">

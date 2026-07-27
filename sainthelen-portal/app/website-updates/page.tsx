@@ -8,14 +8,38 @@ import { FrontCard, FrontCardContent, FrontCardHeader, FrontCardTitle } from '..
 import { ExclamationCircleIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
 import { uploadFile } from '../lib/upload';
 
+// A labeled sign-up link (e.g. separate SignUpGenius links per activity)
+type SignUpLinkEntry = {
+  id: string;
+  label: string;
+  url: string;
+};
+
 export default function WebsiteUpdatesFormPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [urgent, setUrgent] = useState(false);
   const [pageToUpdate, setPageToUpdate] = useState('');
   const [description, setDescription] = useState('');
-  const [signUpUrl, setSignUpUrl] = useState('');
+  const [signUpLinks, setSignUpLinks] = useState<SignUpLinkEntry[]>([
+    { id: '1', label: '', url: '' },
+  ]);
   const [fileLinks, setFileLinks] = useState<string[]>([]);
+
+  const addSignUpLink = () => {
+    const newId = (parseInt(signUpLinks[signUpLinks.length - 1].id) + 1).toString();
+    setSignUpLinks([...signUpLinks, { id: newId, label: '', url: '' }]);
+  };
+
+  const removeSignUpLink = (id: string) => {
+    if (signUpLinks.length > 1) {
+      setSignUpLinks(signUpLinks.filter((entry) => entry.id !== id));
+    }
+  };
+
+  const updateSignUpLink = (id: string, field: 'label' | 'url', value: string) => {
+    setSignUpLinks(signUpLinks.map((entry) => (entry.id === id ? { ...entry, [field]: value } : entry)));
+  };
 
   const [uploadingFiles, setUploadingFiles] = useState(false);
   const [submittingForm, setSubmittingForm] = useState(false);
@@ -54,6 +78,11 @@ export default function WebsiteUpdatesFormPage() {
     setErrorMessage('');
     setSuccessMessage('');
 
+    // Drop empty rows; the first link also fills the original single field
+    const filledLinks = signUpLinks
+      .filter((entry) => entry.url.trim())
+      .map((entry) => ({ label: entry.label.trim(), url: entry.url.trim() }));
+
     try {
       const res = await fetch('/api/website-updates', {
         method: 'POST',
@@ -64,7 +93,8 @@ export default function WebsiteUpdatesFormPage() {
           urgent,
           pageToUpdate,
           description,
-          signUpUrl,
+          signUpUrl: filledLinks[0]?.url || '',
+          signUpLinks: filledLinks,
           fileLinks,
         }),
       });
@@ -81,7 +111,7 @@ export default function WebsiteUpdatesFormPage() {
       setUrgent(false);
       setPageToUpdate('');
       setDescription('');
-      setSignUpUrl('');
+      setSignUpLinks([{ id: '1', label: '', url: '' }]);
       setFileLinks([]);
     } catch (err: any) {
       console.error('Form submission error:', err);
@@ -198,18 +228,58 @@ export default function WebsiteUpdatesFormPage() {
                 />
               </div>
 
-              {/* Sign-Up URL */}
+              {/* Sign-Up Links */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Sign-Up URL (if applicable)
+                  Sign-Up Link(s) (if applicable)
                 </label>
-                <input
-                  type="url"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary dark:bg-gray-700 dark:text-white"
-                  value={signUpUrl}
-                  onChange={(e) => setSignUpUrl(e.target.value)}
-                  placeholder="https://example.com"
-                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                  If the page needs multiple sign-up links (different activities, groups, or dates),
+                  add each one with a short label.
+                </p>
+                <div className="space-y-3">
+                  {signUpLinks.map((entry) => (
+                    <div key={entry.id} className="flex flex-col md:flex-row gap-3">
+                      <div className="md:w-1/3">
+                        <input
+                          type="text"
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary dark:bg-gray-700 dark:text-white"
+                          value={entry.label}
+                          onChange={(e) => updateSignUpLink(entry.id, 'label', e.target.value)}
+                          placeholder="Label (e.g., Service Day)"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <input
+                          type="url"
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary dark:bg-gray-700 dark:text-white"
+                          value={entry.url}
+                          onChange={(e) => updateSignUpLink(entry.id, 'url', e.target.value)}
+                          placeholder="https://example.com"
+                        />
+                      </div>
+                      {signUpLinks.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeSignUpLink(entry.id)}
+                          className="px-3 py-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md transition-colors self-start"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={addSignUpLink}
+                  className="mt-2 text-sm text-sh-primary hover:text-blue-600 font-medium inline-flex items-center gap-1"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  Add another link
+                </button>
               </div>
 
               {/* File Upload */}
@@ -217,6 +287,9 @@ export default function WebsiteUpdatesFormPage() {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Attach Files (optional)
                 </label>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                  You can attach as many files as you need.
+                </p>
                 <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-md">
                   <div className="space-y-1 text-center">
                     <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">

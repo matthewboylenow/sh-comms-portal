@@ -20,14 +20,29 @@ interface Ministry {
   active: boolean;
 }
 
+// A single occurrence of the event (an event can happen on several dates)
+type EventDateEntry = {
+  id: string;
+  date: string;
+  time: string;
+};
+
+// A labeled sign-up link (e.g. separate SignUpGenius links per activity)
+type SignUpLinkEntry = {
+  id: string;
+  label: string;
+  url: string;
+};
+
 export default function AnnouncementsFormPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [ministry, setMinistry] = useState('');
   const [selectedMinistry, setSelectedMinistry] = useState<Ministry | undefined>();
   const [requiresApproval, setRequiresApproval] = useState(false);
-  const [eventDate, setEventDate] = useState('');
-  const [eventTime, setEventTime] = useState('');
+  const [eventDates, setEventDates] = useState<EventDateEntry[]>([
+    { id: '1', date: '', time: '' },
+  ]);
   const [promotionStart, setPromotionStart] = useState('');
   const [publicationNotes, setPublicationNotes] = useState('');
   const [platforms, setPlatforms] = useState<string[]>([]);
@@ -43,7 +58,9 @@ export default function AnnouncementsFormPage() {
   const [calendarEventSignUpLink, setCalendarEventSignUpLink] = useState('');
   const [isExternalEvent, setIsExternalEvent] = useState(false);
   const [fileLinks, setFileLinks] = useState<string[]>([]);
-  const [signUpUrl, setSignUpUrl] = useState('');
+  const [signUpLinks, setSignUpLinks] = useState<SignUpLinkEntry[]>([
+    { id: '1', label: '', url: '' },
+  ]);
 
   const [uploadingFiles, setUploadingFiles] = useState(false);
   const [submittingForm, setSubmittingForm] = useState(false);
@@ -106,6 +123,38 @@ export default function AnnouncementsFormPage() {
 
   const handleApprovalStatusChange = (requiresApproval: boolean, ministryObj?: Ministry) => {
     setRequiresApproval(requiresApproval);
+  };
+
+  // Event date rows
+  const addEventDate = () => {
+    const newId = (parseInt(eventDates[eventDates.length - 1].id) + 1).toString();
+    setEventDates([...eventDates, { id: newId, date: '', time: '' }]);
+  };
+
+  const removeEventDate = (id: string) => {
+    if (eventDates.length > 1) {
+      setEventDates(eventDates.filter((entry) => entry.id !== id));
+    }
+  };
+
+  const updateEventDate = (id: string, field: 'date' | 'time', value: string) => {
+    setEventDates(eventDates.map((entry) => (entry.id === id ? { ...entry, [field]: value } : entry)));
+  };
+
+  // Sign-up link rows
+  const addSignUpLink = () => {
+    const newId = (parseInt(signUpLinks[signUpLinks.length - 1].id) + 1).toString();
+    setSignUpLinks([...signUpLinks, { id: newId, label: '', url: '' }]);
+  };
+
+  const removeSignUpLink = (id: string) => {
+    if (signUpLinks.length > 1) {
+      setSignUpLinks(signUpLinks.filter((entry) => entry.id !== id));
+    }
+  };
+
+  const updateSignUpLink = (id: string, field: 'label' | 'url', value: string) => {
+    setSignUpLinks(signUpLinks.map((entry) => (entry.id === id ? { ...entry, [field]: value } : entry)));
   };
 
   // Handle checkboxes for "Platforms"
@@ -192,6 +241,12 @@ export default function AnnouncementsFormPage() {
       }
     }
 
+    // Drop empty rows; the first entry also fills the original single fields
+    const filledDates = eventDates.filter((entry) => entry.date);
+    const filledLinks = signUpLinks
+      .filter((entry) => entry.url.trim())
+      .map((entry) => ({ label: entry.label.trim(), url: entry.url.trim() }));
+
     try {
       const res = await fetch('/api/announcements', {
         method: 'POST',
@@ -200,8 +255,9 @@ export default function AnnouncementsFormPage() {
           name,
           email,
           ministry,
-          eventDate,
-          eventTime,
+          eventDate: filledDates[0]?.date || '',
+          eventTime: filledDates[0]?.time || '',
+          eventDates: filledDates.map((entry) => ({ date: entry.date, time: entry.time })),
           promotionStart,
           platforms,
           announcementBody,
@@ -218,7 +274,8 @@ export default function AnnouncementsFormPage() {
           }),
           isExternalEvent,
           fileLinks,
-          signUpUrl,
+          signUpUrl: filledLinks[0]?.url || '',
+          signUpLinks: filledLinks,
           publicationNotes,
         }),
       });
@@ -239,8 +296,7 @@ export default function AnnouncementsFormPage() {
       setMinistry('');
       setSelectedMinistry(undefined);
       setRequiresApproval(false);
-      setEventDate('');
-      setEventTime('');
+      setEventDates([{ id: '1', date: '', time: '' }]);
       setPromotionStart('');
       setPlatforms([]);
       setAnnouncementBody('');
@@ -254,7 +310,7 @@ export default function AnnouncementsFormPage() {
       setCalendarEventSignUpLink('');
       setIsExternalEvent(false);
       setFileLinks([]);
-      setSignUpUrl('');
+      setSignUpLinks([{ id: '1', label: '', url: '' }]);
       setPublicationNotes('');
     } catch (err: any) {
       console.error('Form submission error:', err);
@@ -392,31 +448,56 @@ export default function AnnouncementsFormPage() {
                 </div>
               )}
 
-              {/* Event Date / Time */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Date of Event
-                  </label>
-                  <input
-                    type="date"
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary bg-white text-gray-900 dark:bg-gray-700 dark:text-white"
-                    value={eventDate}
-                    onChange={(e) => setEventDate(e.target.value)}
-                  />
+              {/* Event Dates / Times */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Date(s) and Time(s) of Event
+                </label>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                  Happening more than once? Add a row for each date.
+                </p>
+                <div className="space-y-3">
+                  {eventDates.map((entry) => (
+                    <div key={entry.id} className="flex flex-col md:flex-row gap-3 md:items-end">
+                      <div className="flex-1">
+                        <input
+                          type="date"
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary bg-white text-gray-900 dark:bg-gray-700 dark:text-white"
+                          value={entry.date}
+                          onChange={(e) => updateEventDate(entry.id, 'date', e.target.value)}
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <input
+                          type="time"
+                          step="300"
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary bg-white text-gray-900 dark:bg-gray-700 dark:text-white"
+                          value={entry.time}
+                          onChange={(e) => updateEventDate(entry.id, 'time', e.target.value)}
+                        />
+                      </div>
+                      {eventDates.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeEventDate(entry.id)}
+                          className="px-3 py-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md transition-colors self-start md:self-end"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  ))}
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Time of Event
-                  </label>
-                  <input
-                    type="time"
-                    step="300"
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary bg-white text-gray-900 dark:bg-gray-700 dark:text-white"
-                    value={eventTime}
-                    onChange={(e) => setEventTime(e.target.value)}
-                  />
-                </div>
+                <button
+                  type="button"
+                  onClick={addEventDate}
+                  className="mt-2 text-sm text-sh-primary hover:text-blue-600 font-medium inline-flex items-center gap-1"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  Add another date
+                </button>
               </div>
 
               {/* Requested Publication Weekend */}
@@ -521,21 +602,58 @@ export default function AnnouncementsFormPage() {
                 />
               </div>
 
-              {/* Sign-Up URL */}
+              {/* Sign-Up Links */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Sign-Up URL (if applicable)
+                  Sign-Up Link(s) (if applicable)
                 </label>
-                <input
-                  type="url"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary bg-white text-gray-900 dark:bg-gray-700 dark:text-white"
-                  value={signUpUrl}
-                  onChange={(e) => setSignUpUrl(e.target.value)}
-                  placeholder="https://example.com/signup"
-                />
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  Include a link where parishioners can sign up or register for your event
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                  Where can parishioners sign up or register? If you have separate links for
+                  different activities or groups, add each one with a short label.
                 </p>
+                <div className="space-y-3">
+                  {signUpLinks.map((entry) => (
+                    <div key={entry.id} className="flex flex-col md:flex-row gap-3">
+                      <div className="md:w-1/3">
+                        <input
+                          type="text"
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary bg-white text-gray-900 dark:bg-gray-700 dark:text-white"
+                          value={entry.label}
+                          onChange={(e) => updateSignUpLink(entry.id, 'label', e.target.value)}
+                          placeholder="Label (e.g., Youth Group)"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <input
+                          type="url"
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary bg-white text-gray-900 dark:bg-gray-700 dark:text-white"
+                          value={entry.url}
+                          onChange={(e) => updateSignUpLink(entry.id, 'url', e.target.value)}
+                          placeholder="https://example.com/signup"
+                        />
+                      </div>
+                      {signUpLinks.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeSignUpLink(entry.id)}
+                          className="px-3 py-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md transition-colors self-start"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={addSignUpLink}
+                  className="mt-2 text-sm text-sh-primary hover:text-blue-600 font-medium inline-flex items-center gap-1"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  Add another link
+                </button>
               </div>
 
               {/* Add to Events Calendar */}
@@ -676,6 +794,9 @@ export default function AnnouncementsFormPage() {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Attach Files (optional)
                 </label>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                  You can attach as many files as you need — flyers, photos, PDFs.
+                </p>
                 <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-md">
                   <div className="space-y-1 text-center">
                     <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">

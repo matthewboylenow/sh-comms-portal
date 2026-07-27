@@ -49,10 +49,31 @@ export default function AnnouncementCard({
   const ageIndicator = getAgeIndicator(timestamp);
   const ageColor = getAgeIndicatorColor(ageIndicator);
 
-  // Format the event date and time for display
-  const eventDate = formatFullDate(f['Date of Event']);
-  const eventTime = formatTime(f['Time of Event']);
-  const eventDateTime = eventTime ? `${eventDate} at ${eventTime}` : eventDate;
+  // Format the event date(s) and time(s) for display. Newer records carry an
+  // 'Event Dates' array (multiple occurrences); older ones just have the
+  // single 'Date of Event' / 'Time of Event' pair.
+  const eventDateEntries: Array<{ date: string; time?: string }> =
+    Array.isArray(f['Event Dates']) && f['Event Dates'].length > 0
+      ? f['Event Dates']
+      : f['Date of Event']
+        ? [{ date: f['Date of Event'], time: f['Time of Event'] }]
+        : [];
+
+  const formattedEventDates = eventDateEntries.map((entry) => {
+    const d = formatFullDate(entry.date);
+    const t = entry.time ? formatTime(entry.time) : '';
+    return t ? `${d} at ${t}` : d;
+  });
+
+  const eventDateTime = formattedEventDates[0] || formatFullDate(f['Date of Event']);
+
+  // Sign-up links: newer records carry a labeled array, older ones a single URL
+  const signUpLinks: Array<{ label?: string; url: string }> =
+    Array.isArray(f['Sign Up Links']) && f['Sign Up Links'].length > 0
+      ? f['Sign Up Links']
+      : f['Sign Up URL']
+        ? [{ url: f['Sign Up URL'] }]
+        : [];
 
   // Format the requested publication weekend
   const getRequestedWeekendLabel = (dateStr: string | undefined) => {
@@ -92,11 +113,14 @@ export default function AnnouncementCard({
 
   // Copy formatted content to clipboard
   const handleCopy = async () => {
+    const signUpText = signUpLinks
+      .map((link) => (link.label ? `${link.label}: ${link.url}` : link.url))
+      .join('\n');
     const content = `${f.Name || 'Untitled Event'}
 ${f.Ministry || ''}
-${eventDateTime}${requestedWeekend ? `\nRequested: ${requestedWeekend.weekendLabel}` : ''}
+${formattedEventDates.join('\n')}${requestedWeekend ? `\nRequested: ${requestedWeekend.weekendLabel}` : ''}
 
-${f['Announcement Body'] || ''}${f['Sign Up URL'] ? `\n\nSign up: ${f['Sign Up URL']}` : ''}${f['Publication Notes'] ? `\n\nPublication Notes: ${f['Publication Notes']}` : ''}`;
+${f['Announcement Body'] || ''}${signUpText ? `\n\nSign up:\n${signUpText}` : ''}${f['Publication Notes'] ? `\n\nPublication Notes: ${f['Publication Notes']}` : ''}`;
 
     try {
       await navigator.clipboard.writeText(content);
@@ -154,11 +178,22 @@ ${f['Announcement Body'] || ''}${f['Sign Up URL'] ? `\n\nSign up: ${f['Sign Up U
               )}
             </div>
 
-            {/* Event Date/Time - prominent */}
-            <div className="flex items-center gap-2 mt-2 text-sm font-medium text-sh-navy-700 dark:text-sh-navy-300">
-              <CalendarIcon className="w-4 h-4" />
-              <span>{eventDateTime}</span>
-            </div>
+            {/* Event Date(s)/Time(s) - prominent */}
+            {formattedEventDates.length > 0 ? (
+              <div className="mt-2 space-y-1">
+                {formattedEventDates.map((dateStr, idx) => (
+                  <div key={idx} className="flex items-center gap-2 text-sm font-medium text-sh-navy-700 dark:text-sh-navy-300">
+                    <CalendarIcon className="w-4 h-4" />
+                    <span>{dateStr}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 mt-2 text-sm font-medium text-sh-navy-700 dark:text-sh-navy-300">
+                <CalendarIcon className="w-4 h-4" />
+                <span>{eventDateTime}</span>
+              </div>
+            )}
 
             {/* Requested Publication Weekend */}
             {requestedWeekend && (
@@ -242,18 +277,23 @@ ${f['Announcement Body'] || ''}${f['Sign Up URL'] ? `\n\nSign up: ${f['Sign Up U
           </button>
         )}
 
-        {/* Sign Up URL */}
-        {f['Sign Up URL'] && (
-          <a
-            href={f['Sign Up URL']}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 mt-2 text-sm text-sh-rust-600 hover:text-sh-rust-700 font-medium"
-          >
-            <LinkIcon className="w-4 h-4" />
-            Sign-up link
-            <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5" />
-          </a>
+        {/* Sign-Up Links */}
+        {signUpLinks.length > 0 && (
+          <div className="mt-2 flex flex-col gap-1">
+            {signUpLinks.map((link, idx) => (
+              <a
+                key={idx}
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-sm text-sh-rust-600 hover:text-sh-rust-700 font-medium"
+              >
+                <LinkIcon className="w-4 h-4" />
+                {link.label ? `Sign-up: ${link.label}` : 'Sign-up link'}
+                <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5" />
+              </a>
+            ))}
+          </div>
         )}
 
         {/* Publication Notes */}

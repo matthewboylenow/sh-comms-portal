@@ -38,6 +38,8 @@ export const announcements = pgTable('announcements', {
   announcementBody: text('announcement_body').notNull(),
   dateOfEvent: date('date_of_event'),
   timeOfEvent: time('time_of_event'),
+  // Additional occurrences beyond the primary date/time above
+  eventDates: json('event_dates').$type<Array<{ date: string; time?: string }>>(),
   promotionStartDate: date('promotion_start_date'),
   platforms: json('platforms').$type<string[]>(), // Array of platform names
   addToEventsCalendar: boolean('add_to_events_calendar').default(false),
@@ -52,6 +54,8 @@ export const announcements = pgTable('announcements', {
   externalEvent: boolean('external_event').default(false),
   fileLinks: text('file_links').array(), // Array of URLs
   signUpUrl: varchar('sign_up_url', { length: 500 }),
+  // Multiple labeled sign-up links; signUpUrl above holds the first for compatibility
+  signUpLinks: json('sign_up_links').$type<Array<{ label?: string; url: string }>>(),
   publicationNotes: text('publication_notes'),
   approvalStatus: varchar('approval_status', { length: 50 }).default('pending').notNull(),
   requiresApproval: boolean('requires_approval').default(false).notNull(),
@@ -77,6 +81,8 @@ export const websiteUpdates = pgTable('website_updates', {
   pageToUpdate: varchar('page_to_update', { length: 500 }).notNull(),
   description: text('description').notNull(),
   signUpUrl: varchar('sign_up_url', { length: 500 }),
+  // Multiple labeled sign-up links; signUpUrl above holds the first for compatibility
+  signUpLinks: json('sign_up_links').$type<Array<{ label?: string; url: string }>>(),
   fileLinks: text('file_links').array(), // Array of URLs (WordPress or Blob)
   completed: boolean('completed').default(false),
   completedDate: timestamp('completed_date'),
