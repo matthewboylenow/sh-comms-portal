@@ -1,25 +1,49 @@
 // app/api/cron/daily-digest/route.ts
+//
+// Daily email to the communications admin listing everything still sitting
+// in the queue, with website updates older than 36 hours called out as
+// overdue. Replaces the old Command Center task digest.
 
 import { NextRequest, NextResponse } from 'next/server';
-import { format, addDays } from 'date-fns';
-import * as userPreferencesService from '../../../lib/db/services/user-preferences';
-import * as tasksService from '../../../lib/db/services/tasks';
+import { format } from 'date-fns';
+import * as announcementsService from '../../../lib/db/services/announcements';
+import * as websiteUpdatesService from '../../../lib/db/services/website-updates';
+import * as smsRequestsService from '../../../lib/db/services/sms-requests';
+import * as avRequestsService from '../../../lib/db/services/av-requests';
+import * as flyerReviewsService from '../../../lib/db/services/flyer-reviews';
+import * as graphicDesignService from '../../../lib/db/services/graphic-design';
+import { sendEmailViaGraph, getAdminNotificationEmail, isEmailConfigured } from '../../../lib/email';
 
 export const dynamic = 'force-dynamic';
 
 // Vercel cron secret for authentication
 const CRON_SECRET = process.env.CRON_SECRET;
 
-// Microsoft Graph credentials
-const TENANT_ID = process.env.AZURE_AD_TENANT_ID;
-const CLIENT_ID = process.env.AZURE_AD_CLIENT_ID;
-const CLIENT_SECRET = process.env.AZURE_AD_CLIENT_SECRET;
+// A website update still open after this many hours is overdue
+const WEBSITE_UPDATE_OVERDUE_HOURS = 36;
 
-/**
- * GET /api/cron/daily-digest
- * Sends daily digest emails to users who have it enabled
- * Called by Vercel Cron daily at 7:30 AM ET
- */
+type DigestItem = {
+  title: string;
+  detail?: string;
+  submitter: string;
+  ageHours: number;
+  urgent?: boolean;
+};
+
+function hoursSince(date: Date | string | null | undefined): number {
+  if (!date) return 0;
+  const then = date instanceof Date ? date : new Date(date);
+  if (isNaN(then.getTime())) return 0;
+  return (Date.now() - then.getTime()) / (1000 * 60 * 60);
+}
+
+function formatAge(hours: number): string {
+  if (hours < 1) return 'less than an hour ago';
+  if (hours < 24) return `${Math.round(hours)} hour${Math.round(hours) === 1 ? '' : 's'} ago`;
+  const days = Math.floor(hours / 24);
+  return `${days} day${days === 1 ? '' : 's'} ago`;
+}
+
 export async function GET(request: NextRequest) {
   try {
     // Verify cron secret in production
@@ -30,74 +54,125 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const today = new Date();
-    const todayStr = format(today, 'yyyy-MM-dd');
-    const tomorrowStr = format(addDays(today, 1), 'yyyy-MM-dd');
+    // All of these exclude completed records by default
+    const [announcements, websiteUpdates, smsRequests, avRequests, flyerReviews, graphicDesign] =
+      await Promise.all([
+        announcementsService.getAnnouncements({}),
+        websiteUpdatesService.getAllWebsiteUpdates({}),
+        smsRequestsService.getAllSMSRequests({}),
+        avRequestsService.getAllAVRequests({}),
+        flyerReviewsService.getAllFlyerReviews({}),
+        graphicDesignService.getAllGraphicDesignRequests({}),
+      ]);
 
-    console.log(`[daily-digest] Running for ${todayStr}`);
+    const websiteItems: DigestItem[] = websiteUpdates.map((r) => ({
+      title: r.pageToUpdate,
+      detail: r.description,
+      submitter: r.name,
+      ageHours: hoursSince(r.createdAt),
+      urgent: r.urgent,
+    }));
 
-    // Get users with daily digest enabled
-    const usersWithDigest = await userPreferencesService.getUsersWithDigestEnabled();
-    console.log(`[daily-digest] Found ${usersWithDigest.length} users with digest enabled`);
+    const overdueWebsiteUpdates = websiteItems.filter(
+      (item) => item.ageHours >= WEBSITE_UPDATE_OVERDUE_HOURS || (item.urgent && item.ageHours >= 24)
+    );
 
-    const results: any[] = [];
-    const errors: any[] = [];
+    const sections: { label: string; items: DigestItem[] }[] = [
+      {
+        label: 'Website Updates',
+        items: websiteItems,
+      },
+      {
+        // On announcements the "name" field doubles as the headline in the
+        // admin UI, so show the ministry and body as the supporting detail
+        label: 'Announcements',
+        items: announcements.map((r) => ({
+          title: r.name,
+          detail: r.announcementBody,
+          submitter: r.ministry || r.email,
+          ageHours: hoursSince(r.submittedAt),
+        })),
+      },
+      {
+        label: 'SMS Requests',
+        items: smsRequests.map((r) => ({
+          title: r.smsMessage,
+          detail: r.ministry || undefined,
+          submitter: r.name,
+          ageHours: hoursSince(r.createdAt),
+        })),
+      },
+      {
+        label: 'A/V Requests',
+        items: avRequests.map((r) => ({
+          title: r.eventName,
+          detail: r.ministry || undefined,
+          submitter: r.name,
+          ageHours: hoursSince(r.createdAt),
+        })),
+      },
+      {
+        label: 'Flyer Reviews',
+        items: flyerReviews.map((r) => ({
+          title: r.eventName,
+          detail: r.ministry || undefined,
+          submitter: r.name,
+          ageHours: hoursSince(r.createdAt),
+          urgent: r.urgency === 'urgent',
+        })),
+      },
+      {
+        label: 'Graphic Design',
+        items: graphicDesign.map((r) => ({
+          title: r.projectType,
+          detail: r.ministry || undefined,
+          submitter: r.name,
+          ageHours: hoursSince(r.createdAt),
+          urgent: r.priority === 'Urgent',
+        })),
+      },
+    ];
 
-    for (const userPrefs of usersWithDigest) {
-      try {
-        // Get today's tasks for the user
-        const todaysTasks = await tasksService.getTasksForDate(userPrefs.userEmail, todayStr);
-        const overdueTasks = await tasksService.getOverdueTasks(userPrefs.userEmail);
-        const pendingCount = await tasksService.getPendingTaskCount(userPrefs.userEmail);
+    const totalPending = sections.reduce((sum, s) => sum + s.items.length, 0);
 
-        // Only send if there are tasks
-        if (todaysTasks.length === 0 && overdueTasks.length === 0) {
-          console.log(`[daily-digest] No tasks for ${userPrefs.userEmail}, skipping`);
-          continue;
-        }
-
-        // Build email content
-        const emailHtml = buildDigestEmail({
-          userName: userPrefs.userEmail.split('@')[0],
-          date: format(today, 'EEEE, MMMM d, yyyy'),
-          todaysTasks,
-          overdueTasks,
-          pendingCount,
-        });
-
-        // Send email via Microsoft Graph
-        if (TENANT_ID && CLIENT_ID && CLIENT_SECRET) {
-          await sendEmailViaGraph({
-            to: userPrefs.userEmail,
-            subject: `Daily Digest: ${format(today, 'EEEE, MMM d')} - ${todaysTasks.length} tasks today`,
-            htmlContent: emailHtml,
-          });
-
-          results.push({
-            email: userPrefs.userEmail,
-            tasksToday: todaysTasks.length,
-            overdueCount: overdueTasks.length,
-          });
-
-          console.log(`[daily-digest] Sent digest to ${userPrefs.userEmail}`);
-        } else {
-          console.log(`[daily-digest] Email not configured, skipping send for ${userPrefs.userEmail}`);
-        }
-      } catch (error: any) {
-        console.error(`[daily-digest] Error for ${userPrefs.userEmail}:`, error);
-        errors.push({
-          email: userPrefs.userEmail,
-          error: error.message,
-        });
-      }
+    // Nothing waiting? Don't send an empty email.
+    if (totalPending === 0) {
+      console.log('[daily-digest] Queue is empty, skipping email');
+      return NextResponse.json({ success: true, sent: false, totalPending: 0 });
     }
+
+    if (!isEmailConfigured()) {
+      console.log('[daily-digest] Email not configured, skipping send');
+      return NextResponse.json({ success: true, sent: false, totalPending });
+    }
+
+    const subject =
+      overdueWebsiteUpdates.length > 0
+        ? `⚠️ Comms digest: ${totalPending} waiting — ${overdueWebsiteUpdates.length} website update${overdueWebsiteUpdates.length === 1 ? '' : 's'} overdue`
+        : `Comms digest: ${totalPending} item${totalPending === 1 ? '' : 's'} waiting`;
+
+    await sendEmailViaGraph({
+      to: getAdminNotificationEmail(),
+      subject,
+      htmlContent: buildDigestEmail({
+        date: format(new Date(), 'EEEE, MMMM d, yyyy'),
+        totalPending,
+        overdueWebsiteUpdates,
+        sections,
+      }),
+      importance: overdueWebsiteUpdates.length > 0 ? 'high' : 'normal',
+      flag: overdueWebsiteUpdates.length > 0,
+    });
+
+    console.log(
+      `[daily-digest] Sent: ${totalPending} pending, ${overdueWebsiteUpdates.length} overdue website updates`
+    );
 
     return NextResponse.json({
       success: true,
-      date: todayStr,
-      emailsSent: results.length,
-      results,
-      errors,
+      sent: true,
+      totalPending,
+      overdueWebsiteUpdates: overdueWebsiteUpdates.length,
     });
   } catch (error: any) {
     console.error('[daily-digest] Error:', error);
@@ -108,40 +183,37 @@ export async function GET(request: NextRequest) {
   }
 }
 
-/**
- * Build the HTML email content for the daily digest
- */
+function truncate(text: string | undefined, max: number): string {
+  if (!text) return '';
+  return text.length > max ? `${text.slice(0, max)}…` : text;
+}
+
 function buildDigestEmail({
-  userName,
   date,
-  todaysTasks,
-  overdueTasks,
-  pendingCount,
+  totalPending,
+  overdueWebsiteUpdates,
+  sections,
 }: {
-  userName: string;
   date: string;
-  todaysTasks: any[];
-  overdueTasks: any[];
-  pendingCount: number;
-}) {
-  const priorityColors: Record<string, string> = {
-    urgent: '#ef4444',
-    high: '#f59e0b',
-    normal: '#3b82f6',
-    low: '#6b7280',
-  };
+  totalPending: number;
+  overdueWebsiteUpdates: DigestItem[];
+  sections: { label: string; items: DigestItem[] }[];
+}): string {
+  const portalUrl = process.env.NEXTAUTH_URL || 'https://comms.sainthelen.org';
 
   const overdueSection =
-    overdueTasks.length > 0
+    overdueWebsiteUpdates.length > 0
       ? `
         <div style="margin-bottom: 24px; padding: 16px; background-color: #fef2f2; border-radius: 8px; border-left: 4px solid #ef4444;">
-          <h3 style="color: #991b1b; margin: 0 0 12px 0; font-size: 16px;">Overdue Tasks (${overdueTasks.length})</h3>
-          ${overdueTasks
+          <h3 style="color: #991b1b; margin: 0 0 12px 0; font-size: 16px;">Overdue Website Updates (${overdueWebsiteUpdates.length})</h3>
+          ${overdueWebsiteUpdates
             .map(
-              (task) => `
+              (item) => `
             <div style="padding: 8px 0; border-bottom: 1px solid #fecaca;">
-              <strong style="color: #1f2937;">${task.title}</strong>
-              <span style="color: #ef4444; font-size: 12px; margin-left: 8px;">Due: ${task.dueDate}</span>
+              <strong style="color: #1f2937;">${item.title}</strong>
+              ${item.urgent ? '<span style="color: #b91c1c; font-size: 11px; font-weight: 700; margin-left: 6px;">URGENT</span>' : ''}
+              <div style="color: #6b7280; font-size: 13px;">${truncate(item.detail, 120)}</div>
+              <div style="color: #ef4444; font-size: 12px;">Submitted by ${item.submitter}, ${formatAge(item.ageHours)}</div>
             </div>
           `
             )
@@ -150,27 +222,27 @@ function buildDigestEmail({
       `
       : '';
 
-  const tasksSection =
-    todaysTasks.length > 0
-      ? `
-        <div style="margin-bottom: 24px;">
-          <h3 style="color: #1f346d; margin: 0 0 12px 0; font-size: 16px;">Today's Tasks (${todaysTasks.length})</h3>
-          ${todaysTasks
-            .map(
-              (task) => `
-            <div style="padding: 12px; background-color: #f9fafb; border-radius: 8px; margin-bottom: 8px; border-left: 4px solid ${
-              priorityColors[task.priority || 'normal']
-            };">
-              <strong style="color: #1f2937;">${task.title}</strong>
-              ${task.dueTime ? `<span style="color: #6b7280; font-size: 12px; margin-left: 8px;">${task.dueTime.substring(0, 5)}</span>` : ''}
-              ${task.description ? `<p style="color: #6b7280; font-size: 14px; margin: 4px 0 0 0;">${task.description}</p>` : ''}
-            </div>
-          `
-            )
-            .join('')}
-        </div>
-      `
-      : '<p style="color: #6b7280;">No tasks scheduled for today!</p>';
+  const sectionsHtml = sections
+    .filter((section) => section.items.length > 0)
+    .map(
+      (section) => `
+      <div style="margin-bottom: 20px;">
+        <h3 style="color: #1f346d; margin: 0 0 8px 0; font-size: 15px;">${section.label} (${section.items.length})</h3>
+        ${section.items
+          .map(
+            (item) => `
+          <div style="padding: 10px 12px; background-color: #f9fafb; border-radius: 8px; margin-bottom: 6px; border-left: 3px solid ${item.urgent ? '#ef4444' : '#1f346d'};">
+            <strong style="color: #1f2937; font-size: 14px;">${truncate(item.title, 90)}</strong>
+            ${item.urgent ? '<span style="color: #b91c1c; font-size: 11px; font-weight: 700; margin-left: 6px;">URGENT</span>' : ''}
+            <div style="color: #6b7280; font-size: 12px;">${item.detail ? `${truncate(item.detail, 90)} · ` : ''}${item.submitter} · ${formatAge(item.ageHours)}</div>
+          </div>
+        `
+          )
+          .join('')}
+      </div>
+    `
+    )
+    .join('');
 
   return `
     <!DOCTYPE html>
@@ -181,92 +253,29 @@ function buildDigestEmail({
     </head>
     <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1f2937; max-width: 600px; margin: 0 auto; padding: 20px;">
       <div style="background: linear-gradient(135deg, #1f346d, #8b3d2b); padding: 24px; border-radius: 12px 12px 0 0;">
-        <h1 style="color: white; margin: 0; font-size: 24px;">Good Morning, ${userName}!</h1>
+        <h1 style="color: white; margin: 0; font-size: 22px;">Communications Queue Digest</h1>
         <p style="color: rgba(255,255,255,0.8); margin: 4px 0 0 0; font-size: 14px;">${date}</p>
       </div>
 
       <div style="background: white; padding: 24px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
         <div style="margin-bottom: 16px; padding: 12px; background-color: #f0f9ff; border-radius: 8px;">
-          <span style="color: #1f346d; font-weight: 600;">${pendingCount} total pending tasks</span>
+          <span style="color: #1f346d; font-weight: 600;">${totalPending} item${totalPending === 1 ? '' : 's'} waiting in the queue</span>
         </div>
 
         ${overdueSection}
-        ${tasksSection}
+        ${sectionsHtml}
 
         <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e5e7eb; text-align: center;">
-          <a href="${process.env.NEXTAUTH_URL || 'https://comms.sainthelen.org'}/command-center" style="display: inline-block; padding: 12px 24px; background-color: #1f346d; color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">
-            Open Command Center
+          <a href="${portalUrl}/admin" style="display: inline-block; padding: 12px 24px; background-color: #1f346d; color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">
+            Open Admin Dashboard
           </a>
         </div>
       </div>
 
       <p style="text-align: center; color: #9ca3af; font-size: 12px; margin-top: 16px;">
-        Saint Helen Communications Portal<br>
-        <a href="${process.env.NEXTAUTH_URL || 'https://comms.sainthelen.org'}/command-center" style="color: #6b7280;">Manage your preferences</a>
+        Saint Helen Communications Portal
       </p>
     </body>
     </html>
   `;
-}
-
-/**
- * Send email via Microsoft Graph API
- */
-async function sendEmailViaGraph({
-  to,
-  subject,
-  htmlContent,
-}: {
-  to: string;
-  subject: string;
-  htmlContent: string;
-}) {
-  // Get access token
-  const tokenResponse = await fetch(
-    `https://login.microsoftonline.com/${TENANT_ID}/oauth2/v2.0/token`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        client_id: CLIENT_ID!,
-        client_secret: CLIENT_SECRET!,
-        scope: 'https://graph.microsoft.com/.default',
-        grant_type: 'client_credentials',
-      }),
-    }
-  );
-
-  if (!tokenResponse.ok) {
-    throw new Error('Failed to get access token');
-  }
-
-  const { access_token } = await tokenResponse.json();
-
-  // Send email
-  const sendResponse = await fetch(
-    `https://graph.microsoft.com/v1.0/users/mboyle@sainthelen.org/sendMail`,
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${access_token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        message: {
-          subject,
-          body: {
-            contentType: 'HTML',
-            content: htmlContent,
-          },
-          toRecipients: [{ emailAddress: { address: to } }],
-        },
-        saveToSentItems: true,
-      }),
-    }
-  );
-
-  if (!sendResponse.ok) {
-    const error = await sendResponse.text();
-    throw new Error(`Failed to send email: ${error}`);
-  }
 }

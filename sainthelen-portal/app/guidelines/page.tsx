@@ -35,9 +35,9 @@ export default function GuidelinesPage() {
         <section className="mb-10">
           <h2 className="text-xl md:text-2xl font-semibold mb-4 text-gray-900 dark:text-white">Purpose</h2>
           <p className="text-gray-700 dark:text-gray-300">
-            To ensure consistent, timely, and equitable communication of parish
-            events and announcements to our community, while also maximizing the
-            impact and visibility of each announcement.
+            These guidelines keep parish communications consistent, timely, and
+            fair to every ministry — and give each announcement the best chance
+            of being seen.
           </p>
         </section>
 
@@ -195,8 +195,8 @@ export default function GuidelinesPage() {
                   Helpful Hint
                 </h3>
                 <p className="text-gray-600 dark:text-gray-300">
-                  A clean design + short copy can dramatically improve engagement.
-                  Leverage bold headings and clear, large fonts for your key message.
+                  A clean design with short copy gets read. Use bold headings and
+                  large, clear fonts for your key message.
                 </p>
               </FrontCardContent>
             </FrontCard>

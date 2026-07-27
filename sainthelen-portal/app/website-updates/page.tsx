@@ -164,7 +164,7 @@ export default function WebsiteUpdatesFormPage() {
                   onChange={(e) => setUrgent(e.target.checked)}
                 />
                 <label htmlFor="urgent" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
-                  This update is urgent (within 24 hours)
+                  This is urgent — it needs to be live within 24 hours (alerts our team immediately)
                 </label>
               </div>
 

@@ -23,7 +23,7 @@ import {
   Bars3Icon,
   XMarkIcon,
   MegaphoneIcon,
-  CommandLineIcon,
+  // CommandLineIcon, // used by the Command Center nav item, currently disabled
   CalendarDaysIcon,
 } from '@heroicons/react/24/outline';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -81,7 +81,8 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
 
   const navItems = [
     { href: '/admin', label: 'Dashboard', icon: HomeIcon, permission: permissions?.canAccessMainDashboard, color: 'sh-navy' },
-    { href: '/command-center', label: 'Command Center', icon: CommandLineIcon, permission: permissions?.canAccessMainDashboard, color: 'sh-rust' },
+    // Command Center is no longer in use - keeping the entry here in case it comes back
+    // { href: '/command-center', label: 'Command Center', icon: CommandLineIcon, permission: permissions?.canAccessMainDashboard, color: 'sh-rust' },
     { href: '/admin/approvals', label: permissions?.role === 'adult_faith_approver' ? 'Adult Faith Approvals' : 'Approvals', icon: ClockIcon, permission: permissions?.canAccessApprovals, color: 'sh-rust' },
     { href: '/admin/calendar-requests', label: 'Calendar Requests', icon: CalendarDaysIcon, permission: permissions?.canAccessMainDashboard, color: 'sh-rust' },
     { href: '/admin/completed', label: 'Completed', icon: CheckCircleIcon, permission: permissions?.canAccessCompleted, color: 'emerald' },

@@ -28,9 +28,7 @@ type AnnouncementRecord = {
 
 type AnnouncementCardProps = {
   record: AnnouncementRecord;
-  summarizeMap: Record<string, boolean>;
   calendarMap?: Record<string, boolean>;
-  onToggleSummarize: (recordId: string, isChecked: boolean) => void;
   onToggleCalendar?: (recordId: string, isChecked: boolean) => void;
   onOverrideStatus: (recordId: string, newStatus: string) => void;
   onToggleCompleted: (tableName: 'announcements', recordId: string, currentValue: boolean) => void;
@@ -38,9 +36,7 @@ type AnnouncementCardProps = {
 
 export default function AnnouncementCard({
   record,
-  summarizeMap,
   calendarMap = {},
-  onToggleSummarize,
   onToggleCalendar,
   onOverrideStatus,
   onToggleCompleted

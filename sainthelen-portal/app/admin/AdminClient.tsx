@@ -80,9 +80,6 @@ export default function AdminClient() {
   const [sortField, setSortField] = useState<SortField>('submittedAt');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
-  // Summarize checkboxes (only for announcements now)
-  const [summarizeMap, setSummarizeMap] = useState<Record<string, boolean>>({});
-  
   // Calendar checkboxes
   const [calendarMap, setCalendarMap] = useState<Record<string, boolean>>({});
 
@@ -99,9 +96,6 @@ export default function AdminClient() {
   // Start with hideCompleted = true
   const [hideCompleted, setHideCompleted] = useState(true);
 
-  // If you want to display a summary from Summarize Items
-  const [summary, setSummary] = useState<string | null>(null);
-  
   // Calendar results
   const [calendarResults, setCalendarResults] = useState<any[] | null>(null);
 
@@ -367,13 +361,6 @@ export default function AdminClient() {
     }
   }
 
-  function handleToggleSummarize(recordId: string, isChecked: boolean) {
-    setSummarizeMap((prev) => ({
-      ...prev,
-      [recordId]: isChecked,
-    }));
-  }
-  
   // Handle calendar checkbox toggle
   function handleToggleCalendar(recordId: string, isChecked: boolean) {
     setCalendarMap((prev) => ({
@@ -436,81 +423,24 @@ export default function AdminClient() {
     }
   }
 
-  async function handleSummarizeSelected() {
-    const selectedIds: string[] = [];
-    [...announcements].forEach((r) => {
-      if (summarizeMap[r.id]) {
-        selectedIds.push(r.id);
-      }
-    });
-    
-    if (!selectedIds.length) {
-      setErrorMessage('No items selected for summarization!');
-      return;
-    }
-    
-    setSummary(null);
-    setLoadingData(true);
-    
-    try {
-      const res = await fetch('/api/admin/summarizeItems', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ recordIds: selectedIds }),
-      });
-      
-      if (!res.ok) {
-        throw new Error('Failed to summarize items');
-      }
-      
-      const data = await res.json();
-      setSummary(data.summaryText || 'No summary returned.');
-    } catch (err: any) {
-      console.error(err);
-      setErrorMessage('Error summarizing items: ' + (err as Error).message);
-    } finally {
-      setLoadingData(false);
-    }
-  }
-  
-  // Filter function for search
+  // Search every field on the record (name, email, ministry, description,
+  // page, event name, message body, etc.). Multiple words all have to match
+  // somewhere on the record.
   function filterRecords<T extends AdminRecord>(records: T[], query: string): T[] {
-    if (!query.trim()) return records;
-    
-    const lowercaseQuery = query.toLowerCase();
-    return records.filter(record => {
-      const fields = record.fields;
-      
-      // Search in common fields
-      if (fields.Name && fields.Name.toLowerCase().includes(lowercaseQuery)) return true;
-      if (fields.Ministry && fields.Ministry.toLowerCase().includes(lowercaseQuery)) return true;
-      
-      // Search in announcement specific fields
-      if (fields['Announcement Body'] && fields['Announcement Body'].toLowerCase().includes(lowercaseQuery)) return true;
-      
-      // Search in website update specific fields
-      if (fields['Page to Update'] && fields['Page to Update'].toLowerCase().includes(lowercaseQuery)) return true;
-      if (fields['Description'] && fields['Description'].toLowerCase().includes(lowercaseQuery)) return true;
-      
-      // Search in SMS specific fields
-      if (fields['SMS Message'] && fields['SMS Message'].toLowerCase().includes(lowercaseQuery)) return true;
-      
-      // Search in A/V request specific fields
-      if (fields['Event Name'] && fields['Event Name'].toLowerCase().includes(lowercaseQuery)) return true;
-      if (fields['Location'] && fields['Location'].toLowerCase().includes(lowercaseQuery)) return true;
-      if (fields['A/V Needs'] && fields['A/V Needs'].toLowerCase().includes(lowercaseQuery)) return true;
-      
-      // Search in Flyer Review specific fields
-      if (fields['Target Audience'] && fields['Target Audience'].toLowerCase().includes(lowercaseQuery)) return true;
-      if (fields['Feedback Needed'] && fields['Feedback Needed'].toLowerCase().includes(lowercaseQuery)) return true;
-      if (fields['Purpose'] && fields['Purpose'].toLowerCase().includes(lowercaseQuery)) return true;
-      
-      // Search in Graphic Design specific fields
-      if (fields['Project Type'] && fields['Project Type'].toLowerCase().includes(lowercaseQuery)) return true;
-      if (fields['Project Description'] && fields['Project Description'].toLowerCase().includes(lowercaseQuery)) return true;
-      if (fields['Status'] && fields['Status'].toLowerCase().includes(lowercaseQuery)) return true;
-      
-      return false;
+    const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
+    if (!terms.length) return records;
+
+    return records.filter((record) => {
+      const haystack = Object.values(record.fields)
+        .map((value) => {
+          if (value == null) return '';
+          if (Array.isArray(value)) return value.join(' ');
+          return String(value);
+        })
+        .join(' ')
+        .toLowerCase();
+
+      return terms.every((term) => haystack.includes(term));
     });
   }
   
@@ -657,7 +587,7 @@ export default function AdminClient() {
                   <span className="hidden xs:inline">Refresh</span>
                 </Button>
 
-{/* Summarize and Calendar buttons hidden for now */}
+{/* Calendar button hidden for now */}
               </div>
 
               {/* Hide completed toggle - optimized for mobile */}
@@ -834,7 +764,7 @@ export default function AdminClient() {
         </div>
       )}
 
-{/* Claude Summary and Calendar Results sections hidden for now */}
+{/* Calendar Results section hidden for now */}
 
       {/* Loading indicator - modern pulse effect */}
       {loadingData && (
@@ -889,9 +819,7 @@ export default function AdminClient() {
                 <AnnouncementCard
                   key={record.id}
                   record={record}
-                  summarizeMap={summarizeMap}
                   calendarMap={calendarMap}
-                  onToggleSummarize={handleToggleSummarize}
                   onToggleCalendar={handleToggleCalendar}
                   onOverrideStatus={handleOverrideStatus}
                   onToggleCompleted={handleCompleted}

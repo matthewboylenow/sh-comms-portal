@@ -24,7 +24,6 @@ export default function CalendarRequestsClient() {
   const [announcements, setAnnouncements] = useState<AdminRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCompleted, setShowCompleted] = useState(false);
-  const [summarizeMap, setSummarizeMap] = useState<Record<string, boolean>>({});
   const [calendarMap, setCalendarMap] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -53,10 +52,6 @@ export default function CalendarRequestsClient() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleToggleSummarize = (recordId: string, isChecked: boolean) => {
-    setSummarizeMap((prev) => ({ ...prev, [recordId]: isChecked }));
   };
 
   const handleToggleCalendar = (recordId: string, isChecked: boolean) => {
@@ -203,9 +198,7 @@ export default function CalendarRequestsClient() {
               >
                 <AnnouncementCard
                   record={record}
-                  summarizeMap={summarizeMap}
                   calendarMap={calendarMap}
-                  onToggleSummarize={handleToggleSummarize}
                   onToggleCalendar={handleToggleCalendar}
                   onOverrideStatus={handleOverrideStatus}
                   onToggleCompleted={handleToggleCompleted}

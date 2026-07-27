@@ -8,6 +8,7 @@ import { ClientSecretCredential } from '@azure/identity';
 // New Neon database imports
 import { useNeonDatabase } from '../../lib/db';
 import * as websiteUpdatesService from '../../lib/db/services/website-updates';
+import { sendEmailViaGraph, getAdminNotificationEmail } from '../../lib/email';
 
 type WebsiteUpdatesFormData = {
   name: string;
@@ -156,6 +157,46 @@ export async function POST(request: NextRequest) {
           },
         },
       ]);
+    }
+
+    // Urgent requests: alert the admin right away with a flagged,
+    // high-importance email so it doesn't sit unseen in the queue.
+    if (data.urgent) {
+      try {
+        await sendEmailViaGraph({
+          to: getAdminNotificationEmail(),
+          subject: `🚨 URGENT website update: ${data.pageToUpdate} (from ${data.name})`,
+          importance: 'high',
+          flag: true,
+          htmlContent: `
+            <!DOCTYPE html>
+            <html>
+            <head><meta charset="utf-8"></head>
+            <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1f2937; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <div style="background: #b91c1c; padding: 20px 24px; border-radius: 12px 12px 0 0;">
+                <h1 style="color: white; margin: 0; font-size: 20px;">Urgent Website Update Request</h1>
+              </div>
+              <div style="background: white; padding: 24px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
+                <p style="margin-top: 0;">A website update was just submitted and marked <strong>urgent (needed within 24 hours)</strong>.</p>
+                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                  <tr><td style="padding: 6px 8px 6px 0; color: #6b7280; white-space: nowrap;">Submitted by</td><td style="padding: 6px 0;"><strong>${data.name}</strong> (${data.email})</td></tr>
+                  <tr><td style="padding: 6px 8px 6px 0; color: #6b7280; white-space: nowrap;">Page</td><td style="padding: 6px 0;"><strong>${data.pageToUpdate}</strong></td></tr>
+                  <tr><td style="padding: 6px 8px 6px 0; color: #6b7280; vertical-align: top;">Description</td><td style="padding: 6px 0; white-space: pre-wrap;">${data.description}</td></tr>
+                  ${data.signUpUrl ? `<tr><td style="padding: 6px 8px 6px 0; color: #6b7280;">Sign-up URL</td><td style="padding: 6px 0;">${data.signUpUrl}</td></tr>` : ''}
+                  ${wordpressFileLinks.length ? `<tr><td style="padding: 6px 8px 6px 0; color: #6b7280;">Files</td><td style="padding: 6px 0;">${wordpressFileLinks.map((l) => `<a href="${l}">${l.split('/').pop()}</a>`).join('<br/>')}</td></tr>` : ''}
+                </table>
+                <div style="margin-top: 20px;">
+                  <a href="${process.env.NEXTAUTH_URL || 'https://comms.sainthelen.org'}/admin" style="display: inline-block; padding: 10px 20px; background-color: #1f346d; color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">Open Admin Dashboard</a>
+                </div>
+              </div>
+            </body>
+            </html>
+          `,
+        });
+      } catch (alertErr) {
+        // Never fail the submission because the admin alert didn't send
+        console.error('Failed to send urgent website update alert:', alertErr);
+      }
     }
 
     // Send confirmation email via Microsoft Graph

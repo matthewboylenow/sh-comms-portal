@@ -287,10 +287,11 @@ export default function AnnouncementsFormPage() {
               <div>
                 <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-2">Editorial Notice</h3>
                 <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-                  Announcements and content may be adjusted by the Director of Communications, in collaboration with 
-                  the Pastor, to maintain consistency with Saint Helen's brand style and tone. Major changes (a full revamp of the message) will be 
-                  communicated prior to publication, while minor adjustments may be 
-                  made without prior notification. Any final decisions regarding messaging will be made by the Director of Communications, in collaboration with the Pastor.
+                  We may edit your announcement to fit Saint Helen's style and tone. If your
+                  message needs a major rewrite, we'll let you know before it's published;
+                  minor edits (grammar, length, formatting) may be made without notice. Final
+                  decisions on messaging rest with the Director of Communications in
+                  collaboration with the Pastor.
                 </p>
               </div>
             </FrontCardContent>

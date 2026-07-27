@@ -48,8 +48,8 @@ export default function HomePage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.4 }}
             >
-              Submit forms and requests to help publicize your ministries and events.
-              Our team is here to help promote your ministry work.
+              One place to request announcements, website updates, and other
+              communications support for your ministry or event.
             </motion.p>
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -68,7 +68,149 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* How To Get Started */}
+      {/* Forms Section */}
+      <section id="forms" className="sh-section sh-section-cream-alt">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            className="text-center mb-16"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+          >
+            <h2 className="text-3xl md:text-4xl font-serif font-bold text-sh-navy dark:text-white sh-heading-underline">
+              Submit Your Request
+            </h2>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[
+              {
+                title: 'Announcements',
+                description: 'Share your event or news in the bulletin, weekly email, and church screens.',
+                icon: MegaphoneIcon,
+                href: '/announcements',
+                buttonText: 'Submit Announcement',
+                color: 'sh-navy'
+              },
+              {
+                title: 'Website Updates',
+                description: 'Request updates to the parish website, including new pages, events, or changes.',
+                icon: GlobeAltIcon,
+                href: '/website-updates',
+                buttonText: 'Request Update',
+                color: 'sh-rust'
+              },
+              {
+                title: 'SMS Requests',
+                description: 'Submit text message alerts for time-sensitive announcements or reminders.',
+                icon: ChatBubbleLeftRightIcon,
+                href: '/sms-requests',
+                buttonText: 'Submit SMS Request',
+                color: 'emerald'
+              },
+              {
+                title: 'A/V Requests',
+                description: 'Request audio/visual support or livestreaming for your event or meeting.',
+                icon: VideoCameraIcon,
+                href: '/av-requests',
+                buttonText: 'Submit A/V Request',
+                color: 'purple'
+              },
+              {
+                title: 'Flyer Review',
+                description: 'Get feedback on your flyer design or request help making your flyer more effective.',
+                icon: DocumentTextIcon,
+                href: '/flyer-review',
+                buttonText: 'Submit Flyer',
+                color: 'amber'
+              },
+              {
+                title: 'Graphic Design',
+                description: 'Request graphic design services for ministry materials, social media, posters, and more.',
+                icon: PencilSquareIcon,
+                href: '/graphic-design',
+                buttonText: 'Request Design',
+                color: 'rose'
+              }
+            ].map((item, index) => (
+              <motion.div
+                key={item.title}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+              >
+                <FrontCard gradient className="h-full">
+                  <FrontCardContent className="flex flex-col items-center text-center p-8 h-full">
+                    <div className={`
+                      w-16 h-16 rounded-2xl flex items-center justify-center mb-6
+                      ${item.color === 'sh-navy' ? 'bg-sh-navy-100 dark:bg-sh-navy-900/50' : ''}
+                      ${item.color === 'sh-rust' ? 'bg-sh-rust-100 dark:bg-sh-rust-900/50' : ''}
+                      ${item.color === 'emerald' ? 'bg-emerald-100 dark:bg-emerald-900/50' : ''}
+                      ${item.color === 'purple' ? 'bg-purple-100 dark:bg-purple-900/50' : ''}
+                      ${item.color === 'amber' ? 'bg-amber-100 dark:bg-amber-900/50' : ''}
+                      ${item.color === 'rose' ? 'bg-rose-100 dark:bg-rose-900/50' : ''}
+                    `}>
+                      <item.icon className={`
+                        w-8 h-8
+                        ${item.color === 'sh-navy' ? 'text-sh-navy dark:text-sh-navy-300' : ''}
+                        ${item.color === 'sh-rust' ? 'text-sh-rust dark:text-sh-rust-300' : ''}
+                        ${item.color === 'emerald' ? 'text-emerald-600 dark:text-emerald-400' : ''}
+                        ${item.color === 'purple' ? 'text-purple-600 dark:text-purple-400' : ''}
+                        ${item.color === 'amber' ? 'text-amber-600 dark:text-amber-400' : ''}
+                        ${item.color === 'rose' ? 'text-rose-600 dark:text-rose-400' : ''}
+                      `} />
+                    </div>
+                    <h3 className="font-serif font-bold text-xl mb-3 text-sh-navy dark:text-white">
+                      {item.title}
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-300 mb-8 leading-relaxed flex-grow">
+                      {item.description}
+                    </p>
+                    <Link
+                      href={item.href}
+                      className={`
+                        inline-flex items-center gap-2 px-6 py-3 rounded-button font-medium
+                        transition-all duration-300 hover:-translate-y-1 hover:shadow-button-hover group text-white hover:text-white
+                        ${item.color === 'sh-navy' ? 'bg-sh-navy hover:bg-sh-navy-700' : ''}
+                        ${item.color === 'sh-rust' ? 'bg-sh-rust hover:bg-sh-rust-600' : ''}
+                        ${item.color === 'emerald' ? 'bg-emerald-600 hover:bg-emerald-700' : ''}
+                        ${item.color === 'purple' ? 'bg-purple-600 hover:bg-purple-700' : ''}
+                        ${item.color === 'amber' ? 'bg-amber-600 hover:bg-amber-700' : ''}
+                        ${item.color === 'rose' ? 'bg-rose-600 hover:bg-rose-700' : ''}
+                      `}
+                    >
+                      {item.buttonText}
+                      <ArrowRightIcon className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
+                    </Link>
+                  </FrontCardContent>
+                </FrontCard>
+              </motion.div>
+            ))}
+          </div>
+
+          <motion.div
+            className="text-center mt-12"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+          >
+            <p className="text-gray-600 dark:text-gray-300">
+              Need additional communications support? Contact us at{' '}
+              <a
+                href="mailto:communications@sainthelen.org"
+                className="text-sh-rust hover:text-sh-rust-600 font-medium transition-colors"
+              >
+                communications@sainthelen.org
+              </a>
+            </p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* How It Works */}
       <section className="sh-section bg-white dark:bg-slate-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
@@ -79,7 +221,7 @@ export default function HomePage() {
             transition={{ duration: 0.6 }}
           >
             <h2 className="text-3xl md:text-4xl font-serif font-bold text-sh-navy dark:text-white sh-heading-underline">
-              How to Get Started
+              How It Works
             </h2>
           </motion.div>
 
@@ -88,7 +230,7 @@ export default function HomePage() {
               {
                 step: '1',
                 title: 'Review Guidelines',
-                description: 'View guidelines and information for submitting communications requests.',
+                description: 'Read the guidelines first so you know lead times and what to include.',
                 color: 'sh-navy',
                 link: '/guidelines',
                 linkText: 'View Guidelines'
@@ -96,7 +238,7 @@ export default function HomePage() {
               {
                 step: '2',
                 title: 'Submit Your Request',
-                description: 'Select the perfect form below and provide comprehensive details for your ministry needs.',
+                description: 'Pick the form that matches your request and fill in the details.',
                 color: 'sh-rust',
                 link: '#forms',
                 linkText: 'View Forms'
@@ -104,7 +246,7 @@ export default function HomePage() {
               {
                 step: '3',
                 title: 'Confirmation Email',
-                description: 'Receive instant confirmation and personalized follow-up for any clarifications needed.',
+                description: "You'll get a confirmation email right away. We'll reach out if we have questions.",
                 color: 'emerald',
                 link: null,
                 linkText: null
@@ -112,7 +254,7 @@ export default function HomePage() {
               {
                 step: '4',
                 title: 'We Handle the Rest',
-                description: 'Our communications team will help promote your ministry events and announcements.',
+                description: 'Our team prepares your announcement and publishes it in the right places.',
                 color: 'amber',
                 link: null,
                 linkText: null
@@ -278,148 +420,6 @@ export default function HomePage() {
               </motion.div>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* Forms Section */}
-      <section id="forms" className="sh-section sh-section-cream-alt">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            className="text-center mb-16"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-          >
-            <h2 className="text-3xl md:text-4xl font-serif font-bold text-sh-navy dark:text-white sh-heading-underline">
-              Submit Your Request
-            </h2>
-          </motion.div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[
-              {
-                title: 'Announcements',
-                description: 'Create impactful bulletin notices, email campaigns, and digital screen announcements for maximum ministry reach.',
-                icon: MegaphoneIcon,
-                href: '/announcements',
-                buttonText: 'Submit Announcement',
-                color: 'sh-navy'
-              },
-              {
-                title: 'Website Updates',
-                description: 'Request updates to the parish website, including new pages, events, or changes.',
-                icon: GlobeAltIcon,
-                href: '/website-updates',
-                buttonText: 'Request Update',
-                color: 'sh-rust'
-              },
-              {
-                title: 'SMS Requests',
-                description: 'Submit text message alerts for time-sensitive announcements or reminders.',
-                icon: ChatBubbleLeftRightIcon,
-                href: '/sms-requests',
-                buttonText: 'Submit SMS Request',
-                color: 'emerald'
-              },
-              {
-                title: 'A/V Requests',
-                description: 'Request audio/visual support or livestreaming for your event or meeting.',
-                icon: VideoCameraIcon,
-                href: '/av-requests',
-                buttonText: 'Submit A/V Request',
-                color: 'purple'
-              },
-              {
-                title: 'Flyer Review',
-                description: 'Get feedback on your flyer design or request help making your flyer more effective.',
-                icon: DocumentTextIcon,
-                href: '/flyer-review',
-                buttonText: 'Submit Flyer',
-                color: 'amber'
-              },
-              {
-                title: 'Graphic Design',
-                description: 'Request graphic design services for ministry materials, social media, posters, and more.',
-                icon: PencilSquareIcon,
-                href: '/graphic-design',
-                buttonText: 'Request Design',
-                color: 'rose'
-              }
-            ].map((item, index) => (
-              <motion.div
-                key={item.title}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-              >
-                <FrontCard gradient className="h-full">
-                  <FrontCardContent className="flex flex-col items-center text-center p-8 h-full">
-                    <div className={`
-                      w-16 h-16 rounded-2xl flex items-center justify-center mb-6
-                      ${item.color === 'sh-navy' ? 'bg-sh-navy-100 dark:bg-sh-navy-900/50' : ''}
-                      ${item.color === 'sh-rust' ? 'bg-sh-rust-100 dark:bg-sh-rust-900/50' : ''}
-                      ${item.color === 'emerald' ? 'bg-emerald-100 dark:bg-emerald-900/50' : ''}
-                      ${item.color === 'purple' ? 'bg-purple-100 dark:bg-purple-900/50' : ''}
-                      ${item.color === 'amber' ? 'bg-amber-100 dark:bg-amber-900/50' : ''}
-                      ${item.color === 'rose' ? 'bg-rose-100 dark:bg-rose-900/50' : ''}
-                    `}>
-                      <item.icon className={`
-                        w-8 h-8
-                        ${item.color === 'sh-navy' ? 'text-sh-navy dark:text-sh-navy-300' : ''}
-                        ${item.color === 'sh-rust' ? 'text-sh-rust dark:text-sh-rust-300' : ''}
-                        ${item.color === 'emerald' ? 'text-emerald-600 dark:text-emerald-400' : ''}
-                        ${item.color === 'purple' ? 'text-purple-600 dark:text-purple-400' : ''}
-                        ${item.color === 'amber' ? 'text-amber-600 dark:text-amber-400' : ''}
-                        ${item.color === 'rose' ? 'text-rose-600 dark:text-rose-400' : ''}
-                      `} />
-                    </div>
-                    <h3 className="font-serif font-bold text-xl mb-3 text-sh-navy dark:text-white">
-                      {item.title}
-                    </h3>
-                    <p className="text-gray-600 dark:text-gray-300 mb-8 leading-relaxed flex-grow">
-                      {item.description}
-                    </p>
-                    <Link
-                      href={item.href}
-                      className={`
-                        inline-flex items-center gap-2 px-6 py-3 rounded-button font-medium
-                        transition-all duration-300 hover:-translate-y-1 hover:shadow-button-hover group text-white hover:text-white
-                        ${item.color === 'sh-navy' ? 'bg-sh-navy hover:bg-sh-navy-700' : ''}
-                        ${item.color === 'sh-rust' ? 'bg-sh-rust hover:bg-sh-rust-600' : ''}
-                        ${item.color === 'emerald' ? 'bg-emerald-600 hover:bg-emerald-700' : ''}
-                        ${item.color === 'purple' ? 'bg-purple-600 hover:bg-purple-700' : ''}
-                        ${item.color === 'amber' ? 'bg-amber-600 hover:bg-amber-700' : ''}
-                        ${item.color === 'rose' ? 'bg-rose-600 hover:bg-rose-700' : ''}
-                      `}
-                    >
-                      {item.buttonText}
-                      <ArrowRightIcon className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
-                    </Link>
-                  </FrontCardContent>
-                </FrontCard>
-              </motion.div>
-            ))}
-          </div>
-
-          <motion.div
-            className="text-center mt-12"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-          >
-            <p className="text-gray-600 dark:text-gray-300">
-              Need additional communications support? Contact us at{' '}
-              <a
-                href="mailto:communications@sainthelen.org"
-                className="text-sh-rust hover:text-sh-rust-600 font-medium transition-colors"
-              >
-                communications@sainthelen.org
-              </a>
-            </p>
-          </motion.div>
         </div>
       </section>
     </FrontLayout>

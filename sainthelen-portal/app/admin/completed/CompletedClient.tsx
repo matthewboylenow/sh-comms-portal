@@ -9,6 +9,7 @@ import WebsiteUpdateCard from '../../components/admin/WebsiteUpdateCard';
 import SmsRequestCard from '../../components/admin/SmsRequestCard';
 import AVRequestCard from '../../components/admin/AVRequestCard';
 import FlyerReviewCard from '../../components/admin/FlyerReviewCard';
+import GraphicDesignCard from '../../components/admin/GraphicDesignCard';
 import { Button } from '../../components/ui/Button';
 import { Card, CardContent } from '../../components/ui/Card';
 import {
@@ -20,7 +21,7 @@ import {
   ArrowDownIcon,
 } from '@heroicons/react/24/outline';
 
-type TableName = 'announcements' | 'websiteUpdates' | 'smsRequests' | 'avRequests' | 'flyerReviews';
+type TableName = 'announcements' | 'websiteUpdates' | 'smsRequests' | 'avRequests' | 'flyerReviews' | 'graphicDesign';
 type SortDirection = 'asc' | 'desc';
 type SortField = 'createdTime' | 'name' | 'date';
 
@@ -62,7 +63,8 @@ export default function CompletedClient() {
   const [smsRequests, setSmsRequests] = useState<AdminRecord[]>([]);
   const [avRequests, setAvRequests] = useState<AdminRecord[]>([]);
   const [flyerReviews, setFlyerReviews] = useState<AdminRecord[]>([]);
-  
+  const [graphicDesign, setGraphicDesign] = useState<AdminRecord[]>([]);
+
   // Sort state
   const [sortField, setSortField] = useState<SortField>('createdTime');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
@@ -83,9 +85,6 @@ export default function CompletedClient() {
 
   // Calendar results
   const [calendarResults, setCalendarResults] = useState<any[] | null>(null);
-
-  // Dummy summarize map for the announcement card component
-  const [summarizeMap, setSummarizeMap] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -130,8 +129,11 @@ export default function CompletedClient() {
         } else if (activeTab === 'smsRequests') {
           aDateStr = a.fields['Requested Date'] || '';
           bDateStr = b.fields['Requested Date'] || '';
+        } else if (activeTab === 'graphicDesign') {
+          aDateStr = a.fields['Deadline'] || '';
+          bDateStr = b.fields['Deadline'] || '';
         }
-        
+
         const aDate = parseDate(aDateStr);
         const bDate = parseDate(bDateStr);
         
@@ -161,6 +163,7 @@ export default function CompletedClient() {
       setSmsRequests(data.smsRequests || []);
       setAvRequests(data.avRequests || []);
       setFlyerReviews(data.flyerReviews || []);
+      setGraphicDesign(data.graphicDesign || []);
     } catch (err: any) {
       console.error(err);
       setErrorMessage(err.message);
@@ -195,9 +198,11 @@ export default function CompletedClient() {
         setAvRequests((prev) => prev.filter((r) => r.id !== recordId));
       } else if (tableName === 'flyerReviews') {
         setFlyerReviews((prev) => prev.filter((r) => r.id !== recordId));
+      } else if (tableName === 'graphicDesign') {
+        setGraphicDesign((prev) => prev.filter((r) => r.id !== recordId));
       }
-      
-      // Update in Airtable
+
+      // Update in the database
       const res = await fetch('/api/admin/markCompleted', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -217,39 +222,25 @@ export default function CompletedClient() {
     }
   }
 
-  // Filter function for search
+  // Search every field on the record (name, email, ministry, description,
+  // page, event name, message body, etc.). Multiple words all have to match
+  // somewhere on the record, so "youth website" finds the youth ministry's
+  // website update even though the words live in different fields.
   function filterRecords<T extends AdminRecord>(records: T[], query: string): T[] {
-    if (!query.trim()) return records;
-    
-    const lowercaseQuery = query.toLowerCase();
-    return records.filter(record => {
-      const fields = record.fields;
-      
-      // Search in common fields
-      if (fields.Name && fields.Name.toLowerCase().includes(lowercaseQuery)) return true;
-      if (fields.Ministry && fields.Ministry.toLowerCase().includes(lowercaseQuery)) return true;
-      
-      // Search in announcement specific fields
-      if (fields['Announcement Body'] && fields['Announcement Body'].toLowerCase().includes(lowercaseQuery)) return true;
-      
-      // Search in website update specific fields
-      if (fields['Page to Update'] && fields['Page to Update'].toLowerCase().includes(lowercaseQuery)) return true;
-      if (fields['Description'] && fields['Description'].toLowerCase().includes(lowercaseQuery)) return true;
-      
-      // Search in SMS specific fields
-      if (fields['SMS Message'] && fields['SMS Message'].toLowerCase().includes(lowercaseQuery)) return true;
-      
-      // Search in A/V request specific fields
-      if (fields['Event Name'] && fields['Event Name'].toLowerCase().includes(lowercaseQuery)) return true;
-      if (fields['Location'] && fields['Location'].toLowerCase().includes(lowercaseQuery)) return true;
-      if (fields['A/V Needs'] && fields['A/V Needs'].toLowerCase().includes(lowercaseQuery)) return true;
-      
-      // Search in Flyer Review specific fields
-      if (fields['Target Audience'] && fields['Target Audience'].toLowerCase().includes(lowercaseQuery)) return true;
-      if (fields['Feedback Needed'] && fields['Feedback Needed'].toLowerCase().includes(lowercaseQuery)) return true;
-      if (fields['Purpose'] && fields['Purpose'].toLowerCase().includes(lowercaseQuery)) return true;
-      
-      return false;
+    const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
+    if (!terms.length) return records;
+
+    return records.filter((record) => {
+      const haystack = Object.values(record.fields)
+        .map((value) => {
+          if (value == null) return '';
+          if (Array.isArray(value)) return value.join(' ');
+          return String(value);
+        })
+        .join(' ')
+        .toLowerCase();
+
+      return terms.every((term) => haystack.includes(term));
     });
   }
 
@@ -260,7 +251,8 @@ export default function CompletedClient() {
     let filteredSmsRequests = [...smsRequests];
     let filteredAvRequests = [...avRequests];
     let filteredFlyerReviews = [...flyerReviews];
-    
+    let filteredGraphicDesign = [...graphicDesign];
+
     // Apply search query
     if (searchQuery) {
       filteredAnnouncements = filterRecords(filteredAnnouncements, searchQuery);
@@ -268,8 +260,9 @@ export default function CompletedClient() {
       filteredSmsRequests = filterRecords(filteredSmsRequests, searchQuery);
       filteredAvRequests = filterRecords(filteredAvRequests, searchQuery);
       filteredFlyerReviews = filterRecords(filteredFlyerReviews, searchQuery);
+      filteredGraphicDesign = filterRecords(filteredGraphicDesign, searchQuery);
     }
-    
+
     // Apply sorting based on active tab
     if (activeTab === 'announcements') {
       filteredAnnouncements = sortRecords(filteredAnnouncements);
@@ -281,14 +274,17 @@ export default function CompletedClient() {
       filteredAvRequests = sortRecords(filteredAvRequests);
     } else if (activeTab === 'flyerReviews') {
       filteredFlyerReviews = sortRecords(filteredFlyerReviews);
+    } else if (activeTab === 'graphicDesign') {
+      filteredGraphicDesign = sortRecords(filteredGraphicDesign);
     }
-    
+
     return {
       filteredAnnouncements,
       filteredWebsiteUpdates,
       filteredSmsRequests,
       filteredAvRequests,
-      filteredFlyerReviews
+      filteredFlyerReviews,
+      filteredGraphicDesign
     };
   }
 
@@ -354,8 +350,7 @@ export default function CompletedClient() {
     }
   }
 
-  // Dummy handlers for card components (no actions taken)
-  const handleToggleSummarize = () => {};
+  // Dummy handler for card components (no actions taken)
   const handleOverrideStatus = () => {};
 
   // If loading or unauthenticated, show appropriate UI
@@ -391,17 +386,18 @@ export default function CompletedClient() {
   }
 
   // Get filtered records
-  const { 
-    filteredAnnouncements, 
-    filteredWebsiteUpdates, 
+  const {
+    filteredAnnouncements,
+    filteredWebsiteUpdates,
     filteredSmsRequests,
     filteredAvRequests,
-    filteredFlyerReviews
+    filteredFlyerReviews,
+    filteredGraphicDesign
   } = getFilteredRecords();
 
   // Count total completed items
-  const totalCompletedItems = announcements.length + websiteUpdates.length + smsRequests.length + 
-    avRequests.length + flyerReviews.length;
+  const totalCompletedItems = announcements.length + websiteUpdates.length + smsRequests.length +
+    avRequests.length + flyerReviews.length + graphicDesign.length;
 
   return (
     <AdminLayout title="Completed Items">
@@ -422,14 +418,14 @@ export default function CompletedClient() {
       
       {/* Toolbar */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0 mb-6">
-        <div className="relative w-64">
+        <div className="relative w-full md:w-96">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
           </div>
           <input
             type="text"
             className="pl-10 focus:ring-sh-primary focus:border-sh-primary block w-full sm:text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md"
-            placeholder="Search..."
+            placeholder="Search by name, ministry, description, page..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -558,6 +554,16 @@ export default function CompletedClient() {
             >
               Flyer Reviews {filteredFlyerReviews.length > 0 && `(${filteredFlyerReviews.length})`}
             </button>
+            <button
+              onClick={() => setActiveTab('graphicDesign')}
+              className={`whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'graphicDesign'
+                  ? 'border-sh-primary text-sh-primary dark:border-blue-400 dark:text-blue-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+              }`}
+            >
+              Graphic Design {filteredGraphicDesign.length > 0 && `(${filteredGraphicDesign.length})`}
+            </button>
           </nav>
         </div>
       </div>
@@ -630,12 +636,13 @@ export default function CompletedClient() {
       )}
 
       {/* No results message */}
-      {!loadingData && 
-        filteredAnnouncements.length === 0 && 
-        filteredWebsiteUpdates.length === 0 && 
+      {!loadingData &&
+        filteredAnnouncements.length === 0 &&
+        filteredWebsiteUpdates.length === 0 &&
         filteredSmsRequests.length === 0 &&
         filteredAvRequests.length === 0 &&
-        filteredFlyerReviews.length === 0 && (
+        filteredFlyerReviews.length === 0 &&
+        filteredGraphicDesign.length === 0 && (
         <div className="flex flex-col items-center justify-center p-12 text-center">
           <div className="bg-gray-100 dark:bg-gray-800 rounded-full p-4 mb-4">
             <MagnifyingGlassIcon className="h-8 w-8 text-gray-400" />
@@ -664,9 +671,7 @@ export default function CompletedClient() {
                 <AnnouncementCard
                   key={record.id}
                   record={record}
-                  summarizeMap={summarizeMap}
                   calendarMap={calendarMap}
-                  onToggleSummarize={handleToggleSummarize}
                   onToggleCalendar={handleToggleCalendar}
                   onOverrideStatus={handleOverrideStatus}
                   onToggleCompleted={() => handleUncheck('announcements', record.id)}
@@ -759,6 +764,27 @@ export default function CompletedClient() {
             ) : (
               <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow">
                 <p className="text-gray-500 dark:text-gray-400">No completed flyer reviews available</p>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* Graphic Design Section */}
+      {activeTab === 'graphicDesign' && (
+        <section id="graphicDesign" className="mb-8">
+          <div className="space-y-4">
+            {filteredGraphicDesign.length > 0 ? (
+              filteredGraphicDesign.map((record) => (
+                <GraphicDesignCard
+                  key={record.id}
+                  record={record}
+                  onToggleCompleted={() => handleUncheck('graphicDesign', record.id)}
+                />
+              ))
+            ) : (
+              <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow">
+                <p className="text-gray-500 dark:text-gray-400">No completed graphic design requests available</p>
               </div>
             )}
           </div>
