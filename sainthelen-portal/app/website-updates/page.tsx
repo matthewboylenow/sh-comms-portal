@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import FrontLayout from '../components/FrontLayout';
 import { FrontCard, FrontCardContent, FrontCardHeader, FrontCardTitle } from '../components/ui/FrontCard';
 import { ExclamationCircleIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
+import AddPhotosPanel from '../components/AddPhotosPanel';
 import { uploadFile } from '../lib/upload';
 
 // A labeled sign-up link (e.g. separate SignUpGenius links per activity)
@@ -45,6 +46,8 @@ export default function WebsiteUpdatesFormPage() {
   const [submittingForm, setSubmittingForm] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  // ID of the record just created, for the "add photos from your phone" link
+  const [submittedRecordId, setSubmittedRecordId] = useState('');
 
   // Upload files to Vercel Blob (client-side upload - no 4.5MB limit)
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -77,6 +80,7 @@ export default function WebsiteUpdatesFormPage() {
     setSubmittingForm(true);
     setErrorMessage('');
     setSuccessMessage('');
+    setSubmittedRecordId('');
 
     // Drop empty rows; the first link also fills the original single field
     const filledLinks = signUpLinks
@@ -99,9 +103,14 @@ export default function WebsiteUpdatesFormPage() {
         }),
       });
 
+      const result = await res.json().catch(() => ({} as any));
       if (!res.ok) {
-        const { error } = await res.json();
-        throw new Error(error || 'Submission failed');
+        throw new Error(result.error || 'Submission failed');
+      }
+
+      // UUID means a Neon record the phone-upload page can attach files to
+      if (typeof result.id === 'string' && /^[0-9a-f-]{36}$/i.test(result.id)) {
+        setSubmittedRecordId(result.id);
       }
 
       setSuccessMessage('Website update request submitted successfully!');
@@ -395,10 +404,13 @@ export default function WebsiteUpdatesFormPage() {
                         <p className="font-medium">{successMessage}</p>
                       </div>
                     </div>
+                    {submittedRecordId && (
+                      <AddPhotosPanel recordType="websiteUpdates" recordId={submittedRecordId} />
+                    )}
                   </motion.div>
                 )}
               </AnimatePresence>
-              
+
               <AnimatePresence>
                 {errorMessage && (
                   <motion.div 

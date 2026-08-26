@@ -66,6 +66,9 @@ type AnnouncementFormData = {
   calendarEventLocation?: string;
   calendarEventSignUpLink?: string;
   isExternalEvent?: boolean;
+  socialConsideration?: boolean;
+  socialWhatToKnow?: string;
+  socialHasPhotos?: string;
   fileLinks?: string[];
   signUpUrl?: string;
   signUpLinks?: { label?: string; url: string }[];
@@ -103,6 +106,7 @@ export async function POST(request: NextRequest) {
     let ministry: any = null;
     let requiresApproval = false;
     let approvalStatus = 'approved';
+    let createdId: string | null = null;
 
     if (useNeon) {
       // ===== NEON DATABASE PATH =====
@@ -139,6 +143,15 @@ export async function POST(request: NextRequest) {
         calendarEventLocation: data.calendarEventLocation || null,
         calendarEventSignUpLink: data.calendarEventSignUpLink || null,
         externalEvent: data.isExternalEvent || false,
+        // Only include when set, so inserts still work if the 0004 migration
+        // hasn't been applied yet
+        ...(data.socialConsideration
+          ? {
+              socialConsideration: true,
+              socialWhatToKnow: data.socialWhatToKnow || null,
+              socialHasPhotos: data.socialHasPhotos || null,
+            }
+          : {}),
         fileLinks: data.fileLinks || null,
         signUpUrl: data.signUpUrl || null,
         ...(data.signUpLinks?.length ? { signUpLinks: data.signUpLinks } : {}),
@@ -148,6 +161,7 @@ export async function POST(request: NextRequest) {
       });
 
       console.log('Neon record created:', announcement.id);
+      createdId = announcement.id;
 
       // Auto-create WordPress event draft if calendar is requested
       if (data.addToCalendar && data.calendarEventName && data.calendarEventDate) {
@@ -216,6 +230,7 @@ export async function POST(request: NextRequest) {
       ]);
 
       console.log('Airtable record created:', record);
+      createdId = record[0]?.id || null;
     }
 
     // 2) Send confirmation email via Microsoft Graph
@@ -310,7 +325,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, id: createdId });
   } catch (error: any) {
     console.error('Announcements submission error:', error);
     
