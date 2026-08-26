@@ -7,7 +7,8 @@ import { useState } from 'react';
 import FrontLayout from '../components/FrontLayout';
 import { FrontCard, FrontCardContent } from '../components/ui/FrontCard';
 import MinistryAutocomplete from '../components/ui/MinistryAutocomplete';
-import { uploadFile } from '../lib/upload';
+import UploadProgress from '../components/ui/UploadProgress';
+import { uploadFilesWithStatus, type UploadStatus } from '../lib/upload';
 
 export default function SharePhotosPage() {
   const [description, setDescription] = useState('');
@@ -19,7 +20,7 @@ export default function SharePhotosPage() {
   const [fileLinks, setFileLinks] = useState<string[]>([]);
 
   const [uploading, setUploading] = useState(false);
-  const [progressText, setProgressText] = useState('');
+  const [uploadStatus, setUploadStatus] = useState<UploadStatus | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
@@ -31,18 +32,13 @@ export default function SharePhotosPage() {
     setErrorMessage('');
 
     try {
-      const urls: string[] = [];
-      for (let i = 0; i < files.length; i++) {
-        setProgressText(`Uploading ${i + 1} of ${files.length}...`);
-        const result = await uploadFile(files[i]);
-        urls.push(result.url);
-      }
-      setFileLinks((prev) => [...prev, ...urls]);
+      const results = await uploadFilesWithStatus(files, setUploadStatus);
+      setFileLinks((prev) => [...prev, ...results.map((r) => r.url)]);
     } catch (err: any) {
       setErrorMessage(err.message || 'Upload failed. Please try again.');
     } finally {
       setUploading(false);
-      setProgressText('');
+      setUploadStatus(null);
       e.target.value = '';
     }
   }
@@ -142,10 +138,7 @@ export default function SharePhotosPage() {
                   Photos / videos <span className="text-red-500">*</span>
                 </label>
                 {uploading ? (
-                  <div className="py-6 text-center border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl">
-                    <div className="inline-block animate-spin rounded-full h-6 w-6 border-4 border-sh-navy border-t-transparent mb-2"></div>
-                    <p className="text-sm text-gray-600 dark:text-gray-300">{progressText}</p>
-                  </div>
+                  <UploadProgress status={uploadStatus} />
                 ) : (
                   <>
                     <input

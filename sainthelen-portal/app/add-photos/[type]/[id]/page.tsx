@@ -5,7 +5,8 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { uploadFile } from '../../../lib/upload';
+import UploadProgress from '../../../components/ui/UploadProgress';
+import { uploadFilesWithStatus, type UploadStatus } from '../../../lib/upload';
 
 type Status = 'loading' | 'ready' | 'uploading' | 'done' | 'error';
 
@@ -16,7 +17,8 @@ export default function AddPhotosPage() {
   const [typeLabel, setTypeLabel] = useState('request');
   const [errorMessage, setErrorMessage] = useState('');
   const [uploadedCount, setUploadedCount] = useState(0);
-  const [progressText, setProgressText] = useState('');
+  const [uploadStatus, setUploadStatus] = useState<UploadStatus | null>(null);
+  const [attaching, setAttaching] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -46,14 +48,11 @@ export default function AddPhotosPage() {
     setErrorMessage('');
 
     try {
-      const urls: string[] = [];
-      for (let i = 0; i < files.length; i++) {
-        setProgressText(`Uploading ${i + 1} of ${files.length}...`);
-        const result = await uploadFile(files[i]);
-        urls.push(result.url);
-      }
+      const results = await uploadFilesWithStatus(files, setUploadStatus);
+      const urls = results.map((r) => r.url);
 
-      setProgressText('Attaching to your request...');
+      setUploadStatus(null);
+      setAttaching(true);
       const res = await fetch('/api/add-photos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -68,6 +67,8 @@ export default function AddPhotosPage() {
       setErrorMessage(err.message || 'Upload failed. Please try again.');
       setStatus('ready');
     } finally {
+      setUploadStatus(null);
+      setAttaching(false);
       // Allow picking the same files again if needed
       e.target.value = '';
     }
@@ -125,11 +126,16 @@ export default function AddPhotosPage() {
               )}
 
               {status === 'uploading' ? (
-                <div className="py-8 text-center">
-                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-sh-navy border-t-transparent mb-3"></div>
-                  <p className="text-gray-600 dark:text-gray-300">{progressText}</p>
-                  <p className="text-xs text-gray-400 mt-2">Keep this page open until it finishes.</p>
-                </div>
+                attaching ? (
+                  <div className="py-8 text-center">
+                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-sh-navy border-t-transparent mb-3"></div>
+                    <p className="text-gray-600 dark:text-gray-300">Almost done — attaching to your request...</p>
+                  </div>
+                ) : (
+                  <div className="py-4">
+                    <UploadProgress status={uploadStatus} />
+                  </div>
+                )
               ) : (
                 <label className="block">
                   <span className="sr-only">Choose photos or videos</span>
