@@ -160,9 +160,16 @@ ${f['Announcement Body'] || ''}${signUpText ? `\n\nSign up:\n${signUpText}` : ''
           {/* Main info */}
           <div className="min-w-0 flex-1">
             {/* Title */}
-            <h3 className="font-serif font-bold text-lg text-gray-900 dark:text-white">
-              {f.Name || 'Untitled Announcement'}
-            </h3>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-serif font-bold text-lg text-gray-900 dark:text-white">
+                {f.Name || 'Untitled Announcement'}
+              </h3>
+              {f['Social Consideration'] && (
+                <span className="inline-flex items-center px-2 py-0.5 text-xs font-semibold rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">
+                  Social
+                </span>
+              )}
+            </div>
 
             {/* Ministry & Submitter */}
             <div className="flex items-center gap-2 mt-1 text-sm text-gray-600 dark:text-gray-300">
@@ -301,6 +308,21 @@ ${f['Announcement Body'] || ''}${signUpText ? `\n\nSign up:\n${signUpText}` : ''
           <div className="mt-3 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50 rounded-lg">
             <p className="text-xs font-semibold text-blue-700 dark:text-blue-300 mb-1">Publication Notes</p>
             <p className="text-sm text-blue-800 dark:text-blue-200 whitespace-pre-wrap">{f['Publication Notes']}</p>
+          </div>
+        )}
+
+        {/* Social Media Consideration */}
+        {f['Social Consideration'] && (
+          <div className="mt-3 px-3 py-2 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800/50 rounded-lg">
+            <p className="text-xs font-semibold text-purple-700 dark:text-purple-300 mb-1">Flagged for Social Media</p>
+            {f['Social What To Know'] && (
+              <p className="text-sm text-purple-800 dark:text-purple-200 whitespace-pre-wrap">{f['Social What To Know']}</p>
+            )}
+            {f['Social Has Photos'] && (
+              <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
+                Photos/video: {f['Social Has Photos'] === 'yes' ? 'Yes' : f['Social Has Photos'] === 'not_yet' ? 'Not yet — coming after the event' : 'No'}
+              </p>
+            )}
           </div>
         )}
       </div>

@@ -12,6 +12,7 @@ import * as smsRequestsService from '../../../lib/db/services/sms-requests';
 import * as avRequestsService from '../../../lib/db/services/av-requests';
 import * as flyerReviewsService from '../../../lib/db/services/flyer-reviews';
 import * as graphicDesignService from '../../../lib/db/services/graphic-design';
+import * as photoSubmissionsService from '../../../lib/db/services/photo-submissions';
 import { sendEmailViaGraph, getAdminNotificationEmail, isEmailConfigured } from '../../../lib/email';
 
 export const dynamic = 'force-dynamic';
@@ -55,7 +56,8 @@ export async function GET(request: NextRequest) {
     }
 
     // All of these exclude completed records by default
-    const [announcements, websiteUpdates, smsRequests, avRequests, flyerReviews, graphicDesign] =
+    const twoDaysAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
+    const [announcements, websiteUpdates, smsRequests, avRequests, flyerReviews, graphicDesign, recentPhotos] =
       await Promise.all([
         announcementsService.getAnnouncements({}),
         websiteUpdatesService.getAllWebsiteUpdates({}),
@@ -63,6 +65,8 @@ export async function GET(request: NextRequest) {
         avRequestsService.getAllAVRequests({}),
         flyerReviewsService.getAllFlyerReviews({}),
         graphicDesignService.getAllGraphicDesignRequests({}),
+        // Photo submissions have no completed state; surface the last 48 hours
+        photoSubmissionsService.getPhotoSubmissionsSince(twoDaysAgo).catch(() => []),
       ]);
 
     const websiteItems: DigestItem[] = websiteUpdates.map((r) => ({
@@ -76,6 +80,32 @@ export async function GET(request: NextRequest) {
     const overdueWebsiteUpdates = websiteItems.filter(
       (item) => item.ageHours >= WEBSITE_UPDATE_OVERDUE_HOURS || (item.urgent && item.ageHours >= 24)
     );
+
+    // Announcements flagged "Consider for Social Media"
+    const socialItems: DigestItem[] = announcements
+      .filter((r) => r.socialConsideration)
+      .map((r) => ({
+        title: r.name,
+        detail: [r.ministry, r.socialWhatToKnow].filter(Boolean).join(' — ') || undefined,
+        submitter:
+          r.socialHasPhotos === 'yes'
+            ? 'has photos/video'
+            : r.socialHasPhotos === 'not_yet'
+              ? 'photos coming after the event'
+              : 'no photos',
+        ageHours: hoursSince(r.submittedAt),
+      }));
+
+    // Parish-life photos shared in the last 48 hours
+    const photoItems: DigestItem[] = recentPhotos.map((r) => ({
+      title: r.description,
+      detail: [r.ministry, `${r.fileLinks?.length || 0} file${(r.fileLinks?.length || 0) === 1 ? '' : 's'}`]
+        .filter(Boolean)
+        .join(' — '),
+      submitter: r.submitterName || 'name not given',
+      ageHours: hoursSince(r.createdAt),
+      urgent: r.privacyConcern,
+    }));
 
     const sections: { label: string; items: DigestItem[] }[] = [
       {
@@ -135,8 +165,8 @@ export async function GET(request: NextRequest) {
 
     const totalPending = sections.reduce((sum, s) => sum + s.items.length, 0);
 
-    // Nothing waiting? Don't send an empty email.
-    if (totalPending === 0) {
+    // Nothing waiting and no new photos? Don't send an empty email.
+    if (totalPending === 0 && photoItems.length === 0) {
       console.log('[daily-digest] Queue is empty, skipping email');
       return NextResponse.json({ success: true, sent: false, totalPending: 0 });
     }
@@ -158,6 +188,8 @@ export async function GET(request: NextRequest) {
         date: format(new Date(), 'EEEE, MMMM d, yyyy'),
         totalPending,
         overdueWebsiteUpdates,
+        socialItems,
+        photoItems,
         sections,
       }),
       importance: overdueWebsiteUpdates.length > 0 ? 'high' : 'normal',
@@ -192,11 +224,15 @@ function buildDigestEmail({
   date,
   totalPending,
   overdueWebsiteUpdates,
+  socialItems,
+  photoItems,
   sections,
 }: {
   date: string;
   totalPending: number;
   overdueWebsiteUpdates: DigestItem[];
+  socialItems: DigestItem[];
+  photoItems: DigestItem[];
   sections: { label: string; items: DigestItem[] }[];
 }): string {
   const portalUrl = process.env.NEXTAUTH_URL || 'https://comms.sainthelen.org';
@@ -214,6 +250,47 @@ function buildDigestEmail({
               ${item.urgent ? '<span style="color: #b91c1c; font-size: 11px; font-weight: 700; margin-left: 6px;">URGENT</span>' : ''}
               <div style="color: #6b7280; font-size: 13px;">${truncate(item.detail, 120)}</div>
               <div style="color: #ef4444; font-size: 12px;">Submitted by ${item.submitter}, ${formatAge(item.ageHours)}</div>
+            </div>
+          `
+            )
+            .join('')}
+        </div>
+      `
+      : '';
+
+  const socialSection =
+    socialItems.length > 0
+      ? `
+        <div style="margin-bottom: 24px; padding: 16px; background-color: #faf5ff; border-radius: 8px; border-left: 4px solid #9333ea;">
+          <h3 style="color: #6b21a8; margin: 0 0 12px 0; font-size: 16px;">Flagged for Social Media (${socialItems.length})</h3>
+          ${socialItems
+            .map(
+              (item) => `
+            <div style="padding: 8px 0; border-bottom: 1px solid #e9d5ff;">
+              <strong style="color: #1f2937;">${item.title}</strong>
+              <div style="color: #6b7280; font-size: 13px;">${truncate(item.detail, 120)}</div>
+              <div style="color: #9333ea; font-size: 12px;">${item.submitter} · submitted ${formatAge(item.ageHours)}</div>
+            </div>
+          `
+            )
+            .join('')}
+        </div>
+      `
+      : '';
+
+  const photoSection =
+    photoItems.length > 0
+      ? `
+        <div style="margin-bottom: 24px; padding: 16px; background-color: #f0fdf4; border-radius: 8px; border-left: 4px solid #16a34a;">
+          <h3 style="color: #166534; margin: 0 0 12px 0; font-size: 16px;">New Photos Shared (${photoItems.length})</h3>
+          ${photoItems
+            .map(
+              (item) => `
+            <div style="padding: 8px 0; border-bottom: 1px solid #bbf7d0;">
+              <strong style="color: #1f2937;">${truncate(item.title, 90)}</strong>
+              ${item.urgent ? '<span style="color: #b91c1c; font-size: 11px; font-weight: 700; margin-left: 6px;">PRIVACY FLAG</span>' : ''}
+              <div style="color: #6b7280; font-size: 13px;">${truncate(item.detail, 120)}</div>
+              <div style="color: #16a34a; font-size: 12px;">${item.submitter} · ${formatAge(item.ageHours)}</div>
             </div>
           `
             )
@@ -263,6 +340,8 @@ function buildDigestEmail({
         </div>
 
         ${overdueSection}
+        ${socialSection}
+        ${photoSection}
         ${sectionsHtml}
 
         <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e5e7eb; text-align: center;">

@@ -15,6 +15,7 @@ import {
   VideoCameraIcon,
   DocumentTextIcon,
   PencilSquareIcon,
+  CameraIcon,
   ArrowRightIcon
 } from '@heroicons/react/24/outline';
 
@@ -189,6 +190,39 @@ export default function HomePage() {
               </motion.div>
             ))}
           </div>
+
+          {/* Share Photos banner */}
+          <motion.div
+            className="mt-10"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+          >
+            <FrontCard>
+              <FrontCardContent className="flex flex-col sm:flex-row items-center gap-5 p-6 sm:p-8">
+                <div className="w-14 h-14 rounded-2xl bg-sky-100 dark:bg-sky-900/50 flex items-center justify-center flex-shrink-0">
+                  <CameraIcon className="w-7 h-7 text-sky-600 dark:text-sky-400" />
+                </div>
+                <div className="flex-1 text-center sm:text-left">
+                  <h3 className="font-serif font-bold text-xl text-sh-navy dark:text-white mb-1">
+                    Took photos at a parish event?
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300">
+                    Send them to the communications team right from your phone — no form-filling,
+                    no write-up. Just tell us what&apos;s happening and hit send.
+                  </p>
+                </div>
+                <Link
+                  href="/share-photos"
+                  className="inline-flex items-center gap-2 bg-sky-600 hover:bg-sky-700 text-white px-6 py-3 rounded-button font-medium transition-all duration-300 hover:-translate-y-1 hover:shadow-button-hover group flex-shrink-0"
+                >
+                  Share Photos
+                  <ArrowRightIcon className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
+                </Link>
+              </FrontCardContent>
+            </FrontCard>
+          </motion.div>
 
           <motion.div
             className="text-center mt-12"

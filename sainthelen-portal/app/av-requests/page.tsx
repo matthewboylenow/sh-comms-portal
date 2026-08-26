@@ -6,7 +6,8 @@ import FrontLayout from '../components/FrontLayout';
 import { FrontCard, FrontCardContent, FrontCardHeader, FrontCardTitle } from '../components/ui/FrontCard';
 import { ExclamationCircleIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
 import { Button } from '../components/ui/Button';
-import { uploadFile } from '@/app/lib/upload';
+import UploadProgress from '@/app/components/ui/UploadProgress';
+import { uploadFilesWithStatus, type UploadStatus } from '@/app/lib/upload';
 
 // Type for multiple date/time entries
 type DateTimeEntry = {
@@ -33,6 +34,7 @@ export default function AVRequestsFormPage() {
   const [fileLinks, setFileLinks] = useState<string[]>([]);
 
   const [uploadingFiles, setUploadingFiles] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<UploadStatus | null>(null);
   const [submittingForm, setSubmittingForm] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
@@ -86,19 +88,15 @@ export default function AVRequestsFormPage() {
 
     try {
       const filesArray = Array.from(e.target.files);
-      const uploadedUrls: string[] = [];
+      const results = await uploadFilesWithStatus(filesArray, setUploadStatus);
 
-      for (const file of filesArray) {
-        const result = await uploadFile(file);
-        uploadedUrls.push(result.url);
-      }
-
-      setFileLinks((prev) => [...prev, ...uploadedUrls]);
+      setFileLinks((prev) => [...prev, ...results.map((r) => r.url)]);
     } catch (err: any) {
       console.error('File upload error:', err);
       setErrorMessage(err.message || 'File upload failed');
     } finally {
       setUploadingFiles(false);
+      setUploadStatus(null);
     }
   }
 
@@ -464,15 +462,7 @@ export default function AVRequestsFormPage() {
                     </p>
                   </div>
                 </div>
-                {uploadingFiles && (
-                  <div className="mt-2 flex items-center">
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-sh-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span className="text-sm text-gray-500 dark:text-gray-400">Uploading files...</span>
-                  </div>
-                )}
+                <UploadProgress status={uploadStatus} />
                 {fileLinks.length > 0 && (
                   <div className="mt-2">
                     <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Uploaded Files:</h4>

@@ -130,10 +130,11 @@ export async function POST(request: NextRequest) {
     const urgentValue = data.urgent ? 'Yes' : 'No';
 
     const useNeon = useNeonDatabase();
+    let createdId: string | null = null;
 
     if (useNeon) {
       // ===== NEON DATABASE PATH =====
-      await websiteUpdatesService.createWebsiteUpdate({
+      const created = await websiteUpdatesService.createWebsiteUpdate({
         name: data.name,
         email: data.email,
         urgent: data.urgent,
@@ -145,10 +146,11 @@ export async function POST(request: NextRequest) {
         ...(data.signUpLinks?.length ? { signUpLinks: data.signUpLinks } : {}),
         fileLinks: wordpressFileLinks.length > 0 ? wordpressFileLinks : null,
       });
+      createdId = created.id;
     } else {
       // ===== AIRTABLE DATABASE PATH (Legacy) =====
       // Create a record in Airtable
-      await base(websiteUpdatesTable).create([
+      const airtableRecords = await base(websiteUpdatesTable).create([
         {
           fields: {
             Name: data.name,
@@ -161,6 +163,7 @@ export async function POST(request: NextRequest) {
           },
         },
       ]);
+      createdId = airtableRecords[0]?.id || null;
     }
 
     const signUpLinksHtml = data.signUpLinks?.length
@@ -239,7 +242,7 @@ export async function POST(request: NextRequest) {
       saveToSentItems: true,
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, id: createdId });
   } catch (error: any) {
     console.error('Website Updates submission error:', error);
     return new NextResponse(

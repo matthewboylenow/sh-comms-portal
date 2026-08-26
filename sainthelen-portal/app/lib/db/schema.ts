@@ -52,6 +52,10 @@ export const announcements = pgTable('announcements', {
   calendarEventLocation: varchar('calendar_event_location', { length: 500 }),
   calendarEventSignUpLink: varchar('calendar_event_sign_up_link', { length: 500 }),
   externalEvent: boolean('external_event').default(false),
+  // "Consider for Social Media" flag - editorial consideration, not a promised post
+  socialConsideration: boolean('social_consideration').default(false),
+  socialWhatToKnow: text('social_what_to_know'),
+  socialHasPhotos: varchar('social_has_photos', { length: 20 }), // yes | no | not_yet
   fileLinks: text('file_links').array(), // Array of URLs
   signUpUrl: varchar('sign_up_url', { length: 500 }),
   // Multiple labeled sign-up links; signUpUrl above holds the first for compatibility
@@ -175,6 +179,21 @@ export const flyerReviews = pgTable('flyer_reviews', {
 });
 
 // ============================================================================
+// PHOTO SUBMISSIONS TABLE (Share Photos with Communications)
+// ============================================================================
+export const photoSubmissions = pgTable('photo_submissions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  submitterName: varchar('submitter_name', { length: 255 }),
+  ministry: varchar('ministry', { length: 255 }),
+  description: text('description').notNull(), // "What's happening?"
+  photoDate: date('photo_date'),
+  fileLinks: text('file_links').array(),
+  privacyConcern: boolean('privacy_concern').default(false).notNull(), // someone pictured shouldn't be used publicly
+  privacyNotes: text('privacy_notes'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// ============================================================================
 // COMMENTS TABLE (Cross-table commenting system)
 // ============================================================================
 export const comments = pgTable('comments', {
@@ -240,6 +259,9 @@ export type NewSmsRequest = typeof smsRequests.$inferInsert;
 
 export type FlyerReview = typeof flyerReviews.$inferSelect;
 export type NewFlyerReview = typeof flyerReviews.$inferInsert;
+
+export type PhotoSubmission = typeof photoSubmissions.$inferSelect;
+export type NewPhotoSubmission = typeof photoSubmissions.$inferInsert;
 
 export type Comment = typeof comments.$inferSelect;
 export type NewComment = typeof comments.$inferInsert;

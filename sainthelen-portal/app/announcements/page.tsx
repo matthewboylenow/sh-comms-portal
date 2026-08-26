@@ -8,7 +8,9 @@ import { FrontCard, FrontCardContent, FrontCardHeader, FrontCardTitle } from '..
 import { Button } from '../components/ui/Button';
 import { ExclamationCircleIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
 import MinistryAutocomplete from '../components/ui/MinistryAutocomplete';
-import { uploadFile } from '../lib/upload';
+import AddPhotosPanel from '../components/AddPhotosPanel';
+import UploadProgress from '../components/ui/UploadProgress';
+import { uploadFilesWithStatus, type UploadStatus } from '../lib/upload';
 
 interface Ministry {
   id: string;
@@ -57,15 +59,22 @@ export default function AnnouncementsFormPage() {
   const [calendarEventLocation, setCalendarEventLocation] = useState('');
   const [calendarEventSignUpLink, setCalendarEventSignUpLink] = useState('');
   const [isExternalEvent, setIsExternalEvent] = useState(false);
+  // "Consider for Social Media" flag
+  const [socialConsideration, setSocialConsideration] = useState(false);
+  const [socialWhatToKnow, setSocialWhatToKnow] = useState('');
+  const [socialHasPhotos, setSocialHasPhotos] = useState('');
   const [fileLinks, setFileLinks] = useState<string[]>([]);
   const [signUpLinks, setSignUpLinks] = useState<SignUpLinkEntry[]>([
     { id: '1', label: '', url: '' },
   ]);
 
   const [uploadingFiles, setUploadingFiles] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<UploadStatus | null>(null);
   const [submittingForm, setSubmittingForm] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  // ID of the record just created, for the "add photos from your phone" link
+  const [submittedRecordId, setSubmittedRecordId] = useState('');
 
   // Generate next 12 upcoming weekends (Saturday-Sunday pairs)
   const getUpcomingWeekends = () => {
@@ -173,20 +182,16 @@ export default function AnnouncementsFormPage() {
 
     try {
       const filesArray = Array.from(e.target.files);
-      const uploadedUrls: string[] = [];
-
-      for (const file of filesArray) {
-        const result = await uploadFile(file);
-        uploadedUrls.push(result.url);
-      }
+      const results = await uploadFilesWithStatus(filesArray, setUploadStatus);
 
       // Store them in state
-      setFileLinks((prev) => [...prev, ...uploadedUrls]);
+      setFileLinks((prev) => [...prev, ...results.map((r) => r.url)]);
     } catch (err: any) {
       console.error('File upload error:', err);
       setErrorMessage(err.message || 'File upload failed');
     } finally {
       setUploadingFiles(false);
+      setUploadStatus(null);
     }
   }
 
@@ -196,6 +201,7 @@ export default function AnnouncementsFormPage() {
     setSubmittingForm(true);
     setErrorMessage('');
     setSuccessMessage('');
+    setSubmittedRecordId('');
 
     // Basic client-side validation
     if (!name.trim()) {
@@ -273,6 +279,11 @@ export default function AnnouncementsFormPage() {
             calendarEventSignUpLink,
           }),
           isExternalEvent,
+          socialConsideration,
+          ...(socialConsideration && {
+            socialWhatToKnow,
+            socialHasPhotos,
+          }),
           fileLinks,
           signUpUrl: filledLinks[0]?.url || '',
           signUpLinks: filledLinks,
@@ -280,12 +291,17 @@ export default function AnnouncementsFormPage() {
         }),
       });
 
+      const result = await res.json().catch(() => ({} as any));
       if (!res.ok) {
-        const { error } = await res.json();
-        throw new Error(error || 'Submission failed');
+        throw new Error(result.error || 'Submission failed');
       }
 
-      const successMsg = requiresApproval 
+      // UUID means a Neon record the phone-upload page can attach files to
+      if (typeof result.id === 'string' && /^[0-9a-f-]{36}$/i.test(result.id)) {
+        setSubmittedRecordId(result.id);
+      }
+
+      const successMsg = requiresApproval
         ? 'Announcement submitted successfully! It will require approval from the Coordinator of Adult Discipleship before being published.'
         : 'Announcement submitted successfully!';
       setSuccessMessage(successMsg);
@@ -309,6 +325,9 @@ export default function AnnouncementsFormPage() {
       setCalendarEventLocation('');
       setCalendarEventSignUpLink('');
       setIsExternalEvent(false);
+      setSocialConsideration(false);
+      setSocialWhatToKnow('');
+      setSocialHasPhotos('');
       setFileLinks([]);
       setSignUpLinks([{ id: '1', label: '', url: '' }]);
       setPublicationNotes('');
@@ -789,6 +808,95 @@ export default function AnnouncementsFormPage() {
                 )}
               </AnimatePresence>
 
+              {/* Consider for Social Media */}
+              <div>
+                <div className="flex items-center">
+                  <input
+                    id="social-consideration"
+                    type="checkbox"
+                    className="h-4 w-4 text-sh-primary focus:ring-sh-primary border-gray-300 rounded"
+                    checked={socialConsideration}
+                    onChange={(e) => setSocialConsideration(e.target.checked)}
+                  />
+                  <label htmlFor="social-consideration" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+                    Consider for Social Media
+                  </label>
+                </div>
+                <p className="mt-1 ml-6 text-xs text-gray-500 dark:text-gray-400">
+                  Check this if you think this event or announcement may be a good fit for Saint
+                  Helen social media. Submission does not guarantee a post — the communications
+                  team decides timing, format, and whether it's a fit.
+                </p>
+              </div>
+
+              {/* Conditional Social Media Details */}
+              <AnimatePresence>
+                {socialConsideration && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="p-5 bg-purple-50/80 dark:bg-purple-900/20 backdrop-blur-sm border border-purple-200/50 dark:border-purple-800/50 rounded-2xl space-y-4">
+                      <h4 className="font-semibold text-purple-900 dark:text-purple-200 text-sm">
+                        A Little More for Social Media
+                      </h4>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          What would you like people to know or do? <span className="text-gray-400">(optional)</span>
+                        </label>
+                        <textarea
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary bg-white text-gray-900 dark:bg-gray-700 dark:text-white"
+                          rows={2}
+                          value={socialWhatToKnow}
+                          onChange={(e) => setSocialWhatToKnow(e.target.value)}
+                          placeholder="One or two sentences is plenty."
+                        />
+                      </div>
+
+                      <div>
+                        <span className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Do you have photos or video?
+                        </span>
+                        <div className="space-y-2">
+                          {[
+                            { value: 'yes', label: 'Yes' },
+                            { value: 'no', label: 'No' },
+                            { value: 'not_yet', label: 'Not yet — I will after the event' },
+                          ].map((option) => (
+                            <label key={option.value} className="flex items-center">
+                              <input
+                                type="radio"
+                                name="social-has-photos"
+                                className="h-4 w-4 text-sh-primary focus:ring-sh-primary border-gray-300"
+                                checked={socialHasPhotos === option.value}
+                                onChange={() => setSocialHasPhotos(option.value)}
+                              />
+                              <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">{option.label}</span>
+                            </label>
+                          ))}
+                        </div>
+                        {socialHasPhotos === 'yes' && (
+                          <p className="mt-2 text-xs text-purple-700 dark:text-purple-300">
+                            Great — attach them below, or use the &quot;add photos from your phone&quot;
+                            link on the confirmation screen after you submit.
+                          </p>
+                        )}
+                        {socialHasPhotos === 'not_yet' && (
+                          <p className="mt-2 text-xs text-purple-700 dark:text-purple-300">
+                            No problem — after you submit, you&apos;ll get a link you can use later to
+                            add photos to this request from your phone.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               {/* File Upload */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -819,7 +927,7 @@ export default function AnnouncementsFormPage() {
                           type="file"
                           className="sr-only"
                           multiple
-                          accept="image/png,image/jpeg,.png,.jpg,.jpeg,.pdf,application/pdf"
+                          accept="image/*,.heic,.heif,.pdf,application/pdf"
                           onChange={handleFileUpload}
                           disabled={uploadingFiles}
                         />
@@ -827,19 +935,11 @@ export default function AnnouncementsFormPage() {
                       <p className="pl-1">or drag and drop</p>
                     </div>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                      PNG, JPG, JPEG, PDF up to 10MB
+                      Photos (iPhone photos welcome) and PDFs
                     </p>
                   </div>
                 </div>
-                {uploadingFiles && (
-                  <div className="mt-2 flex items-center">
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-sh-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span className="text-sm text-gray-500 dark:text-gray-400">Uploading files...</span>
-                  </div>
-                )}
+                <UploadProgress status={uploadStatus} />
                 {fileLinks.length > 0 && (
                   <div className="mt-3">
                     <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Uploaded Files:</h4>
@@ -902,10 +1002,13 @@ export default function AnnouncementsFormPage() {
                         <p className="font-medium">{successMessage}</p>
                       </div>
                     </div>
+                    {submittedRecordId && (
+                      <AddPhotosPanel recordType="announcements" recordId={submittedRecordId} />
+                    )}
                   </motion.div>
                 )}
               </AnimatePresence>
-              
+
               <AnimatePresence>
                 {errorMessage && (
                   <motion.div 

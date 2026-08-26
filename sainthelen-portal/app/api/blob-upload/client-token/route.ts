@@ -16,11 +16,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         // For now, we allow all uploads
         return {
           allowedContentTypes: [
+            'image/*', // includes HEIC/HEIF from iPhones
+            'video/*',
             'image/jpeg',
             'image/png',
             'image/gif',
             'image/webp',
             'image/svg+xml',
+            'image/heic',
+            'image/heif',
             'application/pdf',
             'application/msword',
             'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
