@@ -724,3 +724,14 @@ body,
 .section-white {
   background-color: hsl(var(--section-white));
 }
+
+/* Mobile form controls: keep font-size at 16px so iOS Safari doesn't
+   auto-zoom into the page when a field is focused (the zoom sticks and
+   forces users to pinch back out). Overrides Tailwind text-sm on inputs. */
+@media (max-width: 640px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}

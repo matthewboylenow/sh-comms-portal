@@ -172,7 +172,7 @@ ${f['Announcement Body'] || ''}${signUpText ? `\n\nSign up:\n${signUpText}` : ''
             </div>
 
             {/* Ministry & Submitter */}
-            <div className="flex items-center gap-2 mt-1 text-sm text-gray-600 dark:text-gray-300">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 text-sm text-gray-600 dark:text-gray-300">
               <span className="font-medium">{f.Ministry || 'No Ministry'}</span>
               {f['Submitter Name'] && (
                 <>
@@ -266,7 +266,7 @@ ${f['Announcement Body'] || ''}${signUpText ? `\n\nSign up:\n${signUpText}` : ''
       {/* Body content */}
       <div className="px-5 pb-4">
         <div className="relative">
-          <div className={`text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap ${!expanded && 'max-h-20 overflow-hidden'}`}>
+          <div className={`text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words ${!expanded && 'max-h-20 overflow-hidden'}`}>
             {f['Announcement Body'] || 'No description provided.'}
           </div>
           {!expanded && f['Announcement Body']?.length > 150 && (
@@ -307,7 +307,7 @@ ${f['Announcement Body'] || ''}${signUpText ? `\n\nSign up:\n${signUpText}` : ''
         {f['Publication Notes'] && (
           <div className="mt-3 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50 rounded-lg">
             <p className="text-xs font-semibold text-blue-700 dark:text-blue-300 mb-1">Publication Notes</p>
-            <p className="text-sm text-blue-800 dark:text-blue-200 whitespace-pre-wrap">{f['Publication Notes']}</p>
+            <p className="text-sm text-blue-800 dark:text-blue-200 whitespace-pre-wrap break-words">{f['Publication Notes']}</p>
           </div>
         )}
 
@@ -316,7 +316,7 @@ ${f['Announcement Body'] || ''}${signUpText ? `\n\nSign up:\n${signUpText}` : ''
           <div className="mt-3 px-3 py-2 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800/50 rounded-lg">
             <p className="text-xs font-semibold text-purple-700 dark:text-purple-300 mb-1">Flagged for Social Media</p>
             {f['Social What To Know'] && (
-              <p className="text-sm text-purple-800 dark:text-purple-200 whitespace-pre-wrap">{f['Social What To Know']}</p>
+              <p className="text-sm text-purple-800 dark:text-purple-200 whitespace-pre-wrap break-words">{f['Social What To Know']}</p>
             )}
             {f['Social Has Photos'] && (
               <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
@@ -347,7 +347,7 @@ ${f['Announcement Body'] || ''}${signUpText ? `\n\nSign up:\n${signUpText}` : ''
 
           {/* Attachments */}
           {f['File Links'] && (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {f['File Links'].split(/\s+/).filter(Boolean).map((link: string, idx: number) => (
                 <a
                   key={idx}

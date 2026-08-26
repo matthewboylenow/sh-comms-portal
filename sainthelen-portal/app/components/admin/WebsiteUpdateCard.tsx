@@ -100,7 +100,7 @@ ${f.Description || ''}${signUpText ? `\n\nSign up:\n${signUpText}` : ''}`;
             </div>
 
             {/* Ministry & Submitter */}
-            <div className="flex items-center gap-2 mt-1 text-sm text-gray-600 dark:text-gray-300">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 text-sm text-gray-600 dark:text-gray-300">
               <span className="font-medium">{f.Ministry || 'No Ministry'}</span>
               {f.Name && (
                 <>
@@ -151,7 +151,7 @@ ${f.Description || ''}${signUpText ? `\n\nSign up:\n${signUpText}` : ''}`;
       {/* Body content */}
       <div className="px-5 pb-4">
         <div className="relative">
-          <div className={`text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap ${!expanded && 'max-h-20 overflow-hidden'}`}>
+          <div className={`text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words ${!expanded && 'max-h-20 overflow-hidden'}`}>
             {f.Description || 'No description provided.'}
           </div>
           {!expanded && f.Description?.length > 150 && (
@@ -193,7 +193,7 @@ ${f.Description || ''}${signUpText ? `\n\nSign up:\n${signUpText}` : ''}`;
       <div className="px-5 py-4 bg-gradient-to-r from-gray-50/80 via-gray-50 to-gray-50/80 dark:from-slate-900/80 dark:via-slate-900 dark:to-slate-900/80 border-t border-gray-100/80 dark:border-slate-700/80">
         {/* Attachments */}
         {f['File Links'] && (
-          <div className="flex items-center gap-2 mb-3">
+          <div className="flex flex-wrap items-center gap-2 mb-3">
             {f['File Links'].split(/\s+/).filter(Boolean).map((link: string, idx: number) => (
               <a
                 key={idx}

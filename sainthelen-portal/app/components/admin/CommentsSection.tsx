@@ -263,7 +263,7 @@ export default function CommentsSection({
                             Public Response
                           </span>
                         )}
-                        <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                        <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words">
                           {comment.fields.Message}
                         </p>
                       </div>

@@ -299,7 +299,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
                       initial={{ opacity: 0, y: 10, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-gray-200 dark:border-slate-700 overflow-hidden"
+                      className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-gray-200 dark:border-slate-700 overflow-hidden"
                     >
                       <div className="px-4 py-3 bg-sh-navy text-white flex justify-between items-center">
                         <h3 className="font-semibold">Notifications</h3>
@@ -407,7 +407,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1">
+        <main className="flex-1 overflow-x-hidden">
           <div className="px-4 lg:px-6 py-6 max-w-7xl mx-auto">
             {children}
           </div>

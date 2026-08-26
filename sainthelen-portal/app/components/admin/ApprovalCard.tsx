@@ -169,7 +169,7 @@ export function ApprovalCard({ approval, onApprove, onReject, showCheckbox, isSe
           <div className="mb-4">
             <h4 className="font-medium text-gray-900 dark:text-white mb-2">Announcement Content</h4>
             <div className="bg-gray-50 dark:bg-gray-800 rounded-md p-3">
-              <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+              <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words">
                 {approval.announcementBody}
               </p>
             </div>

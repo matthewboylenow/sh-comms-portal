@@ -431,8 +431,8 @@ export default function CompletedClient() {
           />
         </div>
 
-        <div className="flex space-x-2">
-          <div className="flex mr-2 border border-gray-300 dark:border-gray-600 rounded-md overflow-hidden">
+        <div className="flex flex-wrap gap-2">
+          <div className="flex border border-gray-300 dark:border-gray-600 rounded-md overflow-hidden">
             <button
               onClick={() => handleSortChange('createdTime')}
               className={`px-3 py-1.5 text-sm flex items-center ${
