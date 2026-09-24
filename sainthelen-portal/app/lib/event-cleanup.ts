@@ -45,6 +45,7 @@ Field rules:
 - start_time and end_time: 24-hour HH:MM, or an empty string when unknown. Do not guess an end time.
 - location: a room or place name as a parishioner would recognize it, or an empty string.
 - signup_url: a registration link if one was given, or an empty string.
+- contact: who the public should contact about the event (a name, email, or phone number), only when the announcement text, calendar description, or an attachment explicitly says to contact them. Otherwise an empty string. The person who submitted the form is not a contact unless the copy itself names them as one.
 
 changes: one short line per edit worth mentioning to the reviewer, e.g. "Removed 'next weekend' since the calendar shows the dates" or "Took the end time from the attached flyer". Skip trivial punctuation fixes. Empty if you changed nothing.
 
@@ -62,6 +63,7 @@ const OUTPUT_SCHEMA = {
     'end_time',
     'location',
     'signup_url',
+    'contact',
     'changes',
     'concerns',
   ],
@@ -73,6 +75,7 @@ const OUTPUT_SCHEMA = {
     end_time: { type: 'string' },
     location: { type: 'string' },
     signup_url: { type: 'string' },
+    contact: { type: 'string' },
     changes: { type: 'array', items: { type: 'string' } },
     concerns: { type: 'array', items: { type: 'string' } },
   },
@@ -175,10 +178,11 @@ function submissionText(ctx: SubmissionContext, today: string): string {
     `End time: ${e.endTime || '(blank)'}`,
     `Location: ${e.location || '(blank)'}`,
     `Sign-up link: ${e.signUpUrl || '(blank)'}`,
+    `Contact: ${e.contact || '(blank)'}`,
     `Calendar description:\n${e.description || '(blank)'}`,
     '',
     'Context from the same announcement request (not for publishing as-is):',
-    `Submitted by: ${ctx.submitterName}${ctx.ministry ? ` (${ctx.ministry})` : ''}`,
+    `Submitted by (not a public contact): ${ctx.submitterName}${ctx.ministry ? ` (${ctx.ministry})` : ''}`,
     `All event dates entered on the form: ${extraDates || '(none)'}`,
     `Announcement text:\n${ctx.announcementBody || '(blank)'}`,
     ctx.publicationNotes ? `Note to the communications office:\n${ctx.publicationNotes}` : '',
@@ -215,6 +219,7 @@ function validated(raw: any, original: CalendarEventFields, concerns: string[]):
     endTime: time(raw.end_time, original.endTime),
     location: str(raw.location) || original.location,
     signUpUrl: /^https?:\/\//i.test(signUpUrl) ? signUpUrl : original.signUpUrl,
+    contact: str(raw.contact),
   };
 }
 

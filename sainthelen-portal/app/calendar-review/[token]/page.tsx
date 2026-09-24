@@ -57,6 +57,7 @@ function EventPreview({ event }: { event: CalendarEventFields }) {
       <h2 className="text-2xl font-bold text-sh-primary dark:text-white mb-1">{event.title || '(no title)'}</h2>
       <p className="font-semibold text-gray-900 dark:text-white">{formatWhen(event)}</p>
       {event.location && <p className="text-gray-700 dark:text-gray-300">{event.location}</p>}
+      {event.contact && <p className="text-gray-700 dark:text-gray-300">Contact: {event.contact}</p>}
       {event.signUpUrl && (
         <p>
           <a href={event.signUpUrl} target="_blank" rel="noreferrer" className="text-sh-primary underline break-all">
@@ -237,6 +238,15 @@ export default function CalendarReviewPage({ params }: { params: { token: string
             <div>
               <label className={labelClass}>Location</label>
               <input className={inputClass} value={fields.location} onChange={(e) => set('location', e.target.value)} />
+            </div>
+
+            <div>
+              <label className={labelClass}>Contact (only if the copy names one)</label>
+              <input
+                className={inputClass}
+                value={fields.contact || ''}
+                onChange={(e) => set('contact', e.target.value)}
+              />
             </div>
 
             <div>

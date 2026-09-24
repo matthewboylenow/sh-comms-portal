@@ -135,7 +135,9 @@ export async function loadAnnouncement(recordId: string): Promise<Normalised | n
       startTime: toHHMM(a.calendarEventStartTime || a.timeOfEvent),
       endTime: toHHMM(a.calendarEventEndTime),
       location: str(a.calendarEventLocation),
-      contact: str(a.name),
+      // Never the submitter: whoever filled in the form isn't necessarily the
+      // public contact. A contact comes only from the calendar review.
+      contact: '',
       signUpUrl: str(a.calendarEventSignUpLink) || str(a.signUpUrl),
       ministry: str(a.ministry),
       externalEvent: !!a.externalEvent,
@@ -155,7 +157,7 @@ export async function loadAnnouncement(recordId: string): Promise<Normalised | n
     startTime: toHHMM(record.get('Time of Event')),
     endTime: '',
     location: '',
-    contact: str(record.get('Name')),
+    contact: '',
     signUpUrl: str(record.get('Sign-Up URL')),
     ministry: str(record.get('Ministry')),
     externalEvent: false,

@@ -389,6 +389,9 @@ export type CalendarEventFields = {
   endTime: string; // HH:MM or ''
   location: string;
   signUpUrl: string;
+  // Public contact, only when the copy names one. Optional for reviews saved
+  // before the field existed.
+  contact?: string;
 };
 
 export const calendarReviews = pgTable('calendar_reviews', {

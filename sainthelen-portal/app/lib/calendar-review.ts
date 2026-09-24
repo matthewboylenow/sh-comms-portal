@@ -50,6 +50,7 @@ export async function startCalendarReview(
     endTime: normalised.endTime,
     location: normalised.location,
     signUpUrl: normalised.signUpUrl,
+    contact: '',
   };
 
   let review = await createCalendarReview(announcementId, original);
@@ -99,7 +100,12 @@ export async function publishCalendarReview(
   const base = await loadAnnouncement(review.announcementId);
   if (!base) throw new Error('The announcement behind this review is gone.');
 
-  const wp = await pushToWordPress({ ...base, ...fields, id: review.announcementId });
+  const wp = await pushToWordPress({
+    ...base,
+    ...fields,
+    contact: fields.contact || '',
+    id: review.announcementId,
+  });
 
   // Intake leaves an event alone once someone has published it
   const { url } = wp.skipped ? { url: wp.url || '' } : await publishWordPressEvent(wp.id);
@@ -162,6 +168,7 @@ function reviewEmailHtml(review: CalendarReview, submitter: string, ministry: st
       <p style="margin:0 0 4px;font-weight:600;">${esc(formatWhen(e))}</p>
       ${e.location ? `<p style="margin:0 0 4px;">${esc(e.location)}</p>` : ''}
       ${e.signUpUrl ? `<p style="margin:0 0 4px;"><a href="${esc(e.signUpUrl)}">Sign up link</a></p>` : ''}
+      ${e.contact ? `<p style="margin:0 0 4px;">Contact: ${esc(e.contact)}</p>` : ''}
       <div style="margin-top:14px;">${paragraphs(e.description)}</div>
     </div>
     ${concerns}

@@ -60,6 +60,7 @@ function parseFields(raw: any): CalendarEventFields | string {
     endTime: str(raw?.endTime),
     location: str(raw?.location),
     signUpUrl: str(raw?.signUpUrl),
+    contact: str(raw?.contact),
   };
 
   if (!fields.title) return 'The event needs a title.';
