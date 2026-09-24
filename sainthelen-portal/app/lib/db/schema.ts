@@ -374,3 +374,40 @@ export type NewUserPreference = typeof userPreferences.$inferInsert;
 
 export type SocialMediaContent = typeof socialMediaContent.$inferSelect;
 export type NewSocialMediaContent = typeof socialMediaContent.$inferInsert;
+
+// ============================================================================
+// CALENDAR REVIEWS
+// ============================================================================
+// One row per announcement that asked to be on the parish calendar. Holds the
+// event as submitted, Claude's cleaned-up version, and the magic-link token the
+// review email uses to approve or edit it.
+export type CalendarEventFields = {
+  title: string;
+  description: string;
+  dates: string[]; // YYYY-MM-DD, sorted
+  startTime: string; // HH:MM, '' for all day
+  endTime: string; // HH:MM or ''
+  location: string;
+  signUpUrl: string;
+};
+
+export const calendarReviews = pgTable('calendar_reviews', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  announcementId: uuid('announcement_id').references(() => announcements.id).notNull(),
+  token: varchar('token', { length: 64 }).notNull().unique(),
+  // processing -> ready -> published | dismissed
+  status: varchar('status', { length: 20 }).default('processing').notNull(),
+  original: json('original').$type<CalendarEventFields>().notNull(),
+  cleaned: json('cleaned').$type<CalendarEventFields>(),
+  changes: json('changes').$type<string[]>(),
+  concerns: json('concerns').$type<string[]>(),
+  aiError: text('ai_error'),
+  wordpressEventId: integer('wordpress_event_id'),
+  wordpressEventUrl: varchar('wordpress_event_url', { length: 500 }),
+  publishedAt: timestamp('published_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export type CalendarReview = typeof calendarReviews.$inferSelect;
+export type NewCalendarReview = typeof calendarReviews.$inferInsert;

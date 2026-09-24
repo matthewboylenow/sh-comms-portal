@@ -18,10 +18,13 @@ import {
   pushToWordPress,
   recordWordPressEvent,
 } from '../../lib/wordpress-events';
+import { startCalendarReview } from '../../lib/calendar-review';
+import { waitUntil } from '@vercel/functions';
 
 export const dynamic = 'force-dynamic';
-// The default 15s limit isn't enough for DB insert + WordPress draft + Graph emails
-export const maxDuration = 60;
+// Covers the calendar review that runs after the response (Claude cleanup
+// with attachments, then the review email)
+export const maxDuration = 120;
 
 async function getMinistryByName(name: string) {
   try {
@@ -172,23 +175,17 @@ export async function POST(request: NextRequest) {
       console.log('Neon record created:', announcement.id);
       createdId = announcement.id;
 
-      // Draft the event on the parish calendar if requested. Same intake call
-      // as the admin "Add to Calendar" action, so a later push from the admin
-      // updates this draft instead of creating a second event.
-      if (data.addToCalendar && WP_AUTH_USERNAME && WP_AUTH_PASSWORD) {
-        try {
-          const calendarEvent = await loadAnnouncement(announcement.id);
-          if (calendarEvent?.title && calendarEvent.dates.length) {
-            const wp = await pushToWordPress(calendarEvent);
-            if (!wp.skipped) {
-              await recordWordPressEvent(announcement.id, wp.id, wp.url);
-            }
-            console.log('WordPress draft event created:', wp.id);
-          }
-        } catch (wpError) {
-          // Don't fail the submission if WordPress draft creation fails
-          console.error('Failed to create WordPress event draft:', wpError);
-        }
+      // Calendar requests get cleaned up by Claude and emailed for review
+      // instead of going straight to the website. That takes up to a minute
+      // or two, so it runs after the response has gone back to the submitter.
+      if (data.addToCalendar) {
+        const announcementId = announcement.id;
+        waitUntil(
+          startCalendarReview(announcementId).catch(async (reviewError) => {
+            console.error('Calendar review failed, drafting the event as submitted:', reviewError);
+            await draftAsSubmitted(announcementId);
+          })
+        );
       }
     } else {
       // ===== AIRTABLE DATABASE PATH (Legacy) =====
@@ -344,5 +341,25 @@ export async function POST(request: NextRequest) {
       JSON.stringify({ error: errorMessage }),
       { status: 500 }
     );
+  }
+}
+
+/**
+ * Fallback when the review can't run at all: put the event on the calendar as
+ * a WordPress draft, exactly as submitted, so the request isn't lost.
+ */
+async function draftAsSubmitted(announcementId: string) {
+  if (!WP_AUTH_USERNAME || !WP_AUTH_PASSWORD) return;
+  try {
+    const calendarEvent = await loadAnnouncement(announcementId);
+    if (calendarEvent?.title && calendarEvent.dates.length) {
+      const wp = await pushToWordPress(calendarEvent);
+      if (!wp.skipped) {
+        await recordWordPressEvent(announcementId, wp.id, wp.url);
+      }
+      console.log('WordPress draft event created:', wp.id);
+    }
+  } catch (wpError) {
+    console.error('Failed to create WordPress event draft:', wpError);
   }
 }

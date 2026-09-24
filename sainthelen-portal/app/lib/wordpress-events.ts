@@ -180,34 +180,17 @@ export async function recordWordPressEvent(recordId: string, eventId: number, ev
   ]);
 }
 
-export async function pushToWordPress(a: Normalised) {
+/** Authenticated call to the plugin. Throws with WordPress's own message on failure. */
+async function pluginRequest(path: string, init: { method: string; body?: unknown }) {
   const auth = Buffer.from(`${WP_AUTH_USERNAME}:${WP_AUTH_PASSWORD}`).toString('base64');
 
-  const categories = ['From the portal'];
-  if (a.ministry) categories.push(a.ministry);
-  if (a.externalEvent) categories.push('External');
-
-  const res = await fetch(`${PLUGIN_API_URL}/events/intake`, {
-    method: 'POST',
+  const res = await fetch(`${PLUGIN_API_URL}${path}`, {
+    method: init.method,
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Basic ${auth}`,
     },
-    body: JSON.stringify({
-      // The announcement id is what makes this safe to run twice.
-      announcement_id: a.id,
-      title: a.title,
-      description: a.description,
-      dates: a.dates,
-      start_time: a.startTime,
-      end_time: a.endTime,
-      all_day: !a.startTime,
-      location: a.location,
-      contact: a.contact,
-      signup_url: a.signUpUrl,
-      cta_label: a.signUpUrl ? 'Sign up' : '',
-      categories,
-    }),
+    body: init.body === undefined ? undefined : JSON.stringify(init.body),
     // Don't let a slow WordPress hold a form submission hostage
     signal: AbortSignal.timeout(WP_REQUEST_TIMEOUT_MS),
   });
@@ -227,4 +210,48 @@ export async function pushToWordPress(a: Normalised) {
   }
 
   return body;
+}
+
+export async function pushToWordPress(a: Normalised) {
+  const categories = ['From the portal'];
+  if (a.ministry) categories.push(a.ministry);
+  if (a.externalEvent) categories.push('External');
+
+  return pluginRequest('/events/intake', {
+    method: 'POST',
+    body: {
+      // The announcement id is what makes this safe to run twice.
+      announcement_id: a.id,
+      title: a.title,
+      description: a.description,
+      dates: a.dates,
+      start_time: a.startTime,
+      end_time: a.endTime,
+      all_day: !a.startTime,
+      location: a.location,
+      contact: a.contact,
+      signup_url: a.signUpUrl,
+      cta_label: a.signUpUrl ? 'Sign up' : '',
+      categories,
+    },
+  });
+}
+
+/**
+ * Publish an event that intake left as a draft. The plugin's save endpoint
+ * replaces the whole event, so read it back and send every field with only
+ * the status changed.
+ */
+export async function publishWordPressEvent(eventId: number): Promise<{ url: string }> {
+  const event = await pluginRequest(`/events/${eventId}`, { method: 'GET' });
+  if (event.status !== 'publish') {
+    // preview and conflicts are computed on read, not fields to save
+    const { preview, conflicts, ...fields } = event;
+    const saved = await pluginRequest(`/events/${eventId}`, {
+      method: 'POST',
+      body: { ...fields, status: 'publish' },
+    });
+    return { url: saved?.event?.permalink || event.permalink || '' };
+  }
+  return { url: event.permalink || '' };
 }
