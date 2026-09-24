@@ -8,8 +8,10 @@ import AdminLayout from '../../components/admin/AdminLayout';
 import AnnouncementCard from '../../components/admin/AnnouncementCard';
 import {
   ArrowPathIcon,
+  ArrowTopRightOnSquareIcon,
   CalendarDaysIcon,
   FunnelIcon,
+  SparklesIcon,
 } from '@heroicons/react/24/outline';
 import { useToast } from '../../context/ToastContext';
 
@@ -17,6 +19,60 @@ type AdminRecord = {
   id: string;
   fields: Record<string, any>;
 };
+
+/**
+ * Opens the calendar review for one request: the same page the review email
+ * links to, where the cleaned-up event is approved or edited and published.
+ */
+function ReviewButton({ record }: { record: AdminRecord }) {
+  const { toast } = useToast();
+  const [opening, setOpening] = useState(false);
+  const liveUrl: string | undefined = record.fields['WordPress Event URL'];
+
+  async function openReview() {
+    setOpening(true);
+    try {
+      const res = await fetch('/api/admin/calendar-review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ announcementId: record.id }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || 'Could not open the review');
+      window.location.href = `/calendar-review/${body.token}`;
+    } catch (err: any) {
+      toast.error(err.message);
+      setOpening(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-3 mt-2">
+      <button
+        onClick={openReview}
+        disabled={opening}
+        className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg bg-sh-navy text-white hover:bg-sh-navy/90 disabled:opacity-60 transition-colors"
+      >
+        {opening ? (
+          <ArrowPathIcon className="w-4 h-4 animate-spin" />
+        ) : (
+          <SparklesIcon className="w-4 h-4" />
+        )}
+        {opening ? 'Cleaning up… this can take a minute' : 'Review & publish'}
+      </button>
+      {liveUrl && (
+        <a
+          href={liveUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="flex items-center gap-1 text-sm text-sh-navy dark:text-sh-navy-300 underline"
+        >
+          On the calendar <ArrowTopRightOnSquareIcon className="w-4 h-4" />
+        </a>
+      )}
+    </div>
+  );
+}
 
 export default function CalendarRequestsClient() {
   const { data: session, status } = useSession();
@@ -203,6 +259,7 @@ export default function CalendarRequestsClient() {
                   onOverrideStatus={handleOverrideStatus}
                   onToggleCompleted={handleToggleCompleted}
                 />
+                <ReviewButton record={record} />
               </motion.div>
             ))}
           </AnimatePresence>

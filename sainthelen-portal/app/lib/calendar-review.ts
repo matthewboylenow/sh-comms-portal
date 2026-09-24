@@ -27,10 +27,13 @@ export function reviewUrl(review: Pick<CalendarReview, 'token'>, action?: 'appro
 }
 
 /**
- * Clean up a new calendar request and email it for review. Never throws: a
- * failed cleanup still sends the email, with the event as submitted.
+ * Clean up a calendar request and (by default) email it for review. A failed
+ * cleanup doesn't throw: the review holds the event as submitted instead.
  */
-export async function startCalendarReview(announcementId: string): Promise<void> {
+export async function startCalendarReview(
+  announcementId: string,
+  { sendEmail = true }: { sendEmail?: boolean } = {}
+): Promise<CalendarReview> {
   const [announcement, normalised] = await Promise.all([
     getAnnouncementById(announcementId),
     loadAnnouncement(announcementId),
@@ -78,11 +81,14 @@ export async function startCalendarReview(announcementId: string): Promise<void>
     });
   }
 
-  await sendEmailViaGraph({
-    to: getAdminNotificationEmail(),
-    subject: `Calendar review: ${review.cleaned?.title || original.title || 'New event'}`,
-    htmlContent: reviewEmailHtml(review, announcement.name, announcement.ministry || ''),
-  });
+  if (sendEmail) {
+    await sendEmailViaGraph({
+      to: getAdminNotificationEmail(),
+      subject: `Calendar review: ${review.cleaned?.title || original.title || 'New event'}`,
+      htmlContent: reviewEmailHtml(review, announcement.name, announcement.ministry || ''),
+    });
+  }
+  return review;
 }
 
 /** Push the approved version to sainthelen.org and publish it. */

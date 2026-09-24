@@ -1,5 +1,5 @@
 import { randomBytes } from 'crypto';
-import { eq, sql } from 'drizzle-orm';
+import { desc, eq, sql } from 'drizzle-orm';
 import { db } from '../index';
 import {
   calendarReviews,
@@ -78,5 +78,17 @@ export async function updateCalendarReview(
     .set({ ...data, updatedAt: new Date() })
     .where(eq(calendarReviews.id, id))
     .returning();
+  return row;
+}
+
+/** The most recent review for an announcement, if it has one. */
+export async function getLatestCalendarReview(announcementId: string): Promise<CalendarReview | undefined> {
+  await ensureTable();
+  const [row] = await db
+    .select()
+    .from(calendarReviews)
+    .where(eq(calendarReviews.announcementId, announcementId))
+    .orderBy(desc(calendarReviews.createdAt))
+    .limit(1);
   return row;
 }
