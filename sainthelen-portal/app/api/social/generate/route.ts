@@ -5,52 +5,71 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../auth/[...nextauth]/route';
 import Anthropic from '@anthropic-ai/sdk';
 import * as socialService from '../../../lib/db/services/social-media-content';
+import { HOUSE_STYLE, PARISH } from '../../../lib/house-style';
 
 export const dynamic = 'force-dynamic';
 
 const anthropic = new Anthropic();
 
-// Platform-specific configurations
-const platformConfigs: Record<string, { maxLength: number; hashtagCount: number; tone: string }> = {
-  facebook: { maxLength: 500, hashtagCount: 3, tone: 'warm and community-focused' },
-  instagram: { maxLength: 2000, hashtagCount: 15, tone: 'visual and engaging with emojis' },
-  x: { maxLength: 250, hashtagCount: 3, tone: 'concise and punchy' },
-  linkedin: { maxLength: 700, hashtagCount: 5, tone: 'professional yet warm' },
-  threads: { maxLength: 450, hashtagCount: 5, tone: 'conversational and authentic' },
-  tiktok: { maxLength: 300, hashtagCount: 5, tone: 'trendy with a hook' },
-  gmb: { maxLength: 750, hashtagCount: 0, tone: 'informative and local SEO focused' },
+// Per-platform limits from the Saint Helen Writing Guide. TikTok and Google
+// Business aren't in the guide; they follow the same spirit.
+const platformConfigs: Record<string, { length: string; hashtags: string; register: string }> = {
+  facebook: {
+    length: '80 words maximum',
+    hashtags: '2 to 4 hashtags, always including #SaintHelenCommunity',
+    register: 'The fullest version, with the contact email for ministry events',
+  },
+  instagram: {
+    length: '60 words maximum',
+    hashtags: 'Sparing: #SaintHelenCommunity plus at most one or two more, only if they genuinely fit',
+    register: 'Conversational. The first line does the work, since it is all most people see',
+  },
+  threads: {
+    length: '60 words maximum',
+    hashtags: 'No hashtags',
+    register: 'Casual, written to get replies',
+  },
+  x: {
+    length: 'Under 280 characters',
+    hashtags: 'No hashtags',
+    register: 'Plain: one fact, one link',
+  },
+  linkedin: {
+    length: '100 words maximum',
+    hashtags: 'None, or one at most',
+    register: 'Community-institution voice: service, accessibility, milestones, big events',
+  },
+  tiktok: {
+    length: 'Under 50 words',
+    hashtags: 'Sparing: #SaintHelenCommunity plus at most two more',
+    register: 'Casual, with the hook in the first line',
+  },
+  gmb: {
+    length: '100 words maximum',
+    hashtags: 'No hashtags',
+    register: 'Plain and informative: the facts someone searching nearby would need',
+  },
 };
 
-// Content type prompts
+// What each kind of post is for, in plain terms. The voice comes from HOUSE_STYLE.
 const contentTypePrompts: Record<string, string> = {
-  event_promo: 'Create a promotional post for an upcoming parish event. Make it exciting and encourage participation.',
-  event_recap: 'Create a post celebrating a recent parish event. Highlight community togetherness and memorable moments.',
-  inspirational: 'Create an inspirational faith-based post. Can include scripture, saint quotes, or encouragement for daily life.',
-  sermon_clip: 'Create a post to accompany a video clip from Sunday Mass. Include a teaser of the message.',
-  homily_clip: 'Create a post to accompany a daily Mass homily clip. Keep it reflective and accessible.',
-  ministry_spotlight: 'Create a post highlighting a parish ministry or volunteer group. Celebrate their service.',
+  event_promo: 'A post about an upcoming parish event. Put the event, day, date, time, and place in the first line, then cost, what to bring, and the contact.',
+  event_recap: 'A post after a parish event. Lead with a number or a concrete detail from the event and thank a specific group. No uplift close.',
+  inspirational: 'A faith post built on a line from Sunday\'s readings, the homily, or a saint. Quote only what is given in the source material, never from memory, and never invent a quote.',
+  sermon_clip: 'A caption for a clip from Sunday Mass. Say plainly what the homily is about in one or two sentences.',
+  homily_clip: 'A caption for a daily Mass homily clip. Say plainly what it is about. Short.',
+  ministry_spotlight: 'A post about one parish ministry: what it does in one sentence, who it is for, when and where it meets, and how to join. Name the people involved when the source material does.',
 };
 
-// Saint Helen brand voice guidelines
-const brandVoiceGuidelines = `
-SAINT HELEN BRAND VOICE GUIDELINES:
-- Warm, personal, conversational - like a friendly neighbor, not a corporate announcement
-- Encouraging without being preachy
-- Clear without being dry
-- Inclusive without feeling forced
+const SOCIAL_RULES = `# This piece: a social media post
 
-WRITING RULES:
-- NO em dashes (use commas or periods instead)
-- NO formal/stiff language ("All parishioners are cordially invited...")
-- NO churchy jargon that sounds institutional
-- NO AI-sounding phrases ("It's not this, it's that" patterns)
-- Write the way you'd actually talk to someone
-
-THE THROUGHLINE:
-- Make people feel like they belong
-- Give them the info they need without a wall of text
-- Keep it grounded in real community life
-`;
+Social is the one channel where a little personality and emoji are expected. It is also the one most likely to drift into generic church content, so the rules above apply harder here, not softer.
+- The first line is the post. Put the fact there, never a question.
+- Full logistics go in the caption, because most people never click through. Ministry events get a contact email.
+- Emoji: three at most, used as punctuation. Never one per line, never as bullets, never several in a row.
+- No "link in bio" unless the link really is in the bio. On Instagram, say where to find it ("sainthelen.org/pasta").
+- Missing details: nothing publishes automatically, so put a visible blank like [TIME NEEDED] where a needed detail is missing.
+- Write only the post text and its hashtags. No preamble, no options, no notes.`;
 
 /**
  * POST /api/social/generate
@@ -77,16 +96,18 @@ export async function POST(request: NextRequest) {
     const typePrompt = contentTypePrompts[contentType] || contentTypePrompts.inspirational;
 
     // Build the prompt
-    const systemPrompt = `You are a social media content creator for Saint Helen Catholic Church. You create engaging, authentic content that connects with the parish community.
+    const systemPrompt = `You write social media posts for ${PARISH}.
 
-${brandVoiceGuidelines}
+${HOUSE_STYLE}
 
-Platform: ${platform.toUpperCase()}
-- Maximum length: ${platformConfig.maxLength} characters (for main content, not including hashtags)
-- Hashtags: Include ${platformConfig.hashtagCount} relevant hashtags
-- Tone: ${platformConfig.tone}
+${SOCIAL_RULES}
 
-Content Type: ${contentType.replace('_', ' ')}
+Platform: ${platform}
+- Length: ${platformConfig.length}, not counting hashtags
+- Hashtags: ${platformConfig.hashtags}
+- Register: ${platformConfig.register}
+
+Post type: ${contentType.replace('_', ' ')}
 ${typePrompt}`;
 
     const userPrompt = sourceContent
