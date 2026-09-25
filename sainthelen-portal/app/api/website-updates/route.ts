@@ -9,6 +9,11 @@ import { ClientSecretCredential } from '@azure/identity';
 import { useNeonDatabase } from '../../lib/db';
 import * as websiteUpdatesService from '../../lib/db/services/website-updates';
 import { sendEmailViaGraph, getAdminNotificationEmail } from '../../lib/email';
+import { runCopyReview } from '../../lib/copy-review';
+import { waitUntil } from '@vercel/functions';
+
+// Covers the style check that runs after the response
+export const maxDuration = 120;
 
 type WebsiteUpdatesFormData = {
   name: string;
@@ -147,6 +152,12 @@ export async function POST(request: NextRequest) {
         fileLinks: wordpressFileLinks.length > 0 ? wordpressFileLinks : null,
       });
       createdId = created.id;
+
+      // Style check for the admin card. Runs after the response; the
+      // submitter never sees it.
+      waitUntil(runCopyReview('website_update', created.id).catch((err) =>
+        console.error('Website update copy review failed:', err)
+      ));
     } else {
       // ===== AIRTABLE DATABASE PATH (Legacy) =====
       // Create a record in Airtable

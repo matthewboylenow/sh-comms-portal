@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import { Badge } from '../ui/Badge';
 import CommentsSection from './CommentsSection';
+import CopyReviewPanel from './CopyReviewPanel';
 import { motion } from 'framer-motion';
 import {
   CalendarIcon,
@@ -283,6 +284,8 @@ ${f['Announcement Body'] || ''}${signUpText ? `\n\nSign up:\n${signUpText}` : ''
             {expanded ? 'Less' : 'More'}
           </button>
         )}
+
+        <CopyReviewPanel type="announcement" sourceId={record.id} />
 
         {/* Sign-Up Links */}
         {signUpLinks.length > 0 && (

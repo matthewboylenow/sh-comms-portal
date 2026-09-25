@@ -19,6 +19,7 @@ import {
   recordWordPressEvent,
 } from '../../lib/wordpress-events';
 import { startCalendarReview } from '../../lib/calendar-review';
+import { runCopyReview } from '../../lib/copy-review';
 import { waitUntil } from '@vercel/functions';
 
 export const dynamic = 'force-dynamic';
@@ -174,6 +175,12 @@ export async function POST(request: NextRequest) {
 
       console.log('Neon record created:', announcement.id);
       createdId = announcement.id;
+
+      // Style check for the admin card. Runs after the response; the
+      // submitter never sees it.
+      waitUntil(runCopyReview('announcement', announcement.id).catch((err) =>
+        console.error('Announcement copy review failed:', err)
+      ));
 
       // Calendar requests get cleaned up by Claude and emailed for review
       // instead of going straight to the website. That takes up to a minute

@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import FrontLayout from '../components/FrontLayout';
+import CopyAssist from '../components/CopyAssist';
 import { FrontCard, FrontCardContent, FrontCardHeader, FrontCardTitle } from '../components/ui/FrontCard';
 import { Button } from '../components/ui/Button';
 import { ExclamationCircleIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
@@ -619,6 +620,7 @@ export default function AnnouncementsFormPage() {
                   required
                   placeholder="Provide the full text of your announcement. Include all relevant details such as what, when, where, and contact information."
                 />
+                <CopyAssist kind="announcement" value={announcementBody} onChange={setAnnouncementBody} />
               </div>
 
               {/* Sign-Up Links */}

@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import FrontLayout from '../components/FrontLayout';
+import CopyAssist from '../components/CopyAssist';
 import { FrontCard, FrontCardContent, FrontCardHeader, FrontCardTitle } from '../components/ui/FrontCard';
 import { ExclamationCircleIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
 import AddPhotosPanel from '../components/AddPhotosPanel';
@@ -233,6 +234,7 @@ export default function WebsiteUpdatesFormPage() {
                   required
                   placeholder="Describe the changes you need in detail. Include what content should be added, removed, or modified."
                 />
+                <CopyAssist kind="website_update" value={description} onChange={setDescription} />
               </div>
 
               {/* Sign-Up Links */}

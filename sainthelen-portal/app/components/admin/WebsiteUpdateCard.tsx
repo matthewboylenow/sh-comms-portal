@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import { Badge } from '../ui/Badge';
 import CommentsSection from './CommentsSection';
+import CopyReviewPanel from './CopyReviewPanel';
 import { motion } from 'framer-motion';
 import {
   ChevronDownIcon,
@@ -168,6 +169,8 @@ ${f.Description || ''}${signUpText ? `\n\nSign up:\n${signUpText}` : ''}`;
             {expanded ? 'Less' : 'More'}
           </button>
         )}
+
+        <CopyReviewPanel type="website_update" sourceId={record.id} />
 
         {/* Sign-Up Links */}
         {signUpLinks.length > 0 && (

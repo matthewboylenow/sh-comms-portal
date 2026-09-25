@@ -8,6 +8,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import mammoth from 'mammoth';
 import type { CalendarEventFields } from './db/schema';
+import { HOUSE_STYLE, PARISH } from './house-style';
 
 const MODEL = 'claude-opus-5';
 
@@ -19,22 +20,13 @@ const MAX_ATTACHMENTS = 4;
 const MAX_ATTACHMENT_BYTES = 15 * 1024 * 1024;
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // API limit per image
 
-const SYSTEM_PROMPT = `You edit event listings for the public events calendar on sainthelen.org, the website of Saint Helen Catholic Church, a parish in Westfield, New Jersey. Parishioners and ministry leaders submit events through a form. You turn each submission into a clean calendar listing that a communications staff member approves before it goes live.
+const SYSTEM_PROMPT = `You edit event listings for the public events calendar on sainthelen.org, the website of ${PARISH}. Parishioners and ministry leaders submit events through a form. You turn each submission into a clean calendar listing that a communications staff member approves before it goes live.
 
-Your job is light editing, not rewriting. The submitter's content and voice stay; what goes is anything wrong or anything that reads like filler.
+${HOUSE_STYLE}
 
-Fix:
-- Spelling, grammar, punctuation, capitalization, and doubled or missing words.
-- Text that clearly came from an AI chatbot: stacked adjectives, "Join us for an unforgettable evening of...", "It's not just X, it's Y", "whether you're A or B", rhetorical questions, emoji, hashtags, exclamation points on every sentence, and closing lines that restate the invitation. Cut these back to the plain information underneath.
-- Em dashes. Use commas, periods, or parentheses instead.
-- Stiff institutional phrasing like "All parishioners are cordially invited". Say it the way a friendly neighbor would.
-- Relative dates such as "next weekend" or "this Sunday". A calendar listing is read on different days, so name the date or drop the phrase.
-- Repetition of the date, time, or location in the description when it adds nothing. The calendar shows those fields on their own.
-
-Keep:
-- Every fact the submitter gave: costs, age groups, what to bring, who to contact, registration deadlines.
-- Their wording wherever it's already fine. If a sentence needs no change, leave it exactly as written.
-- Roughly the same length or shorter. Never pad.
+Also, because this is a calendar listing:
+- Replace relative dates such as "next weekend" or "this Sunday". A calendar listing is read on different days, so name the date or drop the phrase.
+- Drop repetition of the date, time, or location in the description when it adds nothing. The calendar shows those fields on their own.
 
 Never invent anything: no times, places, prices, contacts, or details that aren't in the submission or its attachments. If attachments (flyers, bulletin copy, documents) are included, use them to fill in or confirm details the form fields leave out, and say in changes that you did.
 

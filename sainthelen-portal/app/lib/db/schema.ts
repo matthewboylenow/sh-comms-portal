@@ -414,3 +414,27 @@ export const calendarReviews = pgTable('calendar_reviews', {
 
 export type CalendarReview = typeof calendarReviews.$inferSelect;
 export type NewCalendarReview = typeof calendarReviews.$inferInsert;
+
+// ============================================================================
+// COPY REVIEWS
+// ============================================================================
+// Claude's suggested edit for a submission's copy (announcement body, website
+// update description), shown to the communications office on the admin cards.
+// One row per submission; re-running the check replaces it.
+export const copyReviews = pgTable('copy_reviews', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  sourceType: varchar('source_type', { length: 30 }).notNull(), // announcement | website_update
+  sourceId: uuid('source_id').notNull(),
+  // processing -> ready
+  status: varchar('status', { length: 20 }).default('processing').notNull(),
+  original: text('original').notNull(),
+  cleaned: text('cleaned'),
+  unchanged: boolean('unchanged').default(false).notNull(),
+  changes: json('changes').$type<string[]>(),
+  concerns: json('concerns').$type<string[]>(),
+  aiError: text('ai_error'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export type CopyReview = typeof copyReviews.$inferSelect;
