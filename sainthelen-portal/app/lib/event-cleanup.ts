@@ -8,7 +8,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import mammoth from 'mammoth';
 import type { CalendarEventFields } from './db/schema';
-import { HOUSE_STYLE, PARISH } from './house-style';
+import { HOUSE_STYLE, PARISH, todayLabel } from './house-style';
 
 const MODEL = 'claude-opus-5';
 
@@ -24,24 +24,27 @@ const SYSTEM_PROMPT = `You edit event listings for the public events calendar on
 
 ${HOUSE_STYLE}
 
-Also, because this is a calendar listing:
-- Replace relative dates such as "next weekend" or "this Sunday". A calendar listing is read on different days, so name the date or drop the phrase.
-- Drop repetition of the date, time, or location in the description when it adds nothing. The calendar shows those fields on their own.
+# This piece: a calendar event entry
 
-Never invent anything: no times, places, prices, contacts, or details that aren't in the submission or its attachments. If attachments (flyers, bulletin copy, documents) are included, use them to fill in or confirm details the form fields leave out, and say in changes that you did.
+The website event entry is the master copy every other channel copies from, so its facts have to be right.
+- Replace relative dates such as "next weekend" or "this Sunday". A calendar listing is read on different days, so name the date or drop the phrase.
+- The calendar shows the date, time, and location in their own fields. Drop them from the description when repeating them adds nothing.
+- The description says what it is and who it's for, one line of what to expect, the cost, and what to bring or do first. Short: two or three sentences is usually right.
+- If attachments (fliers, bulletin copy, documents) are included, use them to fill in or confirm details the form fields leave out, and say in changes that you did.
+- Missing details: this listing goes live when approved, so never put a placeholder like [TIME NEEDED] in any field. Leave the field empty and list what's missing in concerns.
 
 Field rules:
-- title: the event's name, in title case, without dates or times. Shorten a sentence-length name to its name.
+- title: the plain name of the event, spelled the way the submitter or sainthelen.org spells it ("Pasta Night", not "Join Us for Pasta Night" or "Pasta Night 2026: A Night of Food and Fellowship"). No dates or times.
 - description: plain text paragraphs separated by a blank line. No markdown, no HTML, no bullet symbols.
 - dates: every date the event happens, as YYYY-MM-DD. Resolve them from the form fields, the text, and attachments together.
 - start_time and end_time: 24-hour HH:MM, or an empty string when unknown. Do not guess an end time.
 - location: a room or place name as a parishioner would recognize it, or an empty string.
 - signup_url: a registration link if one was given, or an empty string.
-- contact: who the public should contact about the event (a name, email, or phone number), only when the announcement text, calendar description, or an attachment explicitly says to contact them. Otherwise an empty string. The person who submitted the form is not a contact unless the copy itself names them as one.
+- contact: who the public should contact about the event (a name, email, or phone number), only when the announcement text, calendar description, or an attachment explicitly says to contact them. Otherwise an empty string, and add "No contact named" to concerns. The person who submitted the form is not a contact unless the copy itself names them as one.
 
 changes: one short line per edit worth mentioning to the reviewer, e.g. "Removed 'next weekend' since the calendar shows the dates" or "Took the end time from the attached flyer". Skip trivial punctuation fixes. Empty if you changed nothing.
 
-concerns: anything the reviewer should check before publishing, e.g. the form's date and the text disagree, the event happens on several dates at different times (the calendar holds one start time), a link looks broken, or information seems missing. Say which value you chose and why. Empty if nothing needs checking.`;
+concerns: anything the reviewer should check before publishing, e.g. a date that doesn't fall on the weekday named, the form's date and the text disagree, the event happens on several dates at different times (the calendar holds one start time), a link looks broken, or information seems missing. Say which value you chose and why. Empty if nothing needs checking.`;
 
 // Every field required and nothing extra, so the parsed output is always complete
 const OUTPUT_SCHEMA = {
@@ -154,14 +157,14 @@ async function attachmentBlocks(url: string): Promise<{ blocks: ContentBlock[]; 
   return { blocks: [{ type: 'text', text: `Attachment: ${name}\n\n${text.trim()}` }] };
 }
 
-function submissionText(ctx: SubmissionContext, today: string): string {
+function submissionText(ctx: SubmissionContext): string {
   const e = ctx.event;
   const extraDates = ctx.eventDates
     .map((d) => `${d.date}${d.time ? ` at ${d.time}` : ''}`)
     .join('; ');
 
   return [
-    `Today's date: ${today}`,
+    `Today is ${todayLabel()}.`,
     '',
     'Calendar request as submitted:',
     `Event name: ${e.title || '(blank)'}`,
@@ -216,7 +219,6 @@ function validated(raw: any, original: CalendarEventFields, concerns: string[]):
 }
 
 export async function cleanUpEvent(ctx: SubmissionContext): Promise<CleanupResult> {
-  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date());
 
   const attachments = await Promise.all(
     ctx.fileLinks.slice(0, MAX_ATTACHMENTS).map((url) =>
@@ -247,7 +249,7 @@ export async function cleanUpEvent(ctx: SubmissionContext): Promise<CleanupResul
         role: 'user',
         content: [
           ...attachments.flatMap((a) => a.blocks),
-          { type: 'text', text: submissionText(ctx, today) },
+          { type: 'text', text: submissionText(ctx) },
         ],
       },
     ],

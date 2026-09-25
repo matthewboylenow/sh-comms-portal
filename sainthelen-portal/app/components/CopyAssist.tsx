@@ -11,11 +11,12 @@ import { ArrowPathIcon, CheckCircleIcon, SparklesIcon } from '@heroicons/react/2
 
 type CopyKind = 'announcement' | 'website_update';
 
+// Echoes the quick reference card in the Saint Helen Writing Guide
 const HINTS: Record<CopyKind, string> = {
   announcement:
-    'Write it the way you’d tell a neighbor. Short and plain beats polished, and we’ll tidy it up.',
+    'Write it the way you’d tell a neighbor, and include the day, date, time, place, cost, and a contact name and email. We’ll edit for length and voice. Your facts and contact stay.',
   website_update:
-    'Say which page, what should change, and the wording you’d like. Plain and specific beats polished, and we’ll tidy it up.',
+    'Say which page, what should change, and the exact wording you’d like. Plain and specific beats polished. We’ll edit for voice, and your facts stay.',
 };
 
 const MIN_LENGTH = 30;
