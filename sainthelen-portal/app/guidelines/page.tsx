@@ -21,7 +21,7 @@ export default function GuidelinesPage() {
           <FrontCardContent>
             <ul className="list-disc list-inside space-y-2">
               <li>Submit announcements 2–3 weeks in advance for best placement.</li>
-              <li>Maximum 3-4 consecutive weeks for any announcement in Bulletin/Email/Screens.</li>
+              <li>How long an announcement runs is decided case by case by the pastor and the Director of Communications. Some run for many weeks; others run for the three or four weeks before the event.</li>
               <li>Church Screens limited to 6-8 rotating announcements each week.</li>
               <li>High-demand periods (Sept, Dec, Jan, Holy Week) may reduce coverage time.</li>
               <li>All flyers should align with Saint Helen branding and be copyright-free.</li>
@@ -169,10 +169,9 @@ export default function GuidelinesPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
               <p className="mb-4 text-gray-700 dark:text-gray-300">
-                <strong>Bulletin &amp; Email Blast:</strong> Announcements can be
-                placed for up to three weeks at a time, depending on available
-                space. Priority is given to imminent events and those with the
-                widest relevance.
+                <strong>Bulletin &amp; Email Blast:</strong> How long an announcement
+                runs depends on the event and on available space. Priority is given to
+                events that are coming up soon and to those with the widest relevance.
               </p>
               <p className="mb-4 text-gray-700 dark:text-gray-300">
                 <strong>Church Screens:</strong>
@@ -192,8 +191,8 @@ export default function GuidelinesPage() {
                   Quick Tip
                 </h3>
                 <p className="text-gray-600 dark:text-gray-300">
-                  If you need more than 3-4 weeks of promotion, consider rotating
-                  announcements or focusing on different channels in subsequent weeks, or putting in a request for longer promotion.
+                  If you have a view on how long your announcement should run, say so
+                  in the notes on the form. We will plan the schedule with you.
                 </p>
               </FrontCardContent>
             </FrontCard>
@@ -208,8 +207,10 @@ export default function GuidelinesPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
               <p className="mb-4 text-gray-700 dark:text-gray-300">
-                Announcements may be displayed/printed for a maximum of three to four
-                consecutive weeks. Some major parish events, or events that have been given prior approval may run longer.
+                There is no fixed limit. The pastor and the Director of Communications
+                decide how long each announcement runs, based on the event, the season,
+                and what else is scheduled. Some run for many weeks; many run for the
+                three or four weeks before the event.
               </p>
               <p className="mb-4 text-gray-700 dark:text-gray-300">
                 <strong>High-Demand Periods:</strong> During peak times (September,
