@@ -13,7 +13,6 @@ export type RequestStatus =
   | 'review' // the office is on it
   | 'approval' // blocked: waiting on a ministry coordinator
   | 'approved' // ready to run
-  | 'scheduled' // placed in a bulletin / email / calendar
   | 'done';
 
 export const REQUEST_TYPES: Record<
@@ -43,7 +42,6 @@ export const STATUS_LABEL: Record<RequestStatus, string> = {
   review: 'Needs review',
   approval: 'Needs approval',
   approved: 'Approved',
-  scheduled: 'Scheduled',
   done: 'Published',
 };
 
@@ -53,7 +51,6 @@ export const PUBLIC_STATUS_LABEL: Record<RequestStatus, string> = {
   review: 'Being reviewed',
   approval: 'Being reviewed',
   approved: 'Approved',
-  scheduled: 'Scheduled',
   done: 'Done',
 };
 
@@ -71,6 +68,7 @@ export type PortalRequest = {
   status: RequestStatus;
   requiresApproval: boolean;
   approvalStatus?: string; // pending | approved | rejected
+  stage?: 'review' | 'approved'; // set by dragging on the board
   completed: boolean;
   submittedAt: string | null; // ISO
   completedAt: string | null; // ISO
@@ -184,13 +182,15 @@ function statusOf(f: Record<string, any>, type: RequestType): RequestStatus {
   const approval = str(f['Approval Status']).toLowerCase();
   const requires = f['Requires Approval'] === true || f['Requires Approval'] === 'Yes';
   if (requires && approval === 'pending') return 'approval';
+  // Where the office dragged the card wins over everything but completion and a pending approval
+  if (f.Stage === 'approved') return 'approved';
+  if (f.Stage === 'review') return 'review';
   if (requires && approval === 'rejected') return 'review';
   const s = str(f.Status).toLowerCase();
   if (type === 'design') {
     if (/complete|done|delivered/.test(s)) return 'done';
     if (/progress|working|design/.test(s)) return 'approved';
   }
-  if (f['WordPress Event ID']) return 'scheduled';
   if (requires && approval === 'approved') return 'approved';
   // Nothing has touched it yet
   const sent = f['Submitted At'] || f['Created At'];
@@ -287,6 +287,7 @@ export function toRequest(table: ApiTable, rec: ApiRecord): PortalRequest {
     status: statusOf(f, type),
     requiresApproval: f['Requires Approval'] === true || f['Requires Approval'] === 'Yes',
     approvalStatus: str(f['Approval Status']) || undefined,
+    stage: f.Stage === 'approved' || f.Stage === 'review' ? f.Stage : undefined,
     completed: f.Completed === true || f.Completed === 'Yes',
     submittedAt,
     completedAt: str(f['Completed Date']) || null,

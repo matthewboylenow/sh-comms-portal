@@ -10,7 +10,6 @@ const look: Record<RequestStatus, { cls: string; dot: string }> = {
   review: { cls: 'bg-status-review-bg text-status-review-t', dot: 'bg-status-review-d' },
   approval: { cls: 'bg-status-approval-bg text-status-approval-t', dot: 'bg-status-approval-d' },
   approved: { cls: 'bg-status-approved-bg text-status-approved-t', dot: 'bg-status-approved-d' },
-  scheduled: { cls: 'bg-status-scheduled-bg text-status-scheduled-t', dot: 'bg-status-scheduled-d' },
   done: { cls: 'bg-status-done-bg text-status-done-t', dot: 'bg-status-done-d' },
 };
 

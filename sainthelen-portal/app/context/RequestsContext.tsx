@@ -16,7 +16,11 @@ type RequestsContextType = {
   refresh: () => Promise<void>;
   /** Optimistic local update of one record's fields. */
   patch: (id: string, fields: Record<string, unknown>) => void;
+  /** Move a request between board stages; writes to the server and rolls back on failure. */
+  move: (req: PortalRequest, to: MoveTarget) => Promise<void>;
 };
+
+export type MoveTarget = 'review' | 'approved' | 'done';
 
 const Ctx = createContext<RequestsContextType | undefined>(undefined);
 
@@ -76,7 +80,41 @@ export function RequestsProvider({ children }: { children: React.ReactNode }) {
 
   const requests = useMemo(() => toRequests(payload), [payload]);
 
-  return <Ctx.Provider value={{ requests, loading, error, loadedAt, refresh, patch }}>{children}</Ctx.Provider>;
+  const move = useCallback(
+    async (req: PortalRequest, to: MoveTarget) => {
+      if (req.status === to) return;
+      const post = (url: string, body: unknown) =>
+        fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(async (res) => {
+          if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `Could not move that (${res.status})`);
+        });
+      try {
+        if (to === 'done') {
+          patch(req.id, { Completed: true, 'Completed Date': new Date().toISOString() });
+          await post('/api/admin/markCompleted', { table: req.table, recordId: req.id, completed: true });
+          return;
+        }
+        // Coming back from published: reopen first, then place it
+        if (req.status === 'done') {
+          patch(req.id, { Completed: false });
+          await post('/api/admin/markCompleted', { table: req.table, recordId: req.id, completed: false });
+        }
+        // A pending ministry approval is a real approval when dragged to Approved
+        if (to === 'approved' && req.status === 'approval') {
+          patch(req.id, { 'Approval Status': 'approved', Stage: 'approved' });
+          await post('/api/admin/approvals', { recordId: req.id, action: 'approve' });
+        } else {
+          patch(req.id, { Stage: to, 'Submitted At': req.submittedAt });
+        }
+        await post('/api/admin/stage', { table: req.table, recordId: req.id, stage: to });
+      } catch (e) {
+        await refresh();
+        throw e;
+      }
+    },
+    [patch, refresh]
+  );
+
+  return <Ctx.Provider value={{ requests, loading, error, loadedAt, refresh, patch, move }}>{children}</Ctx.Provider>;
 }
 
 export function useRequests() {

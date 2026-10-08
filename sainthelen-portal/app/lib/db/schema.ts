@@ -438,3 +438,18 @@ export const copyReviews = pgTable('copy_reviews', {
 });
 
 export type CopyReview = typeof copyReviews.$inferSelect;
+
+// ============================================================================
+// REQUEST STAGES - where the office dragged a card on the board
+// ============================================================================
+
+export const requestStages = pgTable('request_stages', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  sourceTable: varchar('source_table', { length: 30 }).notNull(), // announcements | websiteUpdates | ...
+  recordId: varchar('record_id', { length: 64 }).notNull(),
+  stage: varchar('stage', { length: 20 }).notNull(), // review | approved
+  setBy: varchar('set_by', { length: 255 }),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export type RequestStage = typeof requestStages.$inferSelect;

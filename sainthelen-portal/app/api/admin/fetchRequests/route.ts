@@ -11,6 +11,7 @@ import * as smsRequestsService from '../../../lib/db/services/sms-requests';
 import * as avRequestsService from '../../../lib/db/services/av-requests';
 import * as flyerReviewsService from '../../../lib/db/services/flyer-reviews';
 import * as graphicDesignService from '../../../lib/db/services/graphic-design';
+import { getAllStages } from '../../../lib/db/services/request-stages';
 
 export const dynamic = 'force-dynamic';
 // This ensures Next never statically caches the route output.
@@ -51,6 +52,8 @@ export async function GET(request: NextRequest) {
         flyerReviewsService.getAllFlyerReviews({ includeCompleted }),
         graphicDesignService.getAllGraphicDesignRequests({ includeCompleted })
       ]);
+      // Board stages the office set by dragging cards; missing table = none
+      const stages = await getAllStages().catch(() => new Map<string, string>());
 
       // Helper to safely format dates (handles both Date objects and strings)
       const formatDate = (d: any) => {
@@ -193,6 +196,13 @@ export async function GET(request: NextRequest) {
           },
         })),
       };
+
+      (Object.keys(data) as Array<keyof typeof data>).forEach((table) => {
+        data[table].forEach((rec: { id: string; fields: Record<string, unknown> }) => {
+          const stage = stages.get(`${table}:${rec.id}`);
+          if (stage) rec.fields.Stage = stage;
+        });
+      });
 
       return new NextResponse(JSON.stringify(data), {
         status: 200,

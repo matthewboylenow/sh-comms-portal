@@ -14,7 +14,6 @@ export const STATUS_DOT: Record<RequestStatus, string> = {
   review: 'bg-status-review-d',
   approval: 'bg-status-approval-d',
   approved: 'bg-status-approved-d',
-  scheduled: 'bg-status-scheduled-d',
   done: 'bg-status-done-d',
 };
 
@@ -45,7 +44,7 @@ type Props = {
 export default function RequestList({ items, selected, onSelect, groupBy = 'status', dateLabel = 'Runs', dateOf, checked, onToggle }: Props) {
   const groups: Array<{ key: string; label: string; dot: string; items: PortalRequest[] }> = [];
   if (groupBy === 'status') {
-    (['new', 'review', 'approval', 'approved', 'scheduled', 'done'] as RequestStatus[]).forEach((s) => {
+    (['new', 'review', 'approval', 'approved', 'done'] as RequestStatus[]).forEach((s) => {
       const l = items.filter((r) => r.status === s);
       if (l.length) groups.push({ key: s, label: STATUS_LABEL[s], dot: STATUS_DOT[s], items: l });
     });

@@ -4,7 +4,7 @@
 // status, or the week's run-sheet. Click anything to open it in the panel.
 'use client';
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { useSession, signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowPathIcon, PaperClipIcon, PlusIcon } from '@heroicons/react/24/outline';
@@ -12,7 +12,7 @@ import Link from 'next/link';
 import AdminLayout, { ViewTab, ViewTools } from '../components/admin/AdminLayout';
 import RequestPanel from '../components/admin/RequestPanel';
 import RequestList, { STATUS_DOT } from '../components/admin/RequestList';
-import { useRequests } from '../context/RequestsContext';
+import { useRequests, type MoveTarget } from '../context/RequestsContext';
 import { TypeMark } from '../components/ui/TypeMark';
 import { Avatar } from '../components/ui/Avatar';
 import { Button } from '../components/ui/Button';
@@ -96,13 +96,25 @@ function InboxBody(props: {
   clearFilter: () => void;
 }) {
   const { view, setView, q, setQ, queue, type, selected, setSelected, close } = props;
-  const { requests, loading, error, refresh, loadedAt } = useRequests();
+  const { requests, loading, error, refresh, loadedAt, move } = useRequests();
+  const [moveError, setMoveError] = useState<string | null>(null);
+  const moveSafe = useCallback(
+    async (r: PortalRequest, to: MoveTarget) => {
+      setMoveError(null);
+      try {
+        await move(r, to);
+      } catch (e: any) {
+        setMoveError(e?.message || 'Could not move that request.');
+      }
+    },
+    [move]
+  );
   const weekend = nextWeekendIso();
 
   const visible = useMemo(() => {
     let v = requests;
     if (queue === 'week') v = v.filter((r) => r.status !== 'done' && inThisWeek(r, weekend));
-    else v = v.filter((r) => r.status !== 'done' || isRecent(r.completedAt || r.submittedAt, 14));
+    else v = v.filter((r) => r.status !== 'done');
     if (type) v = v.filter((r) => r.type === type);
     if (q.trim()) {
       const s = q.trim().toLowerCase();
@@ -152,16 +164,16 @@ function InboxBody(props: {
       }
       panel={sel ? <RequestPanel request={sel} onClose={close} /> : null}
     >
-      {error && (
+      {(error || moveError) && (
         <div className="mb-4">
-          <Notice tone="error">{error}</Notice>
+          <Notice tone="error">{error || moveError}</Notice>
         </div>
       )}
       <div className="mb-3 md:hidden">
         <SearchInput value={q} onChange={setQ} placeholder="Search requests" hotkey={null} className="w-full" />
       </div>
 
-      {view === 'board' && <Board items={visible} selected={selected} onSelect={setSelected} />}
+      {view === 'board' && <Board items={visible} selected={selected} onSelect={setSelected} onMove={moveSafe} />}
       {view === 'list' && <RequestList items={visible} selected={selected} onSelect={setSelected} />}
       {view === 'week' && <Week items={requests.filter((r) => (type ? r.type === type : true))} weekend={weekend} onSelect={setSelected} />}
 
@@ -173,11 +185,6 @@ function InboxBody(props: {
 }
 
 /* ---------------- helpers ---------------- */
-
-function isRecent(iso: string | null, days: number) {
-  if (!iso) return false;
-  return Date.now() - new Date(iso).getTime() < days * 86400000;
-}
 
 function inThisWeek(r: PortalRequest, weekend: string) {
   if (r.type === 'announcement') return sameWeekend(r.runsOn, weekend);
@@ -198,20 +205,76 @@ function Who({ r }: { r: PortalRequest }) {
 
 /* ---------------- board ---------------- */
 
-function Board({ items, selected, onSelect }: { items: PortalRequest[]; selected: string | null; onSelect: (id: string) => void }) {
+function Board({
+  items,
+  selected,
+  onSelect,
+  onMove,
+}: {
+  items: PortalRequest[];
+  selected: string | null;
+  onSelect: (id: string) => void;
+  onMove: (r: PortalRequest, to: MoveTarget) => void;
+}) {
   const fresh = items.filter((r) => r.status === 'new');
-  const cols: RequestStatus[] = ['review', 'approval', 'approved', 'scheduled', 'done'];
+  const cols: RequestStatus[] = ['review', 'approval', 'approved'];
+  const [dragging, setDragging] = useState<string | null>(null);
+  const [over, setOver] = useState<string | null>(null);
+  const byId = (id: string) => items.find((r) => r.id === id);
+
+  // Where a card may be dropped. "Needs approval" belongs to the ministry
+  // coordinators, so it only ever receives cards automatically.
+  const canDrop = (target: string, r: PortalRequest | undefined) =>
+    !!r && target !== 'approval' && target !== r.status;
+
+  const dropProps = (target: MoveTarget) => ({
+    onDragOver: (e: React.DragEvent) => {
+      if (!dragging || !canDrop(target, byId(dragging))) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      if (over !== target) setOver(target);
+    },
+    onDragLeave: (e: React.DragEvent) => {
+      if (!e.currentTarget.contains(e.relatedTarget as Node)) setOver((o) => (o === target ? null : o));
+    },
+    onDrop: (e: React.DragEvent) => {
+      e.preventDefault();
+      const id = e.dataTransfer.getData('text/plain') || dragging;
+      const r = id ? byId(id) : undefined;
+      setOver(null);
+      setDragging(null);
+      if (r && canDrop(target, r)) onMove(r, target);
+    },
+  });
+
+  const dragProps = (r: PortalRequest) => ({
+    draggable: true,
+    onDragStart: (e: React.DragEvent) => {
+      e.dataTransfer.setData('text/plain', r.id);
+      e.dataTransfer.effectAllowed = 'move';
+      setDragging(r.id);
+    },
+    onDragEnd: () => {
+      setDragging(null);
+      setOver(null);
+    },
+  });
+
   return (
     <>
       {fresh.length > 0 && (
         <div className="mb-3.5 rounded-lg border border-dashed border-line-2 bg-surface px-3 py-2.5">
           <h3 className="mb-1 flex items-center gap-2 text-[12.5px] font-semibold text-ink-2">
             Just arrived <span className="font-medium text-ink-3">{fresh.length}</span>
+            <span className="ml-auto hidden font-normal text-ink-3 sm:inline">Drag a card to a column, or open it</span>
           </h3>
           {fresh.map((r, i) => (
             <div
               key={r.id}
-              className={`grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 py-2 sm:grid-cols-[auto_1fr_auto_auto] ${i ? 'border-t border-line' : ''}`}
+              {...dragProps(r)}
+              className={`grid cursor-grab grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 py-2 active:cursor-grabbing sm:grid-cols-[auto_1fr_auto_auto] ${i ? 'border-t border-line' : ''} ${
+                dragging === r.id ? 'opacity-40' : ''
+              }`}
             >
               <span className="col-span-2 sm:col-span-1">
                 <TypeMark type={r.type} />
@@ -225,7 +288,10 @@ function Board({ items, selected, onSelect }: { items: PortalRequest[]; selected
               </button>
               <Avatar name={r.requester} />
               <div className="col-span-2 flex gap-1.5 sm:col-span-1">
-                <Button size="sm" variant="secondary" onClick={() => onSelect(r.id)}>
+                <Button size="sm" variant="secondary" onClick={() => onMove(r, 'review')}>
+                  Start review
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => onSelect(r.id)}>
                   Open
                 </Button>
               </div>
@@ -234,32 +300,67 @@ function Board({ items, selected, onSelect }: { items: PortalRequest[]; selected
         </div>
       )}
 
-      <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))] 2xl:[grid-auto-flow:column] 2xl:[grid-auto-columns:minmax(236px,1fr)] 2xl:[grid-template-columns:none]">
+      <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(236px,1fr))]">
         {cols.map((c) => {
           const list = items.filter((r) => r.status === c);
+          const droppable = c !== 'approval';
+          const active = over === c && dragging && canDrop(c, byId(dragging));
           return (
-            <div key={c} className="min-h-[120px] rounded-lg bg-black/[.025] p-2 dark:bg-white/[.03]">
+            <div
+              key={c}
+              {...(droppable ? dropProps(c as MoveTarget) : {})}
+              className={`min-h-[160px] rounded-lg p-2 ${
+                active ? 'bg-navy-soft ring-1 ring-navy/40' : 'bg-black/[.025] dark:bg-white/[.03]'
+              }`}
+            >
               <h3 className="mb-2 flex items-center gap-2 px-1 py-0.5 text-[12.5px] font-semibold text-ink-2">
                 <i className={`h-2 w-2 rounded-full ${STATUS_DOT[c]}`} />
                 {STATUS_LABEL[c]}
                 <span className="font-medium text-ink-3">{list.length}</span>
               </h3>
               {list.length ? (
-                list.map((r) => <Card key={r.id} r={r} selected={selected === r.id} onSelect={onSelect} />)
+                list.map((r) => (
+                  <Card key={r.id} r={r} selected={selected === r.id} onSelect={onSelect} dragProps={dragProps(r)} dragging={dragging === r.id} />
+                ))
               ) : (
-                <div className="px-1 py-1.5 text-[12.5px] text-ink-3">Nothing here</div>
+                <div className="px-1 py-1.5 text-[12.5px] text-ink-3">{c === 'approval' ? 'Nothing waiting on a coordinator' : 'Nothing here'}</div>
               )}
             </div>
           );
         })}
+
+        {/* Published: drop a card here and it leaves the board (it stays under Done) */}
+        <div
+          {...dropProps('done')}
+          className={`flex min-h-[160px] flex-col items-center justify-center rounded-lg border border-dashed p-3 text-center text-[12.5px] ${
+            over === 'done' && dragging ? 'border-status-done-d bg-status-done-bg text-status-done-t' : 'border-line-2 text-ink-3'
+          }`}
+        >
+          <i className={`mb-1.5 h-2 w-2 rounded-full ${STATUS_DOT.done}`} />
+          <span className="font-semibold text-ink-2">Published</span>
+          <span className="mt-0.5 max-w-[180px]">Drop a card here once it has run. It moves to Done.</span>
+        </div>
       </div>
     </>
   );
 }
 
-function Card({ r, selected, onSelect }: { r: PortalRequest; selected: boolean; onSelect: (id: string) => void }) {
+function Card({
+  r,
+  selected,
+  onSelect,
+  dragProps,
+  dragging,
+}: {
+  r: PortalRequest;
+  selected: boolean;
+  onSelect: (id: string) => void;
+  dragProps?: React.HTMLAttributes<HTMLElement> & { draggable?: boolean };
+  dragging?: boolean;
+}) {
   const tags: Array<{ t: string; warn?: boolean }> = [];
   if (r.calendar === 'requested') tags.push({ t: 'calendar draft' });
+  if (r.calendar === 'published') tags.push({ t: 'on the calendar' });
   if (r.status === 'approval') tags.push({ t: r.ministry || 'needs coordinator', warn: true });
   if (r.urgent) tags.push({ t: 'urgent', warn: true });
   if (r.type === 'announcement' && r.words > 90) tags.push({ t: `${r.words} words`, warn: true });
@@ -267,9 +368,10 @@ function Card({ r, selected, onSelect }: { r: PortalRequest; selected: boolean; 
     <button
       type="button"
       onClick={() => onSelect(r.id)}
-      className={`mb-2 block w-full rounded-[7px] border bg-surface px-[11px] pb-2 pt-2.5 text-left shadow-[0_1px_1px_rgba(0,0,0,.03)] ${
+      {...dragProps}
+      className={`mb-2 block w-full cursor-grab rounded-[7px] border bg-surface px-[11px] pb-2 pt-2.5 text-left shadow-[0_1px_1px_rgba(0,0,0,.03)] active:cursor-grabbing ${
         selected ? 'border-navy ring-1 ring-navy' : 'border-line hover:border-line-2'
-      }`}
+      } ${dragging ? 'opacity-40' : ''}`}
     >
       <div className="mb-1 flex items-center justify-between gap-2">
         <TypeMark type={r.type} />

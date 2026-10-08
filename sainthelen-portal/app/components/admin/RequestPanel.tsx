@@ -35,7 +35,7 @@ export default function RequestPanel({
   const [error, setError] = useState<string | null>(null);
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState('');
-  const { patch, refresh } = useRequests();
+  const { patch, refresh, move } = useRequests();
   const { permissions } = usePermissions();
 
   useEffect(() => {
@@ -141,8 +141,18 @@ export default function RequestPanel({
           </Button>
         </>
       )}
+      {(r.status === 'review' || r.status === 'new') && (
+        <Button onClick={() => call('stage', () => move(r, 'approved'))} disabled={!!busy}>
+          {busy === 'stage' ? 'Saving…' : 'Approve'}
+        </Button>
+      )}
+      {r.status === 'approved' && (
+        <Button variant="secondary" onClick={() => call('stage', () => move(r, 'review'))} disabled={!!busy}>
+          {busy === 'stage' ? 'Saving…' : 'Back to review'}
+        </Button>
+      )}
       {r.status !== 'done' && r.status !== 'approval' && (
-        <Button onClick={() => markCompleted(true)} disabled={!!busy}>
+        <Button variant={r.status === 'approved' ? 'primary' : 'secondary'} onClick={() => markCompleted(true)} disabled={!!busy}>
           {busy === 'done' ? 'Saving…' : r.type === 'announcement' || r.type === 'text' ? 'Mark published' : 'Mark done'}
         </Button>
       )}
