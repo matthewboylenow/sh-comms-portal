@@ -247,7 +247,7 @@ export default function CommentResponsePage({ params }: CommentPageProps) {
           {/* Footer */}
           <div className="border-t border-line bg-surface-2 px-6 py-4">
             <p className="text-xs text-ink-3 text-center">
-              Saint Helen Parish Communications Portal • 
+              Saint Helen Communications • 
               <a href="https://sainthelen.org" className="ml-1 text-navy hover:underline">
                 sainthelen.org
               </a>

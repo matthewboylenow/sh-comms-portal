@@ -93,7 +93,7 @@ export default function FrontLayout({ children, width = 'form' }: FrontLayoutPro
 
       <footer className="mt-10 border-t border-line">
         <div className="mx-auto flex max-w-[1120px] flex-wrap items-center gap-x-4 gap-y-1 px-4 py-4 text-xs text-ink-3 sm:px-6">
-          <span>Saint Helen Parish · Westfield, NJ</span>
+          <span>Saint Helen · Westfield, NJ</span>
           <a href="mailto:communications@sainthelen.org" className="hover:text-ink">
             communications@sainthelen.org
           </a>

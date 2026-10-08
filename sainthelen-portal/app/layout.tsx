@@ -26,7 +26,7 @@ const baskerville = Libre_Baskerville({
 
 export const metadata: Metadata = {
   title: 'Saint Helen Communications Portal',
-  description: 'A Next.js 14 + Tailwind Portal for Saint Helen Parish',
+  description: 'Request announcements, website updates, texts, A/V and design from the Saint Helen Communications Office.',
 };
 
 export const viewport = {

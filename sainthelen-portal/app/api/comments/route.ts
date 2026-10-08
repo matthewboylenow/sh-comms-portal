@@ -368,7 +368,7 @@ async function sendCommentNotification(recordId: string, tableName: string, mess
 
             <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
             <p style="font-size: 12px; color: #6b7280; text-align: center;">
-              Saint Helen Parish • <a href="https://sainthelen.org" style="color: #2563eb;">sainthelen.org</a>
+              Saint Helen • <a href="https://sainthelen.org" style="color: #2563eb;">sainthelen.org</a>
             </p>
           </div>
         `

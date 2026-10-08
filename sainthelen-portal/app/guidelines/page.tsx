@@ -32,82 +32,97 @@ export default function GuidelinesPage() {
         </FrontCard>
 
         {/* Writing quick reference, from the Saint Helen Writing Guide */}
-        <FrontCard className="mb-8 border-l-4 border-l-sh-primary">
+        <FrontCard className="mb-8">
           <FrontCardHeader>
             <FrontCardTitle className="flex items-center gap-2">
-              <PencilSquareIcon className="h-6 w-6 text-ink-3" />
-              Writing your announcement: quick reference
+              <PencilSquareIcon className="h-5 w-5 text-ink-3" />
+              Writing for Saint Helen: a quick reference
             </FrontCardTitle>
           </FrontCardHeader>
-          <FrontCardContent className="space-y-6 text-gray-700 dark:text-gray-300">
-            <ul className="list-disc list-inside space-y-2">
-              <li>
-                The name is <strong>Saint Helen</strong>. Never St. Helen, Saint Helen&apos;s, or Saint Helen Parish.
-              </li>
-              <li>
-                Every event piece has the day, date, time, place, cost, what to bring, a real name, an email,
-                and one link.
-              </li>
-              <li>
-                Write it the way you&apos;d tell a neighbor in the parking lot. Short sentences. &ldquo;You,&rdquo;
-                not &ldquo;parishioners.&rdquo; Start with the thing and end with the next step.
-              </li>
-              <li>
-                Missing a detail? Write <strong>[DETAIL NEEDED]</strong>. Never make one up.
-              </li>
-              <li>Check that every date falls on the day you named.</li>
-            </ul>
-
-            <div>
-              <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Please leave out</h3>
+          <FrontCardContent className="space-y-6 text-ink">
+            <div className="space-y-3">
+              <h3 className="font-semibold">A word about AI</h3>
               <p>
-                Em dashes · &ldquo;It&apos;s not X, it&apos;s Y&rdquo; · opening with a question ·
-                &ldquo;faith, fellowship, and fun&rdquo; lists · &ldquo;Join us as we&rdquo; ·
-                &ldquo;We&apos;re excited to announce&rdquo; · &ldquo;We can&apos;t wait to see you&rdquo; ·
-                journey, foster, vibrant, empower, elevate, nurture, transformative, meaningful, heartfelt,
-                wonderful opportunity, sponsored by · more than one exclamation point · emoji anywhere but social
-                media
+                More and more of what reaches us was written or designed with AI tools, and we understand why.
+                They are quick, and they are everywhere. We are glad people are finding ways to get their news to
+                us. But AI writing has a sound to it, and parishioners hear it. It tends to be longer than it
+                needs to be, it leans on the same phrases, and it reads like a brochure rather than a neighbor.
+              </p>
+              <p>
+                Everything we publish speaks in Saint Helen&apos;s voice, so announcements that arrive in an AI
+                voice will be rewritten before they run. The facts you give us stay. The wording may change a
+                good deal. If you use AI to get a first draft down, please read it over and put it back in your
+                own words before you send it.
+              </p>
+              <p>
+                The same goes for fliers and graphics. We do not run AI-generated fliers or artwork. They rarely
+                match the parish look, the images often have mistakes in them, and we cannot confirm the rights.
+                If one comes in, we will most likely redo it, which takes longer than designing it from your
+                details in the first place. If you need a flier, send a design request and we will make one.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h3 className="mb-2 font-semibold">What every announcement needs</h3>
+              <ul className="list-inside list-disc space-y-1.5">
+                <li>The day, the date, the time, and the place.</li>
+                <li>The cost, if there is one, and anything people should bring.</li>
+                <li>A real person&apos;s name and an email or phone number for questions.</li>
+                <li>One link, if there is a sign-up.</li>
+                <li>
+                  The parish is <strong>Saint Helen</strong>. Not St. Helen, not Saint Helen&apos;s, not Saint Helen
+                  Parish.
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <h3 className="mb-2 font-semibold">How it should sound</h3>
+              <ul className="list-inside list-disc space-y-1.5">
+                <li>Short sentences. Plain words. Say &ldquo;you,&rdquo; not &ldquo;parishioners.&rdquo;</li>
+                <li>Start with what is happening. End with what to do next.</li>
+                <li>One exclamation point at most. No emoji except on social media.</li>
+                <li>
+                  Leave out: &ldquo;Join us as we,&rdquo; &ldquo;We&apos;re excited to announce,&rdquo; &ldquo;faith,
+                  fellowship, and fun,&rdquo; journey, vibrant, empower, transformative, meaningful, heartfelt,
+                  wonderful opportunity. These are the phrases that give AI writing away.
+                </li>
+              </ul>
+            </div>
+
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <div>
-                <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Length limits</h3>
+                <h3 className="mb-2 font-semibold">Length</h3>
                 <table className="w-full text-sm">
-                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                  <tbody className="divide-y divide-line">
                     {[
-                      ['Bulletin blurb', '90 words, aim for 55 to 70'],
-                      ['Email subject', '45 characters'],
-                      ['Email body', '150 words'],
-                      ['Screen slide', '15 words, 2 slides max'],
+                      ['Bulletin', '90 words at most; 55 to 70 is better'],
+                      ['Wednesday email', '150 words'],
+                      ['Church screens', '15 words a slide, 2 slides'],
+                      ['Text message', '160 characters'],
                       ['Flier headline', '6 words'],
                       ['Flier body', '40 words'],
-                      ['Website first paragraph', '40 words'],
-                      ['Text message', '160 characters'],
                     ].map(([channel, limit]) => (
                       <tr key={channel}>
                         <td className="py-1.5 pr-4 font-medium">{channel}</td>
-                        <td className="py-1.5">{limit}</td>
+                        <td className="py-1.5 text-ink-2">{limit}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-
               <div className="space-y-4">
                 <div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Dates and times</h3>
-                  <p>
-                    Saturday, October 12 · 7:00 PM · 9:00 AM to 1:30 PM · noon
-                  </p>
+                  <h3 className="mb-2 font-semibold">Dates and times</h3>
+                  <p className="text-ink-2">Saturday, October 12 · 7:00 PM · 9:00 AM to 1:30 PM · noon</p>
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Spellings</h3>
-                  <p>
+                  <h3 className="mb-2 font-semibold">Names we spell this way</h3>
+                  <p className="text-ink-2">
                     {[
                       'LifeLines',
                       'Kids Corner',
-                      'Children\'s Liturgy of the Word',
+                      "Children's Liturgy of the Word",
                       'Religious Education',
                       'Walking with Purpose',
                       'Ageless at Saint Helen',
@@ -124,17 +139,14 @@ export default function GuidelinesPage() {
                   </p>
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Contacts</h3>
-                  <p>
-                    1600 Rahway Ave, Westfield, NJ 07090 · 908-232-1214 · sainthelen.org ·
-                    communications@sainthelen.org
-                  </p>
+                  <h3 className="mb-2 font-semibold">Parish contacts</h3>
+                  <p className="text-ink-2">1600 Rahway Ave, Westfield, NJ 07090 · 908-232-1214 · sainthelen.org · communications@sainthelen.org</p>
                 </div>
               </div>
             </div>
 
-            <p className="text-sm">
-              Everything you send in is edited for length and voice. Your facts and your contact stay.
+            <p className="text-sm text-ink-2">
+              Everything you send in may be edited for length and voice. Your facts and your contact stay.
             </p>
           </FrontCardContent>
         </FrontCard>

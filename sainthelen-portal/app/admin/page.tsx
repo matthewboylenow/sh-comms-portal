@@ -5,7 +5,7 @@ import AdminClient from './AdminClient';
 
 export const metadata: Metadata = {
   title: 'Admin Dashboard | Saint Helen Communications Portal',
-  description: 'Manage announcements, website updates and SMS requests for Saint Helen Parish.',
+  description: 'Manage announcements, website updates and SMS requests for Saint Helen.',
 };
 
 export default function AdminPageServer() {
