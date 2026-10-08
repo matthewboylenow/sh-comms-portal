@@ -125,12 +125,6 @@ export default function AnnouncementsFormPage() {
   const upcomingWeekends = getUpcomingWeekends();
   const selectedWeekend = upcomingWeekends.find(w => w.value === promotionStart);
   const words = announcementBody.trim() ? announcementBody.trim().split(/\s+/).length : 0;
-  const deadline = (() => {
-    const sat = new Date(`${(selectedWeekend || upcomingWeekends[0]).value}T12:00:00`);
-    const mon = new Date(sat);
-    mon.setDate(sat.getDate() - 5);
-    return mon.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-  })();
   const weekendShort = (w: { label: string }) => w.label.replace(/^Weekend of /, '').replace(/, \d{4}$/, '');
 
   // Handle ministry selection
@@ -352,16 +346,13 @@ export default function AnnouncementsFormPage() {
     <FrontLayout>
       <FormCard
         title="Announcement"
-        intro="For the bulletin, the Wednesday email, and the church screens. About five minutes."
+        intro="For the bulletin, the Wednesday email, and the church screens."
         onSubmit={handleSubmitForm}
         footer={
           <>
             <Button type="submit" size="lg" disabled={submittingForm || uploadingFiles}>
               {submittingForm ? 'Sending…' : 'Submit announcement'}
             </Button>
-            <FooterNote>
-              Bulletin for {weekendShort(selectedWeekend || upcomingWeekends[0])} closes {deadline} at noon
-            </FooterNote>
           </>
         }
       >
@@ -369,7 +360,7 @@ export default function AnnouncementsFormPage() {
           <div className="px-5 pt-4 sm:px-6">
             <Notice tone="success">
               <p className="font-medium">{successMessage}</p>
-              <p className="mt-1">We will email you if we have a question. Minor edits for length and voice are made without notice.</p>
+              <p className="mt-1">We will email you if we have a question. Announcements may be edited for length and style before they run.</p>
             </Notice>
             {submittedRecordId && <AddPhotosPanel recordType="announcements" recordId={submittedRecordId} />}
           </div>
@@ -385,7 +376,7 @@ export default function AnnouncementsFormPage() {
           <Field label="Your name" htmlFor="ann-name" required>
             <Input id="ann-name" value={name} onChange={(e) => setName(e.target.value)} required autoComplete="name" className="max-w-[360px]" />
           </Field>
-          <Field label="Email" htmlFor="ann-email" required help="We'll send a confirmation and any questions here.">
+          <Field label="Email" htmlFor="ann-email" required help="For your confirmation and any questions.">
             <Input id="ann-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" className="max-w-[360px]" />
           </Field>
           <Field label="Ministry" htmlFor="ann-ministry">
@@ -406,15 +397,15 @@ export default function AnnouncementsFormPage() {
           {isExternalEvent && (
             <div className="mb-2">
               <Notice tone="warn">
-                Saint Helen events and ministries come first. We fit outside events in where there is room.
+                Saint Helen events and ministries are scheduled first. Outside events are included when there is room.
               </Notice>
             </div>
           )}
         </FormSection>
 
-        <Band note="skip if it isn't one">The event</Band>
+        <Band note="skip this section if there is no event">The event</Band>
         <FormSection>
-          <Field label="When does it happen?" help="Add a row for each date.">
+          <Field label="When does it happen?" help="If it happens more than once, add a row for each date.">
             <div className="flex max-w-[460px] flex-col gap-2">
               {eventDates.map((entry) => (
                 <div key={entry.id} className="flex items-center gap-2">
@@ -435,7 +426,7 @@ export default function AnnouncementsFormPage() {
 
           {addToCalendar && (
             <div className="mb-2 mt-1 rounded-md border border-line bg-surface-2 px-4 pb-2 pt-1">
-              <p className="pt-2 text-xs text-ink-3">We clean this up into a calendar listing and send you a preview before it goes live.</p>
+              <p className="pt-2 text-xs text-ink-3">The Communications Office will prepare the calendar listing from these details.</p>
               <Field label="Event name" htmlFor="cal-name" required>
                 <Input id="cal-name" value={calendarEventName} onChange={(e) => setCalendarEventName(e.target.value)} placeholder="As it should read on the calendar" />
               </Field>
@@ -450,7 +441,7 @@ export default function AnnouncementsFormPage() {
                   <Input id="cal-end" type="time" step="300" value={calendarEventEndTime} onChange={(e) => setCalendarEventEndTime(e.target.value)} />
                 </Field>
               </div>
-              <Field label="Where" htmlFor="cal-where" required help="The gym, Meaney Hall, the Gathering Space, the church.">
+              <Field label="Where" htmlFor="cal-where" required help="For example: the church, Meaney Hall, the gym, the Gathering Space.">
                 <Input id="cal-where" value={calendarEventLocation} onChange={(e) => setCalendarEventLocation(e.target.value)} />
               </Field>
               <Field label="Short description" htmlFor="cal-desc" required>
@@ -474,7 +465,7 @@ export default function AnnouncementsFormPage() {
           <Field
             label="Which weekend should it start?"
             htmlFor="ann-weekend"
-            help={selectedWeekend ? `The Wednesday email for that weekend goes out ${selectedWeekend.emailBlastDate}.` : 'A request; we may shift it a week if space is tight.'}
+            help={selectedWeekend ? `The Wednesday email for that weekend goes out ${selectedWeekend.emailBlastDate}.` : 'This is a request. Timing depends on space and scheduling.'}
           >
             <Select id="ann-weekend" value={promotionStart} onChange={(e) => setPromotionStart(e.target.value)} className="max-w-[300px]">
               <option value="">Choose a weekend…</option>
@@ -490,7 +481,7 @@ export default function AnnouncementsFormPage() {
             label="Announcement text"
             htmlFor="ann-body"
             required
-            help="Write it the way you'd tell a neighbor. Day, date, time, place, cost, and who to contact. The bulletin limit is 90 words."
+            help="Include the day, date, time, place, cost, and who to contact. The bulletin limit is 90 words."
           >
             <Textarea id="ann-body" rows={7} value={announcementBody} onChange={(e) => setAnnouncementBody(e.target.value)} required />
             <div className="mt-1.5 flex items-start justify-between gap-3">
@@ -502,7 +493,7 @@ export default function AnnouncementsFormPage() {
             <CopyAssist kind="announcement" value={announcementBody} onChange={setAnnouncementBody} />
           </Field>
 
-          <Field label="Sign-up links" help="If different groups sign up in different places, add a row for each with a short label.">
+          <Field label="Sign-up links" help="If there is more than one sign-up, add a row for each with a short label.">
             <div className="flex flex-col gap-2">
               {signUpLinks.map((entry) => (
                 <div key={entry.id} className="flex items-center gap-2">
@@ -515,7 +506,7 @@ export default function AnnouncementsFormPage() {
             <AddRow onClick={addSignUpLink}>Add another link</AddRow>
           </Field>
 
-          <Field label="Fliers or files" help="PDF, Word, or images. We read them for details the form leaves out.">
+          <Field label="Fliers or files" help="PDF, Word, or images.">
             <FileDrop
               files={fileLinks}
               disabled={uploadingFiles}
@@ -528,18 +519,18 @@ export default function AnnouncementsFormPage() {
 
         <Band note="not published">For the office</Band>
         <FormSection>
-          <Field label="Notes" htmlFor="ann-notes" help="Deadlines, ordering timelines, or how many weekends you'd like it to run.">
+          <Field label="Notes" htmlFor="ann-notes" help="Anything about timing, such as a sign-up deadline or how many weekends you would like it to run.">
             <Textarea id="ann-notes" rows={3} value={publicationNotes} onChange={(e) => setPublicationNotes(e.target.value)} />
           </Field>
 
           <Checkbox
-            label="Worth a social media post?"
+            label="Consider this for social media"
             checked={socialConsideration}
             onChange={(e) => setSocialConsideration(e.target.checked)}
           />
           {socialConsideration && (
             <div className="mb-2 mt-1 rounded-md border border-line bg-surface-2 px-4 pb-2 pt-1">
-              <p className="pt-2 text-xs text-ink-3">The office decides timing and format; checking this is a nudge, not a booking.</p>
+              <p className="pt-2 text-xs text-ink-3">Checking this does not guarantee a post. The Communications Office decides timing and format.</p>
               <Field label="What should people know or do?" htmlFor="soc-know">
                 <Textarea id="soc-know" rows={2} value={socialWhatToKnow} onChange={(e) => setSocialWhatToKnow(e.target.value)} placeholder="One or two sentences is plenty." />
               </Field>
@@ -554,8 +545,8 @@ export default function AnnouncementsFormPage() {
                     {o.label}
                   </label>
                 ))}
-                {socialHasPhotos === 'yes' && <p className="mt-1 text-xs text-ink-3">Attach them above, or use the phone link on the confirmation screen.</p>}
-                {socialHasPhotos === 'not_yet' && <p className="mt-1 text-xs text-ink-3">After you submit you get a link to add photos from your phone later.</p>}
+                {socialHasPhotos === 'yes' && <p className="mt-1 text-xs text-ink-3">Attach them above, or use the link on the confirmation screen to add them from your phone.</p>}
+                {socialHasPhotos === 'not_yet' && <p className="mt-1 text-xs text-ink-3">After you submit, you will get a link to add photos from your phone later.</p>}
               </Field>
             </div>
           )}

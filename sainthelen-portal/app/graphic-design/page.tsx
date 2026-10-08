@@ -109,14 +109,13 @@ export default function GraphicDesignFormPage() {
     <FrontLayout>
       <FormCard
         title="Design request"
-        intro="A flier, graphic, or social post made for you. About four minutes."
+        intro="A flier, graphic, or social media post designed by the Communications Office."
         onSubmit={handleSubmitForm}
         footer={
           <>
             <Button type="submit" size="lg" disabled={submittingForm || uploadingFiles}>
               {submittingForm ? 'Sending…' : 'Submit design request'}
             </Button>
-            <FooterNote>Allow two weeks for a first draft</FooterNote>
           </>
         }
       >
@@ -159,13 +158,13 @@ export default function GraphicDesignFormPage() {
               <option value="Other">Something else</option>
             </Select>
           </Field>
-          <Field label="What is it for?" htmlFor="gd-desc" required help="The event or purpose, who it's for, and the facts it has to carry: day, date, time, place, cost, contact.">
+          <Field label="What is it for?" htmlFor="gd-desc" required help="The event or purpose, who it is for, and the details to include: day, date, time, place, cost, contact.">
             <Textarea id="gd-desc" rows={6} value={projectDescription} onChange={(e) => setProjectDescription(e.target.value)} required />
           </Field>
-          <Field label="Must-haves" htmlFor="gd-req" help="Exact wording, a logo, a photo, a QR code, colors you need kept.">
+          <Field label="Must-haves" htmlFor="gd-req" help="Exact wording, a logo, a photo, a QR code, or colors that must be used.">
             <Textarea id="gd-req" rows={3} value={projectRequirements} onChange={(e) => setProjectRequirements(e.target.value)} />
           </Field>
-          <Field label="Size" htmlFor="gd-size" help="Letter flier, 11×17 poster, Instagram square. Leave it blank if you're not sure.">
+          <Field label="Size" htmlFor="gd-size" help="For example: letter-size flier, 11×17 poster, Instagram square. Leave blank if you are not sure.">
             <Input id="gd-size" value={dimensions} onChange={(e) => setDimensions(e.target.value)} className="max-w-[360px]" />
           </Field>
           <div className="grid gap-x-3 sm:grid-cols-2">
@@ -179,14 +178,14 @@ export default function GraphicDesignFormPage() {
           <Field label="How urgent?">
             <label className="flex items-center gap-2.5 py-1.5 text-md">
               <input type="radio" name="priority" className="m-0 h-[17px] w-[17px]" checked={priority === 'Standard'} onChange={() => setPriority('Standard')} />
-              Standard. Two weeks is fine.
+              Standard
             </label>
             <label className="flex items-center gap-2.5 py-1.5 text-md">
               <input type="radio" name="priority" className="m-0 h-[17px] w-[17px]" checked={priority === 'Urgent'} onChange={() => setPriority('Urgent')} />
-              Urgent. Needed inside a week.
+              Urgent
             </label>
           </Field>
-          <Field label="Files" help="Photos, logos, last year's version, anything that shows what you have in mind.">
+          <Field label="Files" help="Photos, logos, a previous version, or examples of what you have in mind.">
             <FileDrop files={fileLinks} disabled={uploadingFiles} onFiles={(f) => handleFileUpload(asEvent(f))} onRemove={(i) => setFileLinks((prev) => prev.filter((_, k) => k !== i))} />
             <UploadProgress status={uploadStatus} />
           </Field>

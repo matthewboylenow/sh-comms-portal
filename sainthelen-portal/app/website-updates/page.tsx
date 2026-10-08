@@ -136,14 +136,13 @@ export default function WebsiteUpdatesFormPage() {
     <FrontLayout>
       <FormCard
         title="Website update"
-        intro="A change to a page on sainthelen.org. About three minutes."
+        intro="A change to a page on sainthelen.org."
         onSubmit={handleSubmitForm}
         footer={
           <>
             <Button type="submit" size="lg" disabled={submittingForm || uploadingFiles}>
               {submittingForm ? 'Sending…' : 'Submit update'}
             </Button>
-            <FooterNote>Most updates go live in 2–3 business days</FooterNote>
           </>
         }
       >
@@ -164,21 +163,21 @@ export default function WebsiteUpdatesFormPage() {
           <Field label="Your name" htmlFor="wu-name" required>
             <Input id="wu-name" value={name} onChange={(e) => setName(e.target.value)} required autoComplete="name" className="max-w-[360px]" />
           </Field>
-          <Field label="Email" htmlFor="wu-email" required help="We'll send a confirmation and any questions here.">
+          <Field label="Email" htmlFor="wu-email" required help="For your confirmation and any questions.">
             <Input id="wu-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" className="max-w-[360px]" />
           </Field>
         </FormSection>
 
         <Band>The change</Band>
         <FormSection>
-          <Field label="Which page?" htmlFor="wu-page" required help="A link is best. A page name works too.">
+          <Field label="Which page?" htmlFor="wu-page" required help="A link to the page, or the page name.">
             <Input id="wu-page" value={pageToUpdate} onChange={(e) => setPageToUpdate(e.target.value)} required placeholder="sainthelen.org/…" />
           </Field>
-          <Field label="What should change?" htmlFor="wu-desc" required help="What to add, remove, or fix. Paste the exact text you want where you can.">
+          <Field label="What should change?" htmlFor="wu-desc" required help="What to add, remove, or correct. Include the exact wording where you can.">
             <Textarea id="wu-desc" rows={7} value={description} onChange={(e) => setDescription(e.target.value)} required />
             <CopyAssist kind="website_update" value={description} onChange={setDescription} />
           </Field>
-          <Field label="Links to add" help="Sign-ups, forms, or outside pages. Add a row for each with a short label.">
+          <Field label="Links to add" help="Sign-ups, forms, or other pages. Add a row for each with a short label.">
             <div className="flex flex-col gap-2">
               {signUpLinks.map((entry) => (
                 <div key={entry.id} className="flex items-center gap-2">
@@ -194,7 +193,7 @@ export default function WebsiteUpdatesFormPage() {
             <FileDrop files={fileLinks} disabled={uploadingFiles} onFiles={(f) => handleFileUpload(asEvent(f))} onRemove={(i) => setFileLinks((prev) => prev.filter((_, k) => k !== i))} />
             <UploadProgress status={uploadStatus} />
           </Field>
-          <Checkbox label="This is urgent (a wrong date, a broken link, something live that is incorrect)" checked={urgent} onChange={(e) => setUrgent(e.target.checked)} />
+          <Checkbox label="This is urgent (for example, a wrong date or a broken link on the live site)" checked={urgent} onChange={(e) => setUrgent(e.target.checked)} />
         </FormSection>
       </FormCard>
     </FrontLayout>

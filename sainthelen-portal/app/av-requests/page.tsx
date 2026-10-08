@@ -162,14 +162,13 @@ export default function AVRequestsFormPage() {
     <FrontLayout>
       <FormCard
         title="A/V or livestream"
-        intro="Sound, projection, or streaming for an event or meeting. About four minutes."
+        intro="Sound, projection, or livestreaming for an event or meeting."
         onSubmit={handleSubmitForm}
         footer={
           <>
             <Button type="submit" size="lg" disabled={submittingForm || uploadingFiles}>
               {submittingForm ? 'Sending…' : 'Submit A/V request'}
             </Button>
-            <FooterNote>1–2 weeks ahead; livestreams need the full two</FooterNote>
           </>
         }
       >
@@ -203,7 +202,7 @@ export default function AVRequestsFormPage() {
           <Field label="Event name" htmlFor="av-event" required>
             <Input id="av-event" value={eventName} onChange={(e) => setEventName(e.target.value)} required />
           </Field>
-          <Field label="When" required help="Add a row for each date. Times are when you need the room ready.">
+          <Field label="When" required help="If it happens more than once, add a row for each date. Start time is when you need the room ready.">
             <div className="flex flex-col gap-2">
               {dateTimeEntries.map((entry) => (
                 <div key={entry.id} className="flex flex-wrap items-center gap-2">
@@ -223,33 +222,33 @@ export default function AVRequestsFormPage() {
             <AddRow onClick={addDateTimeEntry}>Add another date</AddRow>
           </Field>
           <div className="grid gap-x-3 sm:grid-cols-2">
-            <Field label="Where" htmlFor="av-where" required help="The church, Meaney Hall, the gym, a parish center room.">
+            <Field label="Where" htmlFor="av-where" required help="For example: the church, Meaney Hall, the gym, a Parish Center room.">
               <Input id="av-where" value={location} onChange={(e) => setLocation(e.target.value)} required />
             </Field>
             <Field label="How many people" htmlFor="av-attend">
               <Input id="av-attend" value={expectedAttendees} onChange={(e) => setExpectedAttendees(e.target.value)} placeholder="About 80" />
             </Field>
           </div>
-          <Field label="What's happening" htmlFor="av-desc" required help="A line or two so we know what the room needs to do.">
+          <Field label="Description of the event" htmlFor="av-desc" required help="A sentence or two is enough.">
             <Textarea id="av-desc" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} required />
           </Field>
         </FormSection>
 
         <Band>What you need</Band>
         <FormSection>
-          <Checkbox label="Livestream it" checked={needsLivestream} onChange={(e) => setNeedsLivestream(e.target.checked)} />
+          <Checkbox label="This event needs a livestream" checked={needsLivestream} onChange={(e) => setNeedsLivestream(e.target.checked)} />
           {needsLivestream && (
             <div className="mb-2">
-              <Notice tone="info">Livestreams take extra setup and a volunteer. We confirm by email whether the date works.</Notice>
+              <Notice tone="info">Livestreams need extra setup and a volunteer. We will confirm by email whether the date works.</Notice>
             </div>
           )}
-          <Field label="Equipment" htmlFor="av-needs" required help="Microphones, projector and screen, music playback, a slideshow, a laptop connection.">
+          <Field label="Equipment" htmlFor="av-needs" required help="For example: microphones, projector and screen, music playback, a slideshow, a laptop connection.">
             <Textarea id="av-needs" rows={3} value={avNeeds} onChange={(e) => setAvNeeds(e.target.value)} required />
           </Field>
           <Field label="Anything else" htmlFor="av-notes">
             <Textarea id="av-notes" rows={3} value={additionalNotes} onChange={(e) => setAdditionalNotes(e.target.value)} />
           </Field>
-          <Field label="Files" help="A run of show, slides, or a music list.">
+          <Field label="Files" help="A program, slides, or a music list.">
             <FileDrop files={fileLinks} disabled={uploadingFiles} onFiles={(f) => handleFileUpload(asEvent(f))} onRemove={(i) => setFileLinks((prev) => prev.filter((_, k) => k !== i))} />
             <UploadProgress status={uploadStatus} />
           </Field>

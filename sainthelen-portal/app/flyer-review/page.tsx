@@ -106,14 +106,13 @@ export default function FlyerReviewFormPage() {
     <FrontLayout>
       <FormCard
         title="Flier review"
-        intro="Feedback on a flier you made before it goes out. About three minutes."
+        intro="Feedback on a flier you made before it goes out."
         onSubmit={handleSubmitForm}
         footer={
           <>
             <Button type="submit" size="lg" disabled={submittingForm || uploadingFiles}>
               {submittingForm ? 'Sending…' : 'Send for review'}
             </Button>
-            <FooterNote>Notes back within a week</FooterNote>
           </>
         }
       >
@@ -144,7 +143,7 @@ export default function FlyerReviewFormPage() {
 
         <Band>The flier</Band>
         <FormSection>
-          <Field label="Your flier" required help="PDF or an image. We look at it as people will see it.">
+          <Field label="Your flier" required help="PDF or an image.">
             <FileDrop files={fileLinks} disabled={uploadingFiles} onFiles={(f) => handleFileUpload(asEvent(f))} onRemove={(i) => setFileLinks((prev) => prev.filter((_, k) => k !== i))} hint="PDF or image" />
             <UploadProgress status={uploadStatus} />
           </Field>
@@ -156,7 +155,7 @@ export default function FlyerReviewFormPage() {
               <Input id="fr-date" type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} />
             </Field>
           </div>
-          <Field label="Who is it for?" htmlFor="fr-aud" help="Families with young children, seniors, the whole parish.">
+          <Field label="Who is it for?" htmlFor="fr-aud" help="For example: families with young children, seniors, the whole parish.">
             <Input id="fr-aud" value={audience} onChange={(e) => setAudience(e.target.value)} />
           </Field>
           <Field label="What is it meant to do?" htmlFor="fr-purpose">
@@ -170,17 +169,17 @@ export default function FlyerReviewFormPage() {
               <option value="Other">Something else</option>
             </Select>
           </Field>
-          <Field label="What would help most?" htmlFor="fr-feedback" help="The layout, the wording, whether the date and contact stand out, how it fits the parish look.">
+          <Field label="What would help most?" htmlFor="fr-feedback" help="For example: the layout, the wording, or whether it fits the Saint Helen style.">
             <Textarea id="fr-feedback" rows={4} value={feedbackNeeded} onChange={(e) => setFeedbackNeeded(e.target.value)} />
           </Field>
-          <Field label="When do you need notes back?">
+          <Field label="Timing">
             <label className="flex items-center gap-2.5 py-1.5 text-md">
               <input type="radio" name="urgency" className="m-0 h-[17px] w-[17px]" checked={urgency === 'standard'} onChange={() => setUrgency('standard')} />
-              Within a week is fine
+              No rush
             </label>
             <label className="flex items-center gap-2.5 py-1.5 text-md">
               <input type="radio" name="urgency" className="m-0 h-[17px] w-[17px]" checked={urgency === 'urgent'} onChange={() => setUrgency('urgent')} />
-              Sooner. It prints or posts in the next few days.
+              Soon. It prints or posts in the next few days.
             </label>
           </Field>
         </FormSection>

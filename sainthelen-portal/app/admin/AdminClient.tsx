@@ -118,7 +118,7 @@ function InboxBody(props: {
   const title = type ? REQUEST_TYPES[type].plural : queue === 'week' ? `This weekend · ${weekendLabel(weekend)}` : 'Inbox';
   const subtitle = loading && !requests.length
     ? 'Loading…'
-    : `${open.length} open${waiting ? ` · ${waiting} waiting on approval` : ''}${queue === 'inbox' && !type ? ' · bulletin closes Monday at noon' : ''}`;
+    : `${open.length} open${waiting ? ` · ${waiting} waiting on approval` : ''}`;
 
   return (
     <AdminLayout
@@ -320,11 +320,8 @@ function Week({ items, weekend, onSelect }: { items: PortalRequest[]; weekend: s
   const words = bulletin.reduce((n, r) => n + r.words, 0);
 
   const sat = new Date(`${weekend}T12:00:00Z`);
-  const mon = new Date(sat);
-  mon.setUTCDate(sat.getUTCDate() - 5);
   const wed = new Date(sat);
   wed.setUTCDate(sat.getUTCDate() - 3);
-  const fmt = (d: Date) => d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC' });
 
   const Row = ({ r, k }: { r: PortalRequest; k: string }) => (
     <li>
@@ -344,13 +341,13 @@ function Week({ items, weekend, onSelect }: { items: PortalRequest[]; weekend: s
     </li>
   );
 
-  const Slot = ({ title, sub, cap, n, children, foot }: { title: string; sub?: string; cap: string; n: React.ReactNode; children: React.ReactNode; foot?: React.ReactNode }) => (
+  const Slot = ({ title, sub, cap, n, children, foot }: { title: string; sub?: string; cap?: string; n: React.ReactNode; children: React.ReactNode; foot?: React.ReactNode }) => (
     <div className="overflow-hidden rounded-lg border border-line bg-surface">
       <h3 className="flex items-center gap-2 border-b border-line px-3 py-2.5 text-sm font-semibold">
         {title} {sub && <small className="font-normal text-ink-3">· {sub}</small>}
         <span className="ml-auto text-xs font-medium text-ink-3">{n}</span>
       </h3>
-      <p className="border-b border-line bg-surface-2 px-3 py-1.5 text-xs text-ink-3">{cap}</p>
+      {cap && <p className="border-b border-line bg-surface-2 px-3 py-1.5 text-xs text-ink-3">{cap}</p>}
       <ol className="py-1">{children}</ol>
       {foot && <div className="border-t border-line px-3 pb-2.5 pt-1.5 text-xs text-ink-3">{foot}</div>}
     </div>
@@ -363,7 +360,6 @@ function Week({ items, weekend, onSelect }: { items: PortalRequest[]; weekend: s
         title="Bulletin"
         sub={weekendLabel(weekend)}
         n={`${bulletin.length} item${bulletin.length === 1 ? '' : 's'}`}
-        cap={`Closes ${fmt(mon)}, noon`}
         foot={
           <>
             {words} words in total · 90 per item
@@ -377,15 +373,14 @@ function Week({ items, weekend, onSelect }: { items: PortalRequest[]; weekend: s
         title="Wednesday email"
         sub={wed.toLocaleDateString('en-US', { month: 'long', day: 'numeric', timeZone: 'UTC' })}
         n={email.length}
-        cap="One lead item, the rest get a line and a link"
       >
         {email.length ? email.map((r, i) => <Row key={r.id} r={r} k={i === 0 ? 'lead' : 'line'} />) : <Empty text="Nothing for the email yet" />}
       </Slot>
-      <Slot title="Church screens" n={screens.length} cap="Rolling · dated slides come down Monday">
+      <Slot title="Church screens" n={screens.length}>
         {screens.length ? screens.map((r) => <Row key={r.id} r={r} k="slide" />) : <Empty text="Nothing for the screens yet" />}
       </Slot>
       {texts.length > 0 && (
-        <Slot title="Texts this week" n={texts.length} cap="Requested send dates through the weekend">
+        <Slot title="Texts this week" n={texts.length}>
           {texts.map((r) => (
             <Row key={r.id} r={r} k={r.runsLabel} />
           ))}

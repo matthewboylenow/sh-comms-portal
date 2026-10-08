@@ -98,7 +98,7 @@ export default function FrontLayout({ children, width = 'form' }: FrontLayoutPro
             communications@sainthelen.org
           </a>
           <Link href="/guidelines" className="hover:text-ink">
-            Writing and deadlines
+            Guidelines
           </Link>
         </div>
       </footer>

@@ -96,14 +96,13 @@ export default function SMSRequestsFormPage() {
     <FrontLayout>
       <FormCard
         title="Text message"
-        intro="A short parish text for something time-sensitive. About two minutes."
+        intro="A text message to the parish. Every text is approved by the pastor before it is sent."
         onSubmit={handleSubmitForm}
         footer={
           <>
             <Button type="submit" size="lg" disabled={submittingForm || uploadingFiles}>
               {submittingForm ? 'Sending…' : 'Submit text request'}
             </Button>
-            <FooterNote>Ask a week ahead where you can</FooterNote>
           </>
         }
       >
@@ -134,16 +133,19 @@ export default function SMSRequestsFormPage() {
 
         <Band>The text</Band>
         <FormSection>
-          <Field label="Message" htmlFor="sms-body" required help="Up to 160 characters. Say what, when, and where to go. We trim for length if we have to.">
+          <div className="mt-3">
+            <Notice tone="info">Text messages are reserved for parish-wide news and are sent only with the pastor&apos;s approval. Most announcements belong in the bulletin, the Wednesday email, or on the screens.</Notice>
+          </div>
+          <Field label="Message" htmlFor="sms-body" required help="Up to 160 characters. Include what, when, and where to go for more information.">
             <Textarea id="sms-body" rows={3} maxLength={160} value={smsMessage} onChange={(e) => setSmsMessage(e.target.value)} required />
             <p className={`tnum mt-1.5 text-xs ${smsMessage.length > 140 ? 'text-status-review-t' : 'text-ink-3'}`}>{smsMessage.length} of 160 characters</p>
           </Field>
-          <Field label="Send on" htmlFor="sms-date" required help="The day you'd like it to go out.">
+          <Field label="Send on" htmlFor="sms-date" required help="The day you would like it sent.">
             <Input id="sms-date" type="date" value={requestedDate} onChange={(e) => setRequestedDate(e.target.value)} required className="max-w-[220px]" />
           </Field>
         </FormSection>
 
-        <Band note="not sent">For the office</Band>
+        <Band note="not included in the text">For the office</Band>
         <FormSection>
           <Field label="Anything else" htmlFor="sms-notes">
             <Textarea id="sms-notes" rows={3} value={additionalInfo} onChange={(e) => setAdditionalInfo(e.target.value)} />

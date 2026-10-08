@@ -90,14 +90,14 @@ export default function SharePhotosPage() {
     <FrontLayout>
       <FormCard
         title="Share photos"
-        intro="Took photos at a parish event? Send them in. They help us show real parish life. No write-up needed."
+        intro="Photos from a parish event or ministry, for the website, email, and social media."
         onSubmit={handleSubmit}
         footer={
           <>
             <Button type="submit" size="lg" disabled={submitting || uploading || fileLinks.length === 0}>
               {submitting ? 'Sending…' : 'Send photos'}
             </Button>
-            {fileLinks.length === 0 && <FooterNote>Add at least one photo</FooterNote>}
+            {fileLinks.length === 0 && <FooterNote>Add at least one photo to send</FooterNote>}
           </>
         }
       >
@@ -115,11 +115,11 @@ export default function SharePhotosPage() {
 
         <Band>The photos</Band>
         <FormSection>
-          <Field label="Photos or video" required help="Straight from your phone is fine. Add as many as you like.">
+          <Field label="Photos or video" required help="Photos from your phone are fine. Add as many as you like.">
             <FileDrop files={fileLinks} disabled={uploading} accept="image/*,video/*" onFiles={(f) => handleFiles(asEvent(f))} onRemove={(i) => setFileLinks((prev) => prev.filter((_, k) => k !== i))} hint="photos or video" label="Add photos or drop them here" />
             <UploadProgress status={uploadStatus} />
           </Field>
-          <Field label="What's happening in them?" htmlFor="ph-desc" required help="A line is plenty: Food Pantry volunteers packing bags.">
+          <Field label="What is happening in the photos?" htmlFor="ph-desc" required help="A short description is enough. For example: Food Pantry volunteers packing bags.">
             <Input id="ph-desc" value={description} onChange={(e) => setDescription(e.target.value)} required />
           </Field>
           <div className="grid gap-x-3 sm:grid-cols-2">
@@ -144,10 +144,10 @@ export default function SharePhotosPage() {
               Yes
             </label>
             {privacyConcern && (
-              <Input className="mt-2" value={privacyNotes} onChange={(e) => setPrivacyNotes(e.target.value)} placeholder="Who, and what they asked. 'The family on the left asked not to be posted.'" aria-label="Privacy note" />
+              <Input className="mt-2" value={privacyNotes} onChange={(e) => setPrivacyNotes(e.target.value)} placeholder="For example: the family on the left asked not to be posted." aria-label="Privacy note" />
             )}
           </Field>
-          <Field label="Your name" htmlFor="ph-name" help="So we can say thanks.">
+          <Field label="Your name" htmlFor="ph-name" help="So we can thank you.">
             <Input id="ph-name" value={submitterName} onChange={(e) => setSubmitterName(e.target.value)} autoComplete="name" className="max-w-[360px]" />
           </Field>
         </FormSection>
