@@ -142,7 +142,7 @@ export default function MinistriesPage() {
   const inactiveMinistries = ministries.filter(m => !m.active);
 
   return (
-    <AdminLayout title="Ministry Management">
+    <AdminLayout title="Ministries">
       <div className="max-w-6xl mx-auto">
         {error && (
           <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md">
@@ -165,12 +165,9 @@ export default function MinistriesPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Ministry Management</h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Manage ministries and configure approval requirements for announcements
-            </p>
+            <p className="text-sm text-ink-2">Which ministries need a coordinator&apos;s approval before an announcement runs.</p>
           </div>
-          <Button onClick={handleAdd} className="bg-sh-primary hover:bg-sh-secondary">
+          <Button onClick={handleAdd} >
             <PlusIcon className="w-4 h-4 mr-2" />
             Add Ministry
           </Button>

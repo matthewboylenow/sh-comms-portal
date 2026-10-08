@@ -106,7 +106,7 @@ export default function AnalyticsDashboard({
   
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Analytics Dashboard</h2>
+      
       
       {/* Summary Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -117,7 +117,7 @@ export default function AnalyticsDashboard({
             </div>
             <div>
               <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Requests</p>
-              <p className="text-2xl font-bold">{totalItems}</p>
+              <p className="text-xl font-semibold tnum">{totalItems}</p>
             </div>
           </CardContent>
         </Card>
@@ -129,7 +129,7 @@ export default function AnalyticsDashboard({
             </div>
             <div>
               <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Completion Rate</p>
-              <p className="text-2xl font-bold">{completionRate}%</p>
+              <p className="text-xl font-semibold tnum">{completionRate}%</p>
             </div>
           </CardContent>
         </Card>
@@ -141,7 +141,7 @@ export default function AnalyticsDashboard({
             </div>
             <div>
               <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Urgent Items</p>
-              <p className="text-2xl font-bold">{urgentItems}</p>
+              <p className="text-xl font-semibold tnum">{urgentItems}</p>
             </div>
           </CardContent>
         </Card>
@@ -153,7 +153,7 @@ export default function AnalyticsDashboard({
             </div>
             <div>
               <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Active Tasks</p>
-              <p className="text-2xl font-bold">{totalItems - completedItems}</p>
+              <p className="text-xl font-semibold tnum">{totalItems - completedItems}</p>
             </div>
           </CardContent>
         </Card>
@@ -280,7 +280,7 @@ export default function AnalyticsDashboard({
                       </div>
                       <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                         <div 
-                          className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full" 
+                          className="bg-navy h-1.5 rounded-full" 
                           style={{ width: `${(ministry.count / pendingByMinistry[0].count) * 100}%` }}
                         ></div>
                       </div>

@@ -20,7 +20,16 @@ import { STATUS_LABEL, relativeTime, shortDate, type PortalRequest } from '../..
 
 type Tab = 'details' | 'edit' | 'activity';
 
-export default function RequestPanel({ request: r, onClose }: { request: PortalRequest; onClose: () => void }) {
+export default function RequestPanel({
+  request: r,
+  onClose,
+  onChanged,
+}: {
+  request: PortalRequest;
+  onClose: () => void;
+  /** Called after a successful write, for pages that keep their own copy of the data */
+  onChanged?: () => void;
+}) {
   const [tab, setTab] = useState<Tab>('details');
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -49,6 +58,7 @@ export default function RequestPanel({ request: r, onClose }: { request: PortalR
     setError(null);
     try {
       await fn();
+      onChanged?.();
     } catch (e: any) {
       setError(e?.message || 'That did not go through.');
       refresh();

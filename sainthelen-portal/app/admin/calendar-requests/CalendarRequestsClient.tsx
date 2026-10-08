@@ -1,270 +1,83 @@
 // app/admin/calendar-requests/CalendarRequestsClient.tsx
+// Announcements that asked for the parish calendar: drafts still to review
+// and events already published on sainthelen.org. "Review & publish" opens
+// the same page the review email links to.
 'use client';
 
-import { useSession } from 'next-auth/react';
-import { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import AdminLayout from '../../components/admin/AdminLayout';
-import AnnouncementCard from '../../components/admin/AnnouncementCard';
-import {
-  ArrowPathIcon,
-  ArrowTopRightOnSquareIcon,
-  CalendarDaysIcon,
-  FunnelIcon,
-  SparklesIcon,
-} from '@heroicons/react/24/outline';
-import { useToast } from '../../context/ToastContext';
+import { useEffect, useMemo, useState } from 'react';
+import { useSession, signIn } from 'next-auth/react';
+import { ArrowPathIcon } from '@heroicons/react/24/outline';
+import AdminLayout, { ViewTab, ViewTools } from '../../components/admin/AdminLayout';
+import RequestList from '../../components/admin/RequestList';
+import RequestPanel from '../../components/admin/RequestPanel';
+import { Button } from '../../components/ui/Button';
+import { Notice } from '../../components/ui/Field';
+import { SearchInput } from '../../components/ui/SearchInput';
+import { useRequests } from '../../context/RequestsContext';
 
-type AdminRecord = {
-  id: string;
-  fields: Record<string, any>;
-};
-
-/**
- * Opens the calendar review for one request: the same page the review email
- * links to, where the cleaned-up event is approved or edited and published.
- */
-function ReviewButton({ record }: { record: AdminRecord }) {
-  const { toast } = useToast();
-  const [opening, setOpening] = useState(false);
-  const liveUrl: string | undefined = record.fields['WordPress Event URL'];
-
-  async function openReview() {
-    setOpening(true);
-    try {
-      const res = await fetch('/api/admin/calendar-review', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ announcementId: record.id }),
-      });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.error || 'Could not open the review');
-      window.location.href = `/calendar-review/${body.token}`;
-    } catch (err: any) {
-      toast.error(err.message);
-      setOpening(false);
-    }
-  }
-
-  return (
-    <div className="flex flex-wrap items-center gap-3 mt-2">
-      <button
-        onClick={openReview}
-        disabled={opening}
-        className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg bg-sh-navy text-white hover:bg-sh-navy/90 disabled:opacity-60 transition-colors"
-      >
-        {opening ? (
-          <ArrowPathIcon className="w-4 h-4 animate-spin" />
-        ) : (
-          <SparklesIcon className="w-4 h-4" />
-        )}
-        {opening ? 'Cleaning up… this can take a minute' : 'Review & publish'}
-      </button>
-      {liveUrl && (
-        <a
-          href={liveUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="flex items-center gap-1 text-sm text-sh-navy dark:text-sh-navy-300 underline"
-        >
-          On the calendar <ArrowTopRightOnSquareIcon className="w-4 h-4" />
-        </a>
-      )}
-    </div>
-  );
-}
+type Tab = 'review' | 'published';
 
 export default function CalendarRequestsClient() {
-  const { data: session, status } = useSession();
-  const { toast } = useToast();
-  const [announcements, setAnnouncements] = useState<AdminRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showCompleted, setShowCompleted] = useState(false);
-  const [calendarMap, setCalendarMap] = useState<Record<string, boolean>>({});
+  const { status } = useSession();
+  const { requests, loading, error, refresh } = useRequests();
+  const [tab, setTab] = useState<Tab>('review');
+  const [q, setQ] = useState('');
+  const [selected, setSelected] = useState<string | null>(null);
 
   useEffect(() => {
-    if (status === 'authenticated') {
-      fetchCalendarRequests();
+    if (status === 'unauthenticated') signIn('azure-ad');
+  }, [status]);
+
+  const items = useMemo(() => {
+    let v = requests.filter((r) => r.type === 'announcement' && r.calendar !== 'none');
+    v = v.filter((r) => (tab === 'review' ? r.calendar === 'requested' : r.calendar === 'published'));
+    if (q.trim()) {
+      const s = q.toLowerCase();
+      v = v.filter((r) => `${r.title} ${r.requester} ${r.ministry} ${r.body}`.toLowerCase().includes(s));
     }
-  }, [status, showCompleted]);
+    return v;
+  }, [requests, tab, q]);
 
-  const fetchCalendarRequests = async () => {
-    setLoading(true);
-    try {
-      const url = `/api/admin/fetchRequests?includeCompleted=${showCompleted}`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('Failed to fetch');
-      const data = await res.json();
-
-      // Filter announcements to only those with "Add to Events Calendar" = "Yes"
-      const calendarAnnouncements = (data.announcements || []).filter(
-        (r: AdminRecord) => r.fields['Add to Events Calendar'] === 'Yes'
-      );
-
-      setAnnouncements(calendarAnnouncements);
-    } catch (err) {
-      console.error('Error fetching calendar requests:', err);
-      toast.error('Failed to load calendar requests');
-    } finally {
-      setLoading(false);
-    }
+  const counts = {
+    review: requests.filter((r) => r.calendar === 'requested').length,
+    published: requests.filter((r) => r.calendar === 'published').length,
   };
+  const sel = selected ? requests.find((r) => r.id === selected) || null : null;
 
-  const handleToggleCalendar = (recordId: string, isChecked: boolean) => {
-    setCalendarMap((prev) => ({ ...prev, [recordId]: isChecked }));
-  };
-
-  const handleOverrideStatus = async (recordId: string, newStatus: string) => {
-    try {
-      const res = await fetch('/api/admin/updateOverrideStatus', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ recordId, newStatus }),
-      });
-      if (res.ok) {
-        setAnnouncements((prev) =>
-          prev.map((r) =>
-            r.id === recordId
-              ? { ...r, fields: { ...r.fields, 'Approval Status': newStatus } }
-              : r
-          )
-        );
-        toast.success('Status updated');
-      }
-    } catch (err) {
-      console.error('Error updating status:', err);
-      toast.error('Failed to update status');
-    }
-  };
-
-  const handleToggleCompleted = async (
-    tableName: 'announcements',
-    recordId: string,
-    currentValue: boolean
-  ) => {
-    try {
-      const res = await fetch('/api/admin/markCompleted', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          table: tableName,
-          recordId,
-          completed: !currentValue,
-        }),
-      });
-      if (res.ok) {
-        if (!currentValue && !showCompleted) {
-          // Removing from view since it's now completed
-          setAnnouncements((prev) => prev.filter((r) => r.id !== recordId));
-        } else {
-          setAnnouncements((prev) =>
-            prev.map((r) =>
-              r.id === recordId
-                ? { ...r, fields: { ...r.fields, Completed: !currentValue } }
-                : r
-            )
-          );
-        }
-        toast.success(!currentValue ? 'Marked as completed' : 'Marked as incomplete');
-      }
-    } catch (err) {
-      console.error('Error toggling completed:', err);
-      toast.error('Failed to update');
-    }
-  };
-
-  if (status === 'loading') {
-    return (
-      <AdminLayout title="Calendar Requests">
-        <div className="flex items-center justify-center py-20">
-          <ArrowPathIcon className="w-8 h-8 animate-spin text-gray-400" />
-        </div>
-      </AdminLayout>
-    );
-  }
+  if (status !== 'authenticated') return null;
 
   return (
-    <AdminLayout title="Calendar Requests">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-sh-rust/10 rounded-xl flex items-center justify-center">
-            <CalendarDaysIcon className="w-6 h-6 text-sh-rust" />
-          </div>
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Events Calendar Requests
-            </h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Announcements flagged for the Saint Helen Events Calendar
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setShowCompleted(!showCompleted)}
-            className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg border transition-colors ${
-              showCompleted
-                ? 'bg-sh-navy text-white border-sh-navy'
-                : 'bg-white dark:bg-slate-700 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-600'
-            }`}
-          >
-            <FunnelIcon className="w-4 h-4" />
-            {showCompleted ? 'Showing All' : 'Hide Completed'}
-          </button>
-          <button
-            onClick={fetchCalendarRequests}
-            className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors"
-          >
-            <ArrowPathIcon className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </button>
-        </div>
-      </div>
-
-      {/* Content */}
-      {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <ArrowPathIcon className="w-8 h-8 animate-spin text-gray-400" />
-        </div>
-      ) : announcements.length === 0 ? (
-        <div className="text-center py-16">
-          <CalendarDaysIcon className="w-16 h-16 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-            No Calendar Requests
-          </h3>
-          <p className="text-gray-500 dark:text-gray-400">
-            No announcements have been flagged for the events calendar yet.
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            {announcements.length} request{announcements.length !== 1 ? 's' : ''} pending for calendar
-          </p>
-          <AnimatePresence>
-            {announcements.map((record, index) => (
-              <motion.div
-                key={record.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ delay: index * 0.05 }}
-              >
-                <AnnouncementCard
-                  record={record}
-                  calendarMap={calendarMap}
-                  onToggleCalendar={handleToggleCalendar}
-                  onOverrideStatus={handleOverrideStatus}
-                  onToggleCompleted={handleToggleCompleted}
-                />
-                <ReviewButton record={record} />
-              </motion.div>
-            ))}
-          </AnimatePresence>
+    <AdminLayout
+      title="Calendar drafts"
+      subtitle={loading && !requests.length ? 'Loading…' : tab === 'review' ? `${items.length} to review and publish` : `${items.length} on the calendar`}
+      actions={
+        <Button variant="ghost" onClick={() => refresh()} icon={<ArrowPathIcon className={loading ? 'animate-spin' : ''} />}>
+          <span className="hidden sm:inline">Refresh</span>
+        </Button>
+      }
+      views={
+        <>
+          <ViewTab on={tab === 'review'} onClick={() => setTab('review')} n={counts.review}>Needs review</ViewTab>
+          <ViewTab on={tab === 'published'} onClick={() => setTab('published')} n={counts.published}>Published</ViewTab>
+          <ViewTools>
+            <SearchInput value={q} onChange={setQ} placeholder="Search" className="hidden md:flex" />
+          </ViewTools>
+        </>
+      }
+      panel={sel ? <RequestPanel request={sel} onClose={() => setSelected(null)} /> : null}
+    >
+      {error && (
+        <div className="mb-4">
+          <Notice tone="error">{error}</Notice>
         </div>
       )}
+      {tab === 'review' && (
+        <p className="mb-3 text-sm text-ink-3">
+          Open a request and choose <span className="font-medium text-ink-2">Review calendar draft</span>. The cleaned-up event comes up for a
+          one-click publish or an edit.
+        </p>
+      )}
+      <RequestList items={items} selected={selected} onSelect={setSelected} groupBy="none" dateLabel="Event" dateOf={(r) => (r.eventLabel || r.runsLabel).split(' · ')[0]} />
     </AdminLayout>
   );
 }

@@ -177,7 +177,7 @@ export default function ReportsPage() {
 
   if (status === 'loading' || loading) {
     return (
-      <AdminLayout title="Weekly Reports">
+      <AdminLayout title="Reports">
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
@@ -190,9 +190,9 @@ export default function ReportsPage() {
 
   if (!reportData) {
     return (
-      <AdminLayout title="Weekly Reports">
+      <AdminLayout title="Reports">
         <div className="text-center py-12">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">No Data Available</h2>
+          <h2 className="text-lg font-semibold text-ink mb-3">No Data Available</h2>
           <p className="text-gray-600 dark:text-gray-400">Unable to load report data.</p>
         </div>
       </AdminLayout>
@@ -200,13 +200,12 @@ export default function ReportsPage() {
   }
 
   return (
-    <AdminLayout title="Weekly Reports">
+    <AdminLayout title="Reports">
       <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Weekly Reports</h1>
-          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">
-            Performance metrics for {formatDate(reportData.weekStart)} - {formatDate(reportData.weekEnd)}
+          <p className="text-sm text-ink-2">
+            {formatDate(reportData.weekStart)} – {formatDate(reportData.weekEnd)}
           </p>
         </div>
         
@@ -243,7 +242,7 @@ export default function ReportsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{reportData.totalRequests}</div>
+            <div className="text-xl font-semibold tnum">{reportData.totalRequests}</div>
           </CardContent>
         </Card>
 
@@ -255,7 +254,7 @@ export default function ReportsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{completionRate}%</div>
+            <div className="text-xl font-semibold tnum">{completionRate}%</div>
             <p className="text-xs text-gray-500">
               {reportData.completedRequests} of {reportData.totalRequests} completed
             </p>
@@ -270,7 +269,7 @@ export default function ReportsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCompletionTime(reportData.avgCompletionTime)}</div>
+            <div className="text-xl font-semibold tnum">{formatCompletionTime(reportData.avgCompletionTime)}</div>
           </CardContent>
         </Card>
 
@@ -282,7 +281,7 @@ export default function ReportsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{reportData.urgentRequests.total}</div>
+            <div className="text-xl font-semibold tnum">{reportData.urgentRequests.total}</div>
             <p className="text-xs text-gray-500">
               {reportData.urgentRequests.completed} completed
               {reportData.urgentRequests.avgCompletionTime > 0 && 

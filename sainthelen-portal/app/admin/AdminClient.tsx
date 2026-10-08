@@ -11,8 +11,8 @@ import { ArrowPathIcon, PaperClipIcon, PlusIcon } from '@heroicons/react/24/outl
 import Link from 'next/link';
 import AdminLayout, { ViewTab, ViewTools } from '../components/admin/AdminLayout';
 import RequestPanel from '../components/admin/RequestPanel';
+import RequestList, { STATUS_DOT } from '../components/admin/RequestList';
 import { useRequests } from '../context/RequestsContext';
-import { StatusPill } from '../components/ui/StatusPill';
 import { TypeMark } from '../components/ui/TypeMark';
 import { Avatar } from '../components/ui/Avatar';
 import { Button } from '../components/ui/Button';
@@ -33,14 +33,6 @@ import {
 
 type View = 'board' | 'list' | 'week';
 
-const STATUS_DOT: Record<RequestStatus, string> = {
-  new: 'bg-status-review-d',
-  review: 'bg-status-review-d',
-  approval: 'bg-status-approval-d',
-  approved: 'bg-status-approved-d',
-  scheduled: 'bg-status-scheduled-d',
-  done: 'bg-status-done-d',
-};
 
 export default function AdminClient() {
   return (
@@ -170,7 +162,7 @@ function InboxBody(props: {
       </div>
 
       {view === 'board' && <Board items={visible} selected={selected} onSelect={setSelected} />}
-      {view === 'list' && <List items={visible} selected={selected} onSelect={setSelected} />}
+      {view === 'list' && <RequestList items={visible} selected={selected} onSelect={setSelected} />}
       {view === 'week' && <Week items={requests.filter((r) => (type ? r.type === type : true))} weekend={weekend} onSelect={setSelected} />}
 
       {!loading && !visible.length && !error && (
@@ -313,74 +305,6 @@ function Card({ r, selected, onSelect }: { r: PortalRequest; selected: boolean; 
         <span className="tnum whitespace-nowrap">{relativeTime(r.submittedAt)}</span>
       </div>
     </button>
-  );
-}
-
-/* ---------------- list ---------------- */
-
-const GRID = 'grid-cols-[minmax(240px,2fr)_minmax(150px,1.2fr)_140px_90px_80px_70px]';
-
-function List({ items, selected, onSelect }: { items: PortalRequest[]; selected: string | null; onSelect: (id: string) => void }) {
-  const groups: RequestStatus[] = ['new', 'review', 'approval', 'approved', 'scheduled', 'done'];
-  return (
-    <div className="overflow-hidden rounded-lg border border-line bg-surface">
-      <div className="overflow-x-auto">
-        <div className="min-w-[820px]">
-          <div className={`grid ${GRID} h-[34px] items-center gap-3 border-b border-line px-3 text-xs text-ink-3`}>
-            <span>Request</span>
-            <span>From</span>
-            <span>Status</span>
-            <span>Runs</span>
-            <span className="text-right">Sent</span>
-            <span />
-          </div>
-          {groups.map((g) => {
-            const l = items.filter((r) => r.status === g);
-            if (!l.length) return null;
-            return (
-              <div key={g}>
-                <div className="flex items-center gap-2 border-b border-line bg-surface-2 px-3 py-2 text-[12.5px] font-semibold text-ink-2">
-                  <i className={`h-2 w-2 rounded-full ${STATUS_DOT[g]}`} />
-                  {STATUS_LABEL[g]}
-                  <span className="font-medium text-ink-3">{l.length}</span>
-                </div>
-                {l.map((r) => (
-                  <button
-                    key={r.id}
-                    type="button"
-                    onClick={() => onSelect(r.id)}
-                    className={`grid ${GRID} h-11 w-full items-center gap-3 border-b border-line px-3 text-left ${
-                      selected === r.id ? 'bg-navy-soft' : 'hover:bg-surface-2'
-                    }`}
-                  >
-                    <span className="min-w-0">
-                      <span className="block truncate text-[13.5px] font-semibold">{r.title}</span>
-                      <span className="block truncate text-xs text-ink-3">
-                        <TypeMark type={r.type} />
-                        {r.page ? ` · ${r.page}` : ''}
-                        {r.calendar !== 'none' ? ` · calendar ${r.calendar}` : ''}
-                      </span>
-                    </span>
-                    <span className="inline-flex min-w-0 items-center gap-1.5 text-sm text-ink-2">
-                      <Avatar name={r.requester} />
-                      <span className="truncate">{r.requester}</span>
-                    </span>
-                    <span>
-                      <StatusPill status={r.status} label={STATUS_LABEL[r.status]} />
-                    </span>
-                    <span className="tnum text-[12.5px] text-ink-2">{r.runsLabel}</span>
-                    <span className="tnum text-right text-[12.5px] text-ink-2">{relativeTime(r.submittedAt)}</span>
-                    <span>
-                      <Platforms platforms={r.platforms} />
-                    </span>
-                  </button>
-                ))}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
   );
 }
 

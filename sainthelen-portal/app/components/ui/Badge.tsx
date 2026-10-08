@@ -1,4 +1,6 @@
 // app/components/ui/Badge.tsx
+// Older call sites (reports, ministries) still use this. It now draws the
+// same tinted pill as StatusPill so the two never disagree on screen.
 import React from 'react';
 
 interface BadgeProps {
@@ -8,32 +10,23 @@ interface BadgeProps {
   size?: 'sm' | 'md';
 }
 
-export const Badge = ({
-  children,
-  variant = 'default',
-  className = '',
-  size = 'md'
-}: BadgeProps) => {
-  const baseClasses = 'inline-flex items-center font-semibold rounded-full transition-all duration-200';
+const variantClasses: Record<NonNullable<BadgeProps['variant']>, string> = {
+  default: 'bg-surface-2 text-ink-2 border border-line',
+  primary: 'bg-navy-soft text-navy',
+  accent: 'bg-status-approval-bg text-status-approval-t',
+  success: 'bg-status-approved-bg text-status-approved-t',
+  warning: 'bg-status-review-bg text-status-review-t',
+  danger: 'bg-status-approval-bg text-status-approval-t',
+  info: 'bg-status-scheduled-bg text-status-scheduled-t',
+};
 
-  const sizeClasses = {
-    sm: 'text-xs px-2.5 py-0.5',
-    md: 'text-xs px-3 py-1',
-  };
-
-  // Premium badge variants with subtle gradients
-  const variantClasses = {
-    default: 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 dark:from-slate-600 dark:to-slate-700 dark:text-gray-100 border border-gray-200/50 dark:border-slate-500/50',
-    primary: 'bg-gradient-to-r from-sh-navy-600 to-sh-navy-700 text-white dark:from-sh-navy-500 dark:to-sh-navy-600 shadow-sm',
-    accent: 'bg-gradient-to-r from-sh-rust-500 to-sh-rust-600 text-white dark:from-sh-rust-500 dark:to-sh-rust-600 shadow-sm',
-    success: 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-sm',
-    warning: 'bg-gradient-to-r from-amber-400 to-amber-500 text-white dark:text-gray-900 shadow-sm',
-    danger: 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-sm',
-    info: 'bg-gradient-to-r from-sky-500 to-sky-600 text-white shadow-sm',
-  };
-
+export const Badge = ({ children, variant = 'default', className = '', size = 'md' }: BadgeProps) => {
   return (
-    <span className={`${baseClasses} ${sizeClasses[size]} ${variantClasses[variant]} ${className}`}>
+    <span
+      className={`inline-flex items-center whitespace-nowrap rounded-[5px] font-medium ${
+        size === 'sm' ? 'h-5 px-1.5 text-[11.5px]' : 'h-[22px] px-2 text-xs'
+      } ${variantClasses[variant]} ${className}`}
+    >
       {children}
     </span>
   );

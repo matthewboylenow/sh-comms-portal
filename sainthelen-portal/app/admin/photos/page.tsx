@@ -1,18 +1,18 @@
 // app/admin/photos/page.tsx
-// Admin view of parish-life photos shared through /share-photos
+// Parish-life photos shared through /share-photos: a strip of thumbnails per
+// submission, with the privacy flag where someone raised one.
 'use client';
 
+import { useEffect, useMemo, useState } from 'react';
 import { useSession, signIn } from 'next-auth/react';
-import { useEffect, useState } from 'react';
-import AdminLayout from '../../components/admin/AdminLayout';
+import { ArrowPathIcon, PlayCircleIcon } from '@heroicons/react/24/outline';
+import AdminLayout, { ViewTools } from '../../components/admin/AdminLayout';
 import { Button } from '../../components/ui/Button';
-import { Card, CardContent } from '../../components/ui/Card';
-import {
-  ArrowPathIcon,
-  PhotoIcon,
-  ExclamationTriangleIcon,
-  MagnifyingGlassIcon,
-} from '@heroicons/react/24/outline';
+import { Notice } from '../../components/ui/Field';
+import { SearchInput } from '../../components/ui/SearchInput';
+import { Avatar } from '../../components/ui/Avatar';
+import { Tag } from '../../components/ui/Tag';
+import { relativeTime } from '../../lib/requests';
 
 type PhotoSubmission = {
   id: string;
@@ -26,197 +26,130 @@ type PhotoSubmission = {
   createdAt: string;
 };
 
-const VIDEO_EXTENSIONS = /\.(mp4|mov|webm|m4v|3gp)(\?|$)/i;
+const VIDEO = /\.(mp4|mov|webm|m4v|3gp)(\?|$)/i;
 
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return '';
-  const d = new Date(dateStr.includes('T') ? dateStr : `${dateStr}T12:00:00`);
-  if (isNaN(d.getTime())) return dateStr;
-  return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+function longDate(s: string | null) {
+  if (!s) return '';
+  const d = new Date(s.includes('T') ? s : `${s}T12:00:00`);
+  return Number.isNaN(d.getTime()) ? s : d.toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' });
 }
 
 export default function AdminPhotosPage() {
-  const { data: session, status } = useSession();
-  const [submissions, setSubmissions] = useState<PhotoSubmission[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
+  const { status } = useSession();
+  const [rows, setRows] = useState<PhotoSubmission[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [q, setQ] = useState('');
 
-  useEffect(() => {
-    if (status === 'authenticated') {
-      fetchSubmissions();
-    }
-  }, [status]);
-
-  async function fetchSubmissions() {
+  async function load() {
     setLoading(true);
-    setErrorMessage('');
+    setError('');
     try {
-      const res = await fetch('/api/photo-submissions');
-      if (!res.ok) throw new Error(`Error fetching photos: ${res.status}`);
-      const data = await res.json();
-      setSubmissions(data.submissions || []);
-    } catch (err: any) {
-      console.error(err);
-      setErrorMessage(err.message);
+      const res = await fetch('/api/photo-submissions', { cache: 'no-store' });
+      if (!res.ok) throw new Error(`Could not load photos (${res.status})`);
+      setRows((await res.json()).submissions || []);
+    } catch (e: any) {
+      setError(e.message);
     } finally {
       setLoading(false);
     }
   }
 
-  if (status === 'loading') {
-    return (
-      <div className="flex items-center justify-center h-screen bg-gray-100 dark:bg-gray-900">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-sh-primary border-t-transparent mb-4"></div>
-          <p className="text-gray-800 dark:text-gray-200">Loading session...</p>
-        </div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (status === 'authenticated') load();
+    if (status === 'unauthenticated') signIn('azure-ad');
+  }, [status]);
 
-  if (status === 'unauthenticated') {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen bg-gray-100 dark:bg-gray-900">
-        <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow-md max-w-md w-full">
-          <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Sign In Required</h2>
-          <p className="text-gray-600 dark:text-gray-300 mb-6">
-            You must be signed in to view shared photos.
-          </p>
-          <Button onClick={() => signIn('azure-ad')} className="w-full" size="lg">
-            Sign In with Microsoft 365
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  const items = useMemo(() => {
+    const terms = q.toLowerCase().split(/\s+/).filter(Boolean);
+    if (!terms.length) return rows;
+    return rows.filter((s) => {
+      const hay = [s.description, s.ministry, s.submitterName, s.photoDate].filter(Boolean).join(' ').toLowerCase();
+      return terms.every((t) => hay.includes(t));
+    });
+  }, [rows, q]);
 
-  const terms = searchQuery.toLowerCase().split(/\s+/).filter(Boolean);
-  const filtered = terms.length
-    ? submissions.filter((s) => {
-        const haystack = [s.description, s.ministry, s.submitterName, s.photoDate]
-          .filter(Boolean)
-          .join(' ')
-          .toLowerCase();
-        return terms.every((term) => haystack.includes(term));
-      })
-    : submissions;
+  if (status !== 'authenticated') return null;
+
+  const files = items.reduce((n, s) => n + (s.fileLinks?.length || 0), 0);
 
   return (
-    <AdminLayout title="Shared Photos">
-      {/* Toolbar */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-        <div className="relative w-full md:w-96">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
-          </div>
-          <input
-            type="text"
-            className="pl-10 focus:ring-sh-primary focus:border-sh-primary block w-full sm:text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md"
-            placeholder="Search by description, ministry, name..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-        <Button
-          onClick={fetchSubmissions}
-          variant="outline"
-          disabled={loading}
-          icon={<ArrowPathIcon className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />}
-        >
-          Refresh
+    <AdminLayout
+      title="Shared photos"
+      subtitle={loading ? 'Loading…' : `${items.length} submission${items.length === 1 ? '' : 's'} · ${files} file${files === 1 ? '' : 's'}`}
+      actions={
+        <Button variant="ghost" onClick={load} icon={<ArrowPathIcon className={loading ? 'animate-spin' : ''} />}>
+          <span className="hidden sm:inline">Refresh</span>
         </Button>
-      </div>
-
-      {errorMessage && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300 p-4 rounded-md mb-6">
-          {errorMessage}
+      }
+      views={
+        <ViewTools>
+          <SearchInput value={q} onChange={setQ} placeholder="Search photos" />
+        </ViewTools>
+      }
+    >
+      {error && (
+        <div className="mb-4">
+          <Notice tone="error">{error}</Notice>
         </div>
       )}
 
-      {loading && (
-        <div className="flex justify-center items-center p-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-4 border-sh-primary border-t-transparent"></div>
-        </div>
+      {!loading && !items.length && (
+        <p className="py-10 text-center text-sm text-ink-3">
+          {q ? 'No photos match.' : 'Photos shared through the portal will show up here with their date, ministry and context.'}
+        </p>
       )}
 
-      {!loading && filtered.length === 0 && (
-        <div className="flex flex-col items-center justify-center p-12 text-center">
-          <div className="bg-gray-100 dark:bg-gray-800 rounded-full p-4 mb-4">
-            <PhotoIcon className="h-8 w-8 text-gray-400" />
-          </div>
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1">
-            {searchQuery ? 'No photos match your search' : 'No photos shared yet'}
-          </h3>
-          <p className="text-gray-500 dark:text-gray-400">
-            {searchQuery
-              ? 'Try different search terms'
-              : 'Photos shared through the portal will appear here with their date, ministry, and context.'}
-          </p>
-        </div>
-      )}
-
-      <div className="space-y-6">
-        {filtered.map((submission) => (
-          <Card key={submission.id}>
-            <CardContent className="p-5">
-              <div className="flex items-start justify-between gap-4 mb-3">
-                <div>
-                  <h3 className="font-bold text-gray-900 dark:text-white">
-                    {submission.description}
-                  </h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                    {[
-                      submission.ministry,
-                      formatDate(submission.photoDate),
-                      submission.submitterName && `shared by ${submission.submitterName}`,
-                    ]
-                      .filter(Boolean)
-                      .join(' · ')}
-                  </p>
-                </div>
-                {submission.privacyConcern && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-full bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 flex-shrink-0">
-                    <ExclamationTriangleIcon className="w-3.5 h-3.5" />
-                    Privacy — check before using
-                  </span>
-                )}
-              </div>
-
-              {submission.privacyConcern && submission.privacyNotes && (
-                <p className="mb-3 px-3 py-2 text-sm bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-lg text-red-800 dark:text-red-300">
-                  {submission.privacyNotes}
+      <div className="flex flex-col gap-3">
+        {items.map((s) => (
+          <article key={s.id} className="rounded-lg border border-line bg-surface">
+            <div className="flex flex-wrap items-start gap-3 px-4 pb-3 pt-3.5">
+              <Avatar name={s.submitterName || 'Unknown'} size={32} />
+              <div className="min-w-0 flex-1">
+                <h3 className="text-[13.5px] font-semibold leading-snug">{s.description}</h3>
+                <p className="mt-0.5 text-xs text-ink-3">
+                  {[s.submitterName, s.ministry, longDate(s.photoDate)].filter(Boolean).join(' · ')}
+                  {s.createdAt ? ` · shared ${relativeTime(s.createdAt)}` : ''}
                 </p>
-              )}
-
-              <div className="flex flex-wrap gap-2">
-                {(submission.fileLinks || []).map((link, idx) =>
-                  VIDEO_EXTENSIONS.test(link) ? (
+              </div>
+              {s.privacyConcern && <Tag tone="warn">Privacy · check before using</Tag>}
+            </div>
+            {s.privacyConcern && s.privacyNotes && (
+              <div className="px-4 pb-3">
+                <Notice tone="error">{s.privacyNotes}</Notice>
+              </div>
+            )}
+            {(s.fileLinks?.length || 0) > 0 && (
+              <div className="flex flex-wrap gap-1.5 border-t border-line px-4 py-3">
+                {(s.fileLinks || []).map((link, i) =>
+                  VIDEO.test(link) ? (
                     <a
-                      key={idx}
+                      key={i}
                       href={link}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="w-24 h-24 flex flex-col items-center justify-center bg-gray-100 dark:bg-slate-700 rounded-lg text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600"
+                      className="grid h-[92px] w-[92px] place-items-center rounded border border-line bg-surface-2 text-xs text-ink-2 hover:bg-line"
                     >
-                      <PhotoIcon className="w-6 h-6 mb-1" />
-                      Video {idx + 1}
+                      <span className="text-center">
+                        <PlayCircleIcon className="mx-auto mb-1 h-6 w-6" />
+                        Video {i + 1}
+                      </span>
                     </a>
                   ) : (
-                    <a key={idx} href={link} target="_blank" rel="noopener noreferrer">
+                    <a key={i} href={link} target="_blank" rel="noopener noreferrer" className="block">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={link}
-                        alt={`${submission.description} - photo ${idx + 1}`}
-                        className="w-24 h-24 object-cover rounded-lg hover:opacity-80 transition-opacity"
+                        alt={`${s.description}, photo ${i + 1}`}
                         loading="lazy"
+                        className="h-[92px] w-[92px] rounded border border-line object-cover hover:opacity-90"
                       />
                     </a>
                   )
                 )}
               </div>
-            </CardContent>
-          </Card>
+            )}
+          </article>
         ))}
       </div>
     </AdminLayout>

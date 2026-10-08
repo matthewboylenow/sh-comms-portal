@@ -1,6 +1,6 @@
 // app/components/admin/CopyReviewPanel.tsx
 //
-// The style check on an admin card: Claude's suggested edit of the submitted
+// The style check in the request panel: Claude's suggested edit of the submitted
 // copy, what it changed, and anything to check. For the communications office
 // only; the submitter never sees any of this.
 'use client';
@@ -10,8 +10,6 @@ import {
   ArrowPathIcon,
   CheckCircleIcon,
   CheckIcon,
-  ChevronDownIcon,
-  ChevronUpIcon,
   ClipboardDocumentIcon,
   ExclamationTriangleIcon,
   SparklesIcon,
@@ -103,12 +101,12 @@ function useCopyReview(type: CopySourceType, id: string): [Entry | undefined, (e
 export default function CopyReviewPanel({ type, sourceId }: { type: CopySourceType; sourceId: string }) {
   const valid = UUID_RE.test(sourceId);
   const [review, setReview] = useCopyReview(type, valid ? sourceId : '');
-  const [open, setOpen] = useState(false);
   const [running, setRunning] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState('');
 
-  if (!valid || review === undefined) return null;
+  if (!valid) return <p className="text-sm text-ink-3">The style check runs on requests stored in the new database.</p>;
+  if (review === undefined) return <p className="text-sm text-ink-3">Loading…</p>;
 
   async function runCheck() {
     setRunning(true);
@@ -122,7 +120,6 @@ export default function CopyReviewPanel({ type, sourceId }: { type: CopySourceTy
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || 'Style check failed');
       setReview(body.review);
-      setOpen(true);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -136,118 +133,98 @@ export default function CopyReviewPanel({ type, sourceId }: { type: CopySourceTy
     setTimeout(() => setCopied(false), 2000);
   }
 
-  const smallButton =
-    'inline-flex items-center gap-1.5 text-xs font-medium text-sh-navy dark:text-sh-navy-300 hover:underline disabled:opacity-60';
-
+  const btn = 'inline-flex h-7 items-center gap-1.5 rounded border border-line-2 bg-surface px-2.5 text-xs font-medium text-ink hover:bg-surface-2 disabled:opacity-60';
   const runButton = (label: string) => (
-    <button onClick={runCheck} disabled={running} className={smallButton}>
-      {running ? <ArrowPathIcon className="w-3.5 h-3.5 animate-spin" /> : <SparklesIcon className="w-3.5 h-3.5" />}
+    <button type="button" onClick={runCheck} disabled={running} className={btn}>
+      {running ? <ArrowPathIcon className="h-3.5 w-3.5 animate-spin" /> : <SparklesIcon className="h-3.5 w-3.5" />}
       {running ? 'Checking… this can take a minute' : label}
     </button>
   );
+  const errorLine = error && <p className="mt-2 text-xs text-status-approval-t">{error}</p>;
 
-  const errorLine = error && <p className="text-xs text-red-600 mt-1">{error}</p>;
+  const concerns =
+    review && review.concerns.length > 0 ? (
+      <ul className="mt-3 flex flex-col gap-1.5">
+        {review.concerns.map((c, i) => (
+          <li key={i} className="flex gap-2 rounded-r border-l-[3px] border-status-review-d bg-status-review-bg px-3 py-2 text-[13px] text-status-review-t">
+            <ExclamationTriangleIcon className="mt-0.5 h-3.5 w-3.5 flex-none" />
+            <span>{c}</span>
+          </li>
+        ))}
+      </ul>
+    ) : null;
 
   // No check yet (submitted before this existed)
   if (review === null) {
     return (
-      <div className="mt-3">
+      <div>
+        <p className="mb-2 text-sm text-ink-3">No style check on file for this one.</p>
         {runButton('Suggest an edit')}
         {errorLine}
       </div>
     );
   }
 
-  const stale =
-    review.status === 'processing' && Date.now() - new Date(review.updatedAt).getTime() > STALE_MS;
+  const stale = review.status === 'processing' && Date.now() - new Date(review.updatedAt).getTime() > STALE_MS;
 
   if (review.status === 'processing' && !stale) {
     return (
-      <p className="mt-3 inline-flex items-center gap-1.5 text-xs text-gray-500">
-        <ArrowPathIcon className="w-3.5 h-3.5 animate-spin" /> Style check running…
+      <p className="inline-flex items-center gap-1.5 text-sm text-ink-3">
+        <ArrowPathIcon className="h-3.5 w-3.5 animate-spin" /> Style check running…
       </p>
     );
   }
 
   if (stale || review.aiError) {
     return (
-      <div className="mt-3 text-xs text-gray-500">
-        Style check didn&apos;t finish{review.aiError ? ` (${review.aiError})` : ''}. {runButton('Try again')}
+      <div className="text-sm text-ink-3">
+        <p className="mb-2">Style check didn&apos;t finish{review.aiError ? ` (${review.aiError})` : ''}.</p>
+        {runButton('Try again')}
         {errorLine}
       </div>
     );
   }
 
-  const concerns =
-    review.concerns.length > 0 ? (
-      <div className="rounded-md border-l-4 border-amber-500 bg-amber-50 dark:bg-amber-900/20 px-3 py-2">
-        <p className="flex items-center gap-1.5 text-xs font-semibold text-amber-800 dark:text-amber-300">
-          <ExclamationTriangleIcon className="w-4 h-4" /> Check
-        </p>
-        <ul className="list-disc pl-5 text-xs text-gray-700 dark:text-gray-300 space-y-0.5">
-          {review.concerns.map((c, i) => (
-            <li key={i}>{c}</li>
-          ))}
-        </ul>
-      </div>
-    ) : null;
-
   if (review.unchanged) {
     return (
-      <div className="mt-3 space-y-2">
-        <p className="inline-flex items-center gap-1.5 text-xs text-green-700 dark:text-green-400">
-          <CheckCircleIcon className="w-4 h-4" /> Style check: no edits suggested
+      <div>
+        <p className="inline-flex items-center gap-1.5 text-sm text-status-approved-t">
+          <CheckCircleIcon className="h-4 w-4" /> No edits suggested. Reads fine as submitted.
         </p>
         {concerns}
+        <div className="mt-3">{runButton('Re-check')}</div>
+        {errorLine}
       </div>
     );
   }
 
   return (
-    <div className="mt-3 rounded-lg border border-sh-navy/20 dark:border-slate-600 bg-sh-navy-50/60 dark:bg-slate-700/40">
-      <button
-        onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between gap-2 px-3 py-2 text-left"
-      >
-        <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-sh-navy dark:text-white">
-          <SparklesIcon className="w-4 h-4" />
+    <div>
+      <div className="overflow-hidden rounded border border-line">
+        <div className="flex items-center gap-2 border-b border-line bg-surface-2 px-3 py-2 text-[12.5px] font-semibold text-ink-2">
           Suggested edit
-          <span className="font-normal text-xs text-gray-500 dark:text-gray-400">
+          <span className="font-normal text-ink-3">
             {review.changes.length} change{review.changes.length === 1 ? '' : 's'}
             {review.concerns.length ? ` · ${review.concerns.length} to check` : ''}
           </span>
-        </span>
-        {open ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />}
-      </button>
-
-      {open && (
-        <div className="px-3 pb-3 space-y-3">
-          <div className="rounded-md bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 p-3 text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-words">
-            {review.cleaned}
-          </div>
-
-          <div className="flex flex-wrap items-center gap-4">
-            <button onClick={() => copy(review.cleaned || '')} className={smallButton}>
-              {copied ? <CheckIcon className="w-3.5 h-3.5" /> : <ClipboardDocumentIcon className="w-3.5 h-3.5" />}
-              {copied ? 'Copied' : 'Copy suggested text'}
-            </button>
-            {runButton('Re-check')}
-          </div>
-          {errorLine}
-
-          {review.changes.length > 0 && (
-            <div>
-              <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">What changed</p>
-              <ul className="list-disc pl-5 text-xs text-gray-600 dark:text-gray-400 space-y-0.5">
-                {review.changes.map((c, i) => (
-                  <li key={i}>{c}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {concerns}
+          <span className="flex-1" />
+          <button type="button" onClick={() => copy(review.cleaned || '')} className={btn}>
+            {copied ? <CheckIcon className="h-3.5 w-3.5" /> : <ClipboardDocumentIcon className="h-3.5 w-3.5" />}
+            {copied ? 'Copied' : 'Copy'}
+          </button>
+          {runButton('Re-check')}
         </div>
-      )}
+        <div className="whitespace-pre-wrap break-words px-3 py-2.5 leading-relaxed">{review.cleaned}</div>
+        {review.changes.length > 0 && (
+          <ul className="list-disc space-y-0.5 border-t border-line px-3 py-2.5 pl-7 text-[12.5px] text-ink-2">
+            {review.changes.map((c, i) => (
+              <li key={i}>{c}</li>
+            ))}
+          </ul>
+        )}
+      </div>
+      {errorLine}
+      {concerns}
     </div>
   );
 }
