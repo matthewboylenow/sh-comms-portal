@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
-import { motion } from 'framer-motion';
 import { ChatBubbleLeftRightIcon, CheckCircleIcon, ExclamationTriangleIcon, PaperAirplaneIcon } from '@heroicons/react/24/outline';
 
 interface CommentPageProps {
@@ -96,11 +95,11 @@ export default function CommentResponsePage({ params }: CommentPageProps) {
 
   if (!tableName || !recordId) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
-        <div className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-lg max-w-md w-full text-center">
+      <div className="flex min-h-screen items-center justify-center bg-canvas p-4 text-ink">
+        <div className="w-full max-w-md rounded-lg border border-line bg-surface p-8 text-center">
           <ExclamationTriangleIcon className="h-12 w-12 text-red-500 mx-auto mb-4" />
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Invalid Link</h1>
-          <p className="text-gray-600 dark:text-gray-400">
+          <h1 className="text-xl font-semibold text-ink mb-2">Invalid Link</h1>
+          <p className="text-ink-2">
             This comment link appears to be invalid. Please check your email for the correct link.
           </p>
         </div>
@@ -109,21 +108,18 @@ export default function CommentResponsePage({ params }: CommentPageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-canvas px-4 py-10 text-ink sm:px-6">
       <div className="max-w-2xl mx-auto">
-        <motion.div
-          className="bg-white dark:bg-gray-800 shadow-lg rounded-xl overflow-hidden"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+        <div
+          className="overflow-hidden rounded-lg border border-line bg-surface"
         >
           {/* Header */}
-          <div className="bg-blue-600 dark:bg-blue-700 px-6 py-8">
+          <div className="border-b border-line bg-surface-2 px-6 py-5">
             <div className="flex items-center">
-              <ChatBubbleLeftRightIcon className="h-8 w-8 text-white mr-3" />
+              <ChatBubbleLeftRightIcon className="mr-3 h-6 w-6 text-ink-3" />
               <div>
-                <h1 className="text-2xl font-bold text-white">Respond to Comment</h1>
-                <p className="text-blue-100 mt-1">Saint Helen Communications Portal</p>
+                <h1 className="text-xl font-semibold text-ink">Reply to the office</h1>
+                <p className="mt-0.5 text-sm text-ink-3">Saint Helen Communications Portal</p>
               </div>
             </div>
           </div>
@@ -131,51 +127,46 @@ export default function CommentResponsePage({ params }: CommentPageProps) {
           {/* Content */}
           <div className="px-6 py-8">
             {status === 'success' ? (
-              <motion.div
+              <div
                 className="text-center"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5 }}
               >
                 <CheckCircleIcon className="h-16 w-16 text-green-500 mx-auto mb-4" />
-                <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
+                <h2 className="text-2xl font-semibold text-ink mb-4">
                   Thank You!
                 </h2>
-                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                <p className="text-ink-2 mb-6">
                   {successMessage}
                 </p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-sm text-ink-3">
                   You may close this window now.
                 </p>
-              </motion.div>
+              </div>
             ) : (
               <>
                 <div className="mb-6">
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                  <h2 className="text-xl font-semibold text-ink mb-2">
                     Your Response
                   </h2>
-                  <p className="text-gray-600 dark:text-gray-400">
+                  <p className="text-ink-2">
                     Please provide your response to the comment from the Saint Helen communications team.
                   </p>
                 </div>
 
                 {status === 'error' && (
-                  <motion.div
+                  <div
                     className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6"
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
                   >
                     <div className="flex">
                       <ExclamationTriangleIcon className="h-5 w-5 text-red-500 mr-2 mt-0.5" />
                       <p className="text-red-800 dark:text-red-300 text-sm">{errorMessage}</p>
                     </div>
-                  </motion.div>
+                  </div>
                 )}
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div>
-                      <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <label htmlFor="name" className="block text-sm font-medium text-ink-2 mb-2">
                         Your Name
                       </label>
                       <input
@@ -185,13 +176,13 @@ export default function CommentResponsePage({ params }: CommentPageProps) {
                         value={formData.name}
                         onChange={handleInputChange}
                         required
-                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-colors"
+                        className="block w-full rounded border border-line-2 bg-surface px-[11px] py-2 text-md text-ink focus:border-navy focus:outline-none focus:ring-2 focus:ring-navy/25"
                         placeholder="Enter your name"
                       />
                     </div>
                     
                     <div>
-                      <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <label htmlFor="email" className="block text-sm font-medium text-ink-2 mb-2">
                         Your Email
                       </label>
                       <input
@@ -201,14 +192,14 @@ export default function CommentResponsePage({ params }: CommentPageProps) {
                         value={formData.email}
                         onChange={handleInputChange}
                         required
-                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-colors"
+                        className="block w-full rounded border border-line-2 bg-surface px-[11px] py-2 text-md text-ink focus:border-navy focus:outline-none focus:ring-2 focus:ring-navy/25"
                         placeholder="Enter your email"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label htmlFor="message" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label htmlFor="message" className="block text-sm font-medium text-ink-2 mb-2">
                       Your Message
                     </label>
                     <textarea
@@ -218,7 +209,7 @@ export default function CommentResponsePage({ params }: CommentPageProps) {
                       value={formData.message}
                       onChange={handleInputChange}
                       required
-                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-colors"
+                      className="block w-full rounded border border-line-2 bg-surface px-[11px] py-2 text-md text-ink focus:border-navy focus:outline-none focus:ring-2 focus:ring-navy/25"
                       placeholder="Enter your response..."
                     />
                   </div>
@@ -230,8 +221,8 @@ export default function CommentResponsePage({ params }: CommentPageProps) {
                       className={`
                         flex items-center px-6 py-3 rounded-lg font-medium transition-all
                         ${status === 'loading'
-                          ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-                          : 'bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 text-white hover:shadow-lg transform hover:-translate-y-0.5'
+                          ? 'bg-gray-300 dark:bg-gray-600 text-ink-3 cursor-not-allowed'
+                          : 'bg-navy hover:bg-navy-hover text-white hover: transform hover:-translate-y-0.5'
                         }
                       `}
                     >
@@ -254,15 +245,15 @@ export default function CommentResponsePage({ params }: CommentPageProps) {
           </div>
 
           {/* Footer */}
-          <div className="bg-gray-50 dark:bg-gray-700 px-6 py-4 border-t border-gray-200 dark:border-gray-600">
-            <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+          <div className="border-t border-line bg-surface-2 px-6 py-4">
+            <p className="text-xs text-ink-3 text-center">
               Saint Helen Parish Communications Portal • 
-              <a href="https://sainthelen.org" className="hover:text-blue-600 dark:hover:text-blue-400 ml-1">
+              <a href="https://sainthelen.org" className="ml-1 text-navy hover:underline">
                 sainthelen.org
               </a>
             </p>
           </div>
-        </motion.div>
+        </div>
       </div>
     </div>
   );

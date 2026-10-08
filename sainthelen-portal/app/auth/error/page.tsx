@@ -42,29 +42,29 @@ export default function AuthError() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="flex min-h-screen flex-col justify-center bg-canvas px-4 py-12 text-ink sm:px-6">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
-          <div className="bg-red-100 dark:bg-red-900/30 p-3 rounded-full">
-            <ExclamationTriangleIcon className="h-12 w-12 text-red-600 dark:text-red-400" />
+          <div className="rounded-full bg-status-approval-bg p-3">
+            <ExclamationTriangleIcon className="h-8 w-8 text-status-approval-t" />
           </div>
         </div>
-        <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
-          Authentication Error
+        <h2 className="mt-5 text-center text-xl font-semibold">
+          Sign-in did not work
         </h2>
-        <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
+        <p className="mt-1 text-center text-sm text-ink-2">
           {getErrorMessage(error)}
         </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white dark:bg-gray-800 py-8 px-4 shadow-lg sm:rounded-lg sm:px-10 border border-gray-200 dark:border-gray-700">
+        <div className="rounded-lg border border-line bg-surface px-5 py-6 sm:px-8">
           <div className="space-y-4">
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-4">
-              <h3 className="text-sm font-medium text-blue-800 dark:text-blue-300 mb-2">
-                Troubleshooting Steps:
+            <div className="rounded-r border-l-[3px] border-status-scheduled-d bg-status-scheduled-bg px-3.5 py-2.5">
+              <h3 className="mb-1 text-sm font-medium text-status-scheduled-t">
+                Things to try
               </h3>
-              <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-1 list-disc list-inside">
+              <ul className="list-inside list-disc space-y-0.5 text-sm text-status-scheduled-t">
                 <li>Clear your browser cache and cookies</li>
                 <li>Try signing in again with your Microsoft 365 account</li>
                 <li>Contact IT support if the problem persists</li>
@@ -74,17 +74,17 @@ export default function AuthError() {
             <div className="flex flex-col space-y-3">
               <button
                 onClick={handleClearCache}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                className="inline-flex h-9 w-full items-center justify-center rounded border border-line-2 bg-surface text-sm font-medium text-ink hover:bg-surface-2"
               >
-                Clear Cache & Reload
+                Clear cached sign-in and reload
               </button>
               
               <Link
                 href="/admin"
-                className="w-full flex justify-center py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                className="inline-flex h-9 w-full items-center justify-center rounded bg-navy text-sm font-medium text-on-navy hover:bg-navy-hover"
               >
                 <ArrowLeftIcon className="h-4 w-4 mr-2" />
-                Try Again
+                Try signing in again
               </Link>
             </div>
           </div>
@@ -93,9 +93,9 @@ export default function AuthError() {
         <div className="mt-6 text-center">
           <Link
             href="/"
-            className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300"
+            className="text-sm text-navy hover:underline"
           >
-            ← Back to Saint Helen Portal
+            Back to the portal
           </Link>
         </div>
       </div>

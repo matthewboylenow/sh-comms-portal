@@ -32,8 +32,8 @@ type ReviewData = {
 };
 
 const inputClass =
-  'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary dark:bg-gray-700 dark:text-white';
-const labelClass = 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1';
+  'block w-full h-10 rounded border border-line-2 bg-surface px-[11px] text-md text-ink focus:outline-none focus:border-navy focus:ring-2 focus:ring-navy/25';
+const labelClass = 'mb-1.5 block text-md font-medium text-ink';
 
 function fileName(url: string) {
   return decodeURIComponent(url.split('/').pop() || url).replace(/^\d{10,}-/, '');
@@ -41,7 +41,7 @@ function fileName(url: string) {
 
 function Description({ text }: { text: string }) {
   return (
-    <div className="space-y-3 text-gray-700 dark:text-gray-300">
+    <div className="space-y-3 text-ink-2">
       {text.split(/\n{2,}/).map((p, i) => (
         <p key={i} className="whitespace-pre-line">
           {p}
@@ -54,13 +54,13 @@ function Description({ text }: { text: string }) {
 function EventPreview({ event }: { event: CalendarEventFields }) {
   return (
     <div>
-      <h2 className="text-2xl font-bold text-sh-primary dark:text-white mb-1">{event.title || '(no title)'}</h2>
-      <p className="font-semibold text-gray-900 dark:text-white">{formatWhen(event)}</p>
-      {event.location && <p className="text-gray-700 dark:text-gray-300">{event.location}</p>}
-      {event.contact && <p className="text-gray-700 dark:text-gray-300">Contact: {event.contact}</p>}
+      <h2 className="mb-1 text-xl font-semibold text-ink">{event.title || '(no title)'}</h2>
+      <p className="font-semibold text-ink">{formatWhen(event)}</p>
+      {event.location && <p className="text-ink-2">{event.location}</p>}
+      {event.contact && <p className="text-ink-2">Contact: {event.contact}</p>}
       {event.signUpUrl && (
         <p>
-          <a href={event.signUpUrl} target="_blank" rel="noreferrer" className="text-sh-primary underline break-all">
+          <a href={event.signUpUrl} target="_blank" rel="noreferrer" className="text-navy underline break-all">
             {event.signUpUrl}
           </a>
         </p>
@@ -119,34 +119,34 @@ export default function CalendarReviewPage({ params }: { params: { token: string
   let content: React.ReactNode;
 
   if (loadError) {
-    content = <p className="text-red-600">{loadError}</p>;
+    content = <p className="text-status-approval-t">{loadError}</p>;
   } else if (!data || !fields) {
-    content = <p className="text-gray-500">Loading…</p>;
+    content = <p className="text-ink-3">Loading…</p>;
   } else if (data.status === 'published') {
     content = (
       <div className="flex items-start gap-3">
-        <CheckCircleIcon className="h-7 w-7 text-green-600 flex-shrink-0" />
+        <CheckCircleIcon className="h-7 w-7 text-status-approved-d flex-shrink-0" />
         <div>
-          <p className="font-semibold text-gray-900 dark:text-white">Published to the parish calendar.</p>
+          <p className="font-semibold text-ink">Published to the parish calendar.</p>
           {data.wordpressEventUrl && (
-            <a href={data.wordpressEventUrl} target="_blank" rel="noreferrer" className="text-sh-primary underline">
+            <a href={data.wordpressEventUrl} target="_blank" rel="noreferrer" className="text-navy underline">
               View it on sainthelen.org
             </a>
           )}
-          <p className="text-sm text-gray-500 mt-2">Any further changes go through WordPress.</p>
+          <p className="text-sm text-ink-3 mt-2">Any further changes go through WordPress.</p>
         </div>
       </div>
     );
   } else if (data.status === 'processing') {
-    content = <p className="text-gray-500">Still cleaning this one up. Refresh in a minute.</p>;
+    content = <p className="text-ink-3">Still cleaning this one up. Refresh in a minute.</p>;
   } else {
     content = (
       <div className="space-y-6">
         {data.status === 'dismissed' && (
-          <p className="text-sm text-gray-500">You dismissed this one. You can still publish it below.</p>
+          <p className="text-sm text-ink-3">You dismissed this one. You can still publish it below.</p>
         )}
         {data.submitter && (
-          <p className="text-sm text-gray-600 dark:text-gray-400">
+          <p className="text-sm text-ink-2">
             From {data.submitter.name}
             {data.submitter.ministry ? ` (${data.submitter.ministry})` : ''} ·{' '}
             <a href={`mailto:${data.submitter.email}`} className="underline">
@@ -163,7 +163,7 @@ export default function CalendarReviewPage({ params }: { params: { token: string
 
         {data.concerns.length > 0 && (
           <div className="rounded-md border-l-4 border-amber-500 bg-amber-50 dark:bg-amber-900/20 p-3">
-            <p className="font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-1">
+            <p className="font-semibold text-ink flex items-center gap-2 mb-1">
               <ExclamationTriangleIcon className="h-5 w-5 text-amber-600" /> Check before publishing
             </p>
             <ul className="list-disc pl-6 text-sm text-gray-800 dark:text-gray-200 space-y-1">
@@ -197,7 +197,7 @@ export default function CalendarReviewPage({ params }: { params: { token: string
                         type="button"
                         aria-label="Remove date"
                         onClick={() => set('dates', fields.dates.filter((_, j) => j !== i))}
-                        className="px-2 text-gray-500 hover:text-red-600"
+                        className="px-2 text-ink-3 hover:text-status-approval-t"
                       >
                         <XMarkIcon className="h-5 w-5" />
                       </button>
@@ -207,7 +207,7 @@ export default function CalendarReviewPage({ params }: { params: { token: string
                 <button
                   type="button"
                   onClick={() => set('dates', [...fields.dates, fields.dates.at(-1) || ''])}
-                  className="flex items-center gap-1 text-sm text-sh-primary"
+                  className="flex items-center gap-1 text-sm text-navy"
                 >
                   <PlusIcon className="h-4 w-4" /> Add a date
                 </button>
@@ -270,19 +270,19 @@ export default function CalendarReviewPage({ params }: { params: { token: string
             </div>
           </div>
         ) : (
-          <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-5">
+          <div className="rounded-lg border border-line p-5">
             <EventPreview event={fields} />
           </div>
         )}
 
-        {error && <p className="text-red-600 text-sm">{error}</p>}
+        {error && <p className="text-status-approval-t text-sm">{error}</p>}
 
         <div className="flex flex-wrap gap-3">
           <button
             type="button"
             disabled={busy}
             onClick={() => submit('publish')}
-            className="px-5 py-2.5 rounded-lg bg-green-700 hover:bg-green-800 text-white font-semibold disabled:opacity-50"
+            className="inline-flex h-10 items-center rounded bg-navy px-4 text-base font-medium text-on-navy hover:bg-navy-hover disabled:opacity-50"
           >
             {busy ? 'Publishing…' : 'Publish to calendar'}
           </button>
@@ -290,7 +290,7 @@ export default function CalendarReviewPage({ params }: { params: { token: string
             type="button"
             disabled={busy}
             onClick={() => setEditing((v) => !v)}
-            className="px-5 py-2.5 rounded-lg border border-sh-primary text-sh-primary dark:text-white font-semibold disabled:opacity-50"
+            className="inline-flex h-10 items-center rounded border border-line-2 bg-surface px-4 text-base font-medium text-ink hover:bg-surface-2 disabled:opacity-50"
           >
             {editing ? 'Preview' : 'Edit first'}
           </button>
@@ -299,7 +299,7 @@ export default function CalendarReviewPage({ params }: { params: { token: string
               type="button"
               disabled={busy}
               onClick={() => submit('dismiss')}
-              className="px-5 py-2.5 rounded-lg text-gray-600 dark:text-gray-400 hover:underline disabled:opacity-50"
+              className="px-5 py-2.5 rounded-lg text-ink-2 hover:underline disabled:opacity-50"
             >
               Don&apos;t publish
             </button>
@@ -308,8 +308,8 @@ export default function CalendarReviewPage({ params }: { params: { token: string
 
         {data.changes.length > 0 && (
           <div>
-            <p className="font-semibold text-gray-900 dark:text-white mb-1">What was changed</p>
-            <ul className="list-disc pl-6 text-sm text-gray-700 dark:text-gray-300 space-y-1">
+            <p className="font-semibold text-ink mb-1">What was changed</p>
+            <ul className="list-disc pl-6 text-sm text-ink-2 space-y-1">
               {data.changes.map((c, i) => (
                 <li key={i}>{c}</li>
               ))}
@@ -317,8 +317,8 @@ export default function CalendarReviewPage({ params }: { params: { token: string
           </div>
         )}
 
-        <details className="rounded-lg bg-gray-50 dark:bg-gray-800/50 p-4 text-sm">
-          <summary className="cursor-pointer font-semibold text-gray-700 dark:text-gray-300">As submitted</summary>
+        <details className="rounded border border-line bg-surface-2 p-4 text-sm">
+          <summary className="cursor-pointer font-semibold text-ink-2">As submitted</summary>
           <div className="mt-3 opacity-80">
             <EventPreview event={data.original} />
           </div>
@@ -326,11 +326,11 @@ export default function CalendarReviewPage({ params }: { params: { token: string
 
         {data.submitter && data.submitter.fileLinks.length > 0 && (
           <div className="text-sm">
-            <p className="font-semibold text-gray-900 dark:text-white mb-1">Attachments</p>
+            <p className="font-semibold text-ink mb-1">Attachments</p>
             <ul className="space-y-1">
               {data.submitter.fileLinks.map((url) => (
                 <li key={url}>
-                  <a href={url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-sh-primary underline break-all">
+                  <a href={url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-navy underline break-all">
                     <PaperClipIcon className="h-4 w-4 flex-shrink-0" /> {fileName(url)}
                   </a>
                 </li>

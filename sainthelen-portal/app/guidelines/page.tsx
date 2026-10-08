@@ -8,13 +8,13 @@ import { FrontCard, FrontCardContent, FrontCardHeader, FrontCardTitle } from '..
 
 export default function GuidelinesPage() {
   return (
-    <FrontLayout title="Communications Guidelines">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <FrontLayout width="page">
+      <div className="mx-auto max-w-[860px] py-7">
         {/* TL;DR Summary */}
         <FrontCard className="mb-8">
           <FrontCardHeader>
             <FrontCardTitle className="flex items-center gap-2">
-              <InformationCircleIcon className="h-6 w-6 text-sh-primary dark:text-blue-400" />
+              <InformationCircleIcon className="h-6 w-6 text-ink-3" />
               TL;DR (Quick Summary)
             </FrontCardTitle>
           </FrontCardHeader>
@@ -35,7 +35,7 @@ export default function GuidelinesPage() {
         <FrontCard className="mb-8 border-l-4 border-l-sh-primary">
           <FrontCardHeader>
             <FrontCardTitle className="flex items-center gap-2">
-              <PencilSquareIcon className="h-6 w-6 text-sh-primary dark:text-blue-400" />
+              <PencilSquareIcon className="h-6 w-6 text-ink-3" />
               Writing your announcement: quick reference
             </FrontCardTitle>
           </FrontCardHeader>
@@ -176,7 +176,7 @@ export default function GuidelinesPage() {
             {/* Side Callout Card */}
             <FrontCard>
               <FrontCardContent>
-                <h3 className="font-semibold text-sh-primary dark:text-blue-400 mb-2">
+                <h3 className="font-semibold text-ink-3 mb-2">
                   Quick Tip
                 </h3>
                 <p className="text-gray-600 dark:text-gray-300">
@@ -213,7 +213,7 @@ export default function GuidelinesPage() {
             {/* Side Callout Card */}
             <FrontCard>
               <FrontCardContent>
-                <h3 className="font-semibold text-sh-primary dark:text-blue-400 mb-2">
+                <h3 className="font-semibold text-ink-3 mb-2">
                   Why 3 Weeks?
                 </h3>
                 <p className="text-gray-600 dark:text-gray-300">
@@ -299,7 +299,7 @@ export default function GuidelinesPage() {
             {/* Side Callout Card */}
             <FrontCard>
               <FrontCardContent>
-                <h3 className="font-semibold text-sh-primary dark:text-blue-400 mb-2">
+                <h3 className="font-semibold text-ink-3 mb-2">
                   Helpful Hint
                 </h3>
                 <p className="text-gray-600 dark:text-gray-300">
