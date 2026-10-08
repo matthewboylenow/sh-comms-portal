@@ -1,36 +1,27 @@
 // app/layout.tsx
 import './globals.css';
 import { Metadata } from 'next';
-import Header from './components/Header';
 import Providers from './providers';
 
-// 1) Import your Google Fonts from next/font/google
-import { Libre_Franklin, Libre_Baskerville, Inter } from 'next/font/google';
+import { Public_Sans, Libre_Baskerville } from 'next/font/google';
 
-// 2) Declare the fonts with weights
-const franklin = Libre_Franklin({
-  subsets: ['latin'],
-  weight: ['400', '700'],
-  display: 'swap',
-  variable: '--font-franklin',
-  fallback: ['system-ui', 'sans-serif'],
-});
-
-const baskerville = Libre_Baskerville({
-  subsets: ['latin'],
-  weight: ['400', '700'],
-  display: 'swap',
-  variable: '--font-baskerville',
-  fallback: ['serif', 'Times New Roman'],
-});
-
-// Add Inter for modern UI elements in the admin interface
-const inter = Inter({
+// Public Sans is built on Libre Franklin, the parish's body font, and carries
+// the weights a product UI needs. It is the only face in the interface.
+const publicSans = Public_Sans({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
   display: 'swap',
-  variable: '--font-inter',
-  fallback: ['system-ui', 'arial'],
+  variable: '--font-public-sans',
+  fallback: ['Segoe UI', 'Helvetica', 'Arial', 'sans-serif'],
+});
+
+// Libre Baskerville appears once: in the logo wordmark.
+const baskerville = Libre_Baskerville({
+  subsets: ['latin'],
+  weight: ['400'],
+  display: 'swap',
+  variable: '--font-baskerville',
+  fallback: ['Georgia', 'Times New Roman', 'serif'],
 });
 
 export const metadata: Metadata = {
@@ -42,8 +33,6 @@ export const viewport = {
   themeColor: '#20336B',
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false
 };
 
 export default function RootLayout({
@@ -54,11 +43,10 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${franklin.variable} ${baskerville.variable} ${inter.variable}`}
+      className={`${publicSans.variable} ${baskerville.variable}`}
       suppressHydrationWarning
     >
       <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
         
         {/* Apple iOS icons */}
         <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
@@ -83,12 +71,8 @@ export default function RootLayout({
         <link rel="apple-touch-startup-image" href="/images/splash/apple-splash-640-1136.png" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
         
       </head>
-      <body className="min-h-screen flex flex-col bg-white dark:bg-[#121212] transition-colors duration-300">
-        {/* Wrap everything in the SessionProvider */}
-        <Providers>
-          {/* The Header component is conditionally rendered only on non-admin pages */}
-          {children}
-        </Providers>
+      <body className="min-h-screen flex flex-col bg-canvas text-ink">
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
