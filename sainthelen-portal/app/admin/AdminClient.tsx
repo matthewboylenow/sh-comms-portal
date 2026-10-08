@@ -1,944 +1,472 @@
 // app/admin/AdminClient.tsx
+// The Inbox: every open request across the six tables, as a board (a
+// "Just arrived" triage row, then columns by status), a list grouped by
+// status, or the week's run-sheet. Click anything to open it in the panel.
 'use client';
 
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { useSession, signIn } from 'next-auth/react';
-import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
-import AdminLayout from '../components/admin/AdminLayout';
-import DashboardStats from '../components/admin/DashboardStats';
-import AnnouncementCard from '../components/admin/AnnouncementCard';
-import WebsiteUpdateCard from '../components/admin/WebsiteUpdateCard';
-import SmsRequestCard from '../components/admin/SmsRequestCard';
-import AVRequestCard from '../components/admin/AVRequestCard';
-import FlyerReviewCard from '../components/admin/FlyerReviewCard';
-import GraphicDesignCard from '../components/admin/GraphicDesignCard';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { ArrowPathIcon, PaperClipIcon, PlusIcon } from '@heroicons/react/24/outline';
+import Link from 'next/link';
+import AdminLayout, { ViewTab, ViewTools } from '../components/admin/AdminLayout';
+import RequestPanel from '../components/admin/RequestPanel';
+import { useRequests } from '../context/RequestsContext';
+import { StatusPill } from '../components/ui/StatusPill';
+import { TypeMark } from '../components/ui/TypeMark';
+import { Avatar } from '../components/ui/Avatar';
 import { Button } from '../components/ui/Button';
-import { Card, CardContent } from '../components/ui/Card';
+import { Tag, Platforms } from '../components/ui/Tag';
+import { SearchInput } from '../components/ui/SearchInput';
+import { Notice } from '../components/ui/Field';
 import {
-  ArrowPathIcon,
-  MagnifyingGlassIcon,
-  AdjustmentsHorizontalIcon,
-  DocumentTextIcon,
-  CalendarIcon,
-  ArrowUpIcon,
-  ArrowDownIcon,
-  MegaphoneIcon,
-  GlobeAltIcon,
-  ChatBubbleLeftRightIcon,
-  VideoCameraIcon,
-  PencilSquareIcon
-} from '@heroicons/react/24/outline';
+  REQUEST_TYPES,
+  STATUS_LABEL,
+  nextWeekendIso,
+  relativeTime,
+  sameWeekend,
+  weekendLabel,
+  type PortalRequest,
+  type RequestStatus,
+  type RequestType,
+} from '../lib/requests';
 
-/** Type Declarations */
-type TableName = 'announcements' | 'websiteUpdates' | 'smsRequests' | 'avRequests' | 'flyerReviews' | 'graphicDesign';
-type SortDirection = 'asc' | 'desc';
-type SortField = 'submittedAt' | 'name' | 'date' | 'age';
+type View = 'board' | 'list' | 'week';
 
-type AdminRecord = {
-  id: string;
-  fields: Record<string, any>;
+const STATUS_DOT: Record<RequestStatus, string> = {
+  new: 'bg-status-review-d',
+  review: 'bg-status-review-d',
+  approval: 'bg-status-approval-d',
+  approved: 'bg-status-approved-d',
+  scheduled: 'bg-status-scheduled-d',
+  done: 'bg-status-done-d',
 };
 
-/** Helper parse date if needed for sorting. */
-function parseDate(dateStr: string): Date | null {
-  if (!dateStr) return null;
-  // Check if in YYYY-MM-DD format
-  if (dateStr.includes('-')) {
-    const parts = dateStr.split('-');
-    if (parts.length !== 3) return null;
-    const [year, month, day] = parts.map((p) => parseInt(p, 10));
-    if (!year || !month || !day) return null;
-    const dt = new Date(year, month - 1, day);
-    return isNaN(dt.getTime()) ? null : dt;
-  }
-  // Check if in MM/DD/YY format
-  else if (dateStr.includes('/')) {
-    const parts = dateStr.split('/');
-    if (parts.length !== 3) return null;
-    let [month, day, year] = parts.map((p) => parseInt(p, 10));
-    // Convert 2-digit year to 4-digit
-    if (year < 100) year += 2000;
-    if (!year || !month || !day) return null;
-    const dt = new Date(year, month - 1, day);
-    return isNaN(dt.getTime()) ? null : dt;
-  }
-  return null;
+export default function AdminClient() {
+  return (
+    <Suspense fallback={null}>
+      <Inbox />
+    </Suspense>
+  );
 }
 
-export default function AdminClient() {
-  const { data: session, status, update } = useSession();
+function Inbox() {
+  const { status } = useSession();
+  const search = useSearchParams();
+  const router = useRouter();
+  const queue = search.get('queue') === 'week' ? 'week' : 'inbox';
+  const typeParam = search.get('type') as RequestType | null;
+  const type = typeParam && REQUEST_TYPES[typeParam] ? typeParam : null;
 
-  // We'll store the data for each table
-  const [announcements, setAnnouncements] = useState<AdminRecord[]>([]);
-  const [websiteUpdates, setWebsiteUpdates] = useState<AdminRecord[]>([]);
-  const [smsRequests, setSmsRequests] = useState<AdminRecord[]>([]);
-  const [avRequests, setAvRequests] = useState<AdminRecord[]>([]);
-  const [flyerReviews, setFlyerReviews] = useState<AdminRecord[]>([]);
-  const [graphicDesign, setGraphicDesign] = useState<AdminRecord[]>([]);
+  const [view, setView] = useState<View>(queue === 'week' ? 'week' : 'board');
+  const [q, setQ] = useState('');
+  const [selected, setSelected] = useState<string | null>(null);
 
-  // Sort state
-  const [sortField, setSortField] = useState<SortField>('submittedAt');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
-
-  // Calendar checkboxes
-  const [calendarMap, setCalendarMap] = useState<Record<string, boolean>>({});
-
-  // Search and filters
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeFilters, setActiveFilters] = useState<Record<string, any>>({});
-
-  // Status states
-  const [errorMessage, setErrorMessage] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
-  const [loadingData, setLoadingData] = useState(false);
-  const [creatingEvents, setCreatingEvents] = useState(false);
-  
-  // Start with hideCompleted = true
-  const [hideCompleted, setHideCompleted] = useState(true);
-
-  // Calendar results
-  const [calendarResults, setCalendarResults] = useState<any[] | null>(null);
-
-  // Active tab
-  const [activeTab, setActiveTab] = useState<TableName>('announcements');
-
-  // On load, if user is authenticated, fetch data
   useEffect(() => {
-    if (status === 'authenticated') {
-      fetchAllRequests();
-    }
+    if (queue === 'week') setView('week');
+  }, [queue]);
+
+  useEffect(() => {
+    if (status === 'unauthenticated') signIn('azure-ad');
   }, [status]);
 
-  function sortRecords(records: AdminRecord[]): AdminRecord[] {
-    return [...records].sort((a, b) => {
-      if (sortField === 'submittedAt') {
-        // Most Airtable records have a Submitted At field
-        const aTime = a.fields['Submitted At'] || '';
-        const bTime = b.fields['Submitted At'] || '';
-        return sortDirection === 'asc' 
-          ? aTime.localeCompare(bTime)
-          : bTime.localeCompare(aTime);
-      } 
-      else if (sortField === 'name') {
-        const aName = a.fields.Name || '';
-        const bName = b.fields.Name || '';
-        return sortDirection === 'asc'
-          ? aName.localeCompare(bName)
-          : bName.localeCompare(aName);
-      }
-      else if (sortField === 'age') {
-        // Sort by age (same as submittedAt but different label)
-        const aTime = a.fields['Submitted At'] || '';
-        const bTime = b.fields['Submitted At'] || '';
-        return sortDirection === 'asc' 
-          ? aTime.localeCompare(bTime)
-          : bTime.localeCompare(aTime);
-      }
-      else if (sortField === 'date') {
-        // First, determine which date field to use based on the table
-        let aDateStr = '';
-        let bDateStr = '';
-        
-        if (activeTab === 'announcements') {
-          aDateStr = a.fields['Date of Event'] || '';
-          bDateStr = b.fields['Date of Event'] || '';
-        } else if (activeTab === 'avRequests') {
-          // For A/V requests, just use the first date string in the dates and times field
-          const aDates = a.fields['Event Dates and Times'] || '';
-          const bDates = b.fields['Event Dates and Times'] || '';
-          aDateStr = aDates.split('\n')[0]?.split(',')[0] || '';
-          bDateStr = bDates.split('\n')[0]?.split(',')[0] || '';
-        } else if (activeTab === 'flyerReviews') {
-          aDateStr = a.fields['Event Date'] || '';
-          bDateStr = b.fields['Event Date'] || '';
-        } else if (activeTab === 'smsRequests') {
-          aDateStr = a.fields['Requested Date'] || '';
-          bDateStr = b.fields['Requested Date'] || '';
-        } else if (activeTab === 'graphicDesign') {
-          aDateStr = a.fields['Deadline'] || '';
-          bDateStr = b.fields['Deadline'] || '';
-        }
-        
-        const aDate = parseDate(aDateStr);
-        const bDate = parseDate(bDateStr);
-        
-        if (!aDate && !bDate) return 0;
-        if (!aDate) return sortDirection === 'asc' ? -1 : 1;
-        if (!bDate) return sortDirection === 'asc' ? 1 : -1;
-        
-        return sortDirection === 'asc'
-          ? aDate.getTime() - bDate.getTime()
-          : bDate.getTime() - aDate.getTime();
-      }
-      
-      return 0;
-    });
-  }
+  const close = useCallback(() => setSelected(null), []);
 
-  /** 
-   * Fetch data with cache busting
-   */
-  async function fetchAllRequests() {
-    setLoadingData(true);
-    setErrorMessage('');
-    setSuccessMessage('');
-
-    try {
-      const timeStamp = Date.now();
-      const res = await fetch(`/api/admin/fetchRequests?ts=${timeStamp}`, {
-        method: 'GET',
-        headers: {
-          'Cache-Control': 'no-cache',
-        },
-        cache: 'no-store', // critical: ensures Next/browsers won't store this
-      });
-
-      if (!res.ok) {
-        throw new Error(`Error fetching data: ${res.status}`);
-      }
-
-      const data = await res.json();
-
-      // Apply sorting to all record types
-      setAnnouncements(data.announcements || []);
-      setWebsiteUpdates(data.websiteUpdates || []);
-      setSmsRequests(data.smsRequests || []);
-      setAvRequests(data.avRequests || []);
-      setFlyerReviews(data.flyerReviews || []);
-      setGraphicDesign(data.graphicDesign || []);
-    } catch (err: any) {
-      console.error(err);
-      setErrorMessage(err.message);
-    } finally {
-      setLoadingData(false);
-    }
-  }
-
-  // Function to handle changing sort
-  const handleSortChange = (field: SortField) => {
-    if (sortField === field) {
-      // If same field, toggle direction
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      // If new field, set to that field and default to descending (newest first)
-      setSortField(field);
-      setSortDirection('desc');
-    }
-  };
-
-  async function handleCompleted(
-    tableName: TableName,
-    recordId: string,
-    currentValue: boolean
-  ) {
-    try {
-      // Update UI optimistically
-      if (tableName === 'announcements') {
-        setAnnouncements((prev) => 
-          prev.map(item => 
-            item.id === recordId 
-              ? { ...item, fields: { ...item.fields, Completed: !currentValue } } 
-              : item
-          )
-        );
-      } else if (tableName === 'websiteUpdates') {
-        setWebsiteUpdates((prev) => 
-          prev.map(item => 
-            item.id === recordId 
-              ? { ...item, fields: { ...item.fields, Completed: !currentValue } } 
-              : item
-          )
-        );
-      } else if (tableName === 'smsRequests') {
-        setSmsRequests((prev) => 
-          prev.map(item => 
-            item.id === recordId 
-              ? { ...item, fields: { ...item.fields, Completed: !currentValue } } 
-              : item
-          )
-        );
-      } else if (tableName === 'avRequests') {
-        setAvRequests((prev) => 
-          prev.map(item => 
-            item.id === recordId 
-              ? { ...item, fields: { ...item.fields, Completed: !currentValue } } 
-              : item
-          )
-        );
-      } else if (tableName === 'flyerReviews') {
-        setFlyerReviews((prev) => 
-          prev.map(item => 
-            item.id === recordId 
-              ? { ...item, fields: { ...item.fields, Completed: !currentValue } } 
-              : item
-          )
-        );
-      } else if (tableName === 'graphicDesign') {
-        setGraphicDesign((prev) => 
-          prev.map(item => 
-            item.id === recordId 
-              ? { ...item, fields: { ...item.fields, Completed: !currentValue } } 
-              : item
-          )
-        );
-      }
-
-      // Update in Airtable
-      const res = await fetch('/api/admin/markCompleted', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          table: tableName,
-          recordId,
-          completed: !currentValue,
-        }),
-      });
-      
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || `Failed to update status (${res.status})`);
-      }
-    } catch (err: any) {
-      console.error('Error updating completed status:', err);
-      setErrorMessage(err.message || 'Failed to update status');
-      // Revert UI if the API call failed
-      fetchAllRequests();
-    }
-  }
-
-  async function handleOverrideStatus(recordId: string, newStatus: string) {
-    try {
-      // Optimistic UI update
-      setAnnouncements((prev) => 
-        prev.map(item => 
-          item.id === recordId 
-            ? { ...item, fields: { ...item.fields, overrideStatus: newStatus } } 
-            : item
-        )
-      );
-
-      const res = await fetch('/api/admin/updateOverrideStatus', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ recordId, overrideStatus: newStatus }),
-      });
-      
-      if (!res.ok) {
-        throw new Error('Failed to update override status');
-      }
-    } catch (err: any) {
-      console.error(err);
-      setErrorMessage(err.message);
-      // Revert UI if the API call failed
-      fetchAllRequests();
-    }
-  }
-
-  async function handleUpdateStatus(recordId: string, newStatus: string) {
-    try {
-      // Optimistic UI update
-      setGraphicDesign((prev) => 
-        prev.map(item => 
-          item.id === recordId 
-            ? { ...item, fields: { ...item.fields, Status: newStatus } } 
-            : item
-        )
-      );
-      const res = await fetch('/api/admin/updateDesignStatus', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ recordId, status: newStatus }),
-      });
-      
-      if (!res.ok) {
-        throw new Error('Failed to update design status');
-      }
-    } catch (err: any) {
-      console.error(err);
-      setErrorMessage(err.message);
-      // Revert UI if the API call failed
-      fetchAllRequests();
-    }
-  }
-
-  // Handle calendar checkbox toggle
-  function handleToggleCalendar(recordId: string, isChecked: boolean) {
-    setCalendarMap((prev) => ({
-      ...prev,
-      [recordId]: isChecked,
-    }));
-  }
-
-  // Process adding selected announcements to the calendar
-  async function handleAddToCalendar() {
-    // Get the selected record IDs
-    const selectedIds: string[] = [];
-    announcements.forEach((r) => {
-      if (calendarMap[r.id]) {
-        selectedIds.push(r.id);
-      }
-    });
-    
-    if (!selectedIds.length) {
-      setErrorMessage('No items selected for calendar!');
-      return;
-    }
-    
-    setCreatingEvents(true);
-    setErrorMessage('');
-    setSuccessMessage('');
-    setCalendarResults(null);
-    
-    try {
-      const res = await fetch('/api/calendar/add-events', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ recordIds: selectedIds }),
-      });
-      
-      if (!res.ok) {
-        throw new Error('Failed to create events');
-      }
-      
-      const data = await res.json();
-      
-      if (data.success) {
-        setSuccessMessage(`Successfully created ${data.results.length} events${data.errors.length > 0 ? ` (with ${data.errors.length} errors)` : ''}!`);
-        setCalendarResults(data.results);
-        
-        // Clear checkboxes for successful items
-        const newCalendarMap = { ...calendarMap };
-        data.results.forEach((result: any) => {
-          delete newCalendarMap[result.recordId];
-        });
-        setCalendarMap(newCalendarMap);
-      } else {
-        throw new Error(data.error || 'Failed to create events');
-      }
-    } catch (err: any) {
-      console.error('Error adding to calendar:', err);
-      setErrorMessage('Error creating events: ' + (err as Error).message);
-    } finally {
-      setCreatingEvents(false);
-    }
-  }
-
-  // Search every field on the record (name, email, ministry, description,
-  // page, event name, message body, etc.). Multiple words all have to match
-  // somewhere on the record.
-  function filterRecords<T extends AdminRecord>(records: T[], query: string): T[] {
-    const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
-    if (!terms.length) return records;
-
-    return records.filter((record) => {
-      const haystack = Object.values(record.fields)
-        .map((value) => {
-          if (value == null) return '';
-          if (typeof value === 'object') return JSON.stringify(value);
-          return String(value);
-        })
-        .join(' ')
-        .toLowerCase();
-
-      return terms.every((term) => haystack.includes(term));
-    });
-  }
-  
-  // Apply filters and search to get displayed records
-  function getFilteredRecords() {
-    let filteredAnnouncements = [...announcements];
-    let filteredWebsiteUpdates = [...websiteUpdates];
-    let filteredSmsRequests = [...smsRequests];
-    let filteredAvRequests = [...avRequests];
-    let filteredFlyerReviews = [...flyerReviews];
-    let filteredGraphicDesign = [...graphicDesign];
-    
-    // Apply hide completed filter
-    if (hideCompleted) {
-      filteredAnnouncements = filteredAnnouncements.filter(r => !r.fields.Completed);
-      filteredWebsiteUpdates = filteredWebsiteUpdates.filter(r => !r.fields.Completed);
-      filteredSmsRequests = filteredSmsRequests.filter(r => !r.fields.Completed);
-      filteredAvRequests = filteredAvRequests.filter(r => !r.fields.Completed);
-      filteredFlyerReviews = filteredFlyerReviews.filter(r => !r.fields.Completed);
-      filteredGraphicDesign = filteredGraphicDesign.filter(r => !r.fields.Completed);
-    }
-    
-    // Apply search query
-    if (searchQuery) {
-      filteredAnnouncements = filterRecords(filteredAnnouncements, searchQuery);
-      filteredWebsiteUpdates = filterRecords(filteredWebsiteUpdates, searchQuery);
-      filteredSmsRequests = filterRecords(filteredSmsRequests, searchQuery);
-      filteredAvRequests = filterRecords(filteredAvRequests, searchQuery);
-      filteredFlyerReviews = filterRecords(filteredFlyerReviews, searchQuery);
-      filteredGraphicDesign = filterRecords(filteredGraphicDesign, searchQuery);
-    }
-    
-    // Apply sorting based on active tab
-    if (activeTab === 'announcements') {
-      filteredAnnouncements = sortRecords(filteredAnnouncements);
-    } else if (activeTab === 'websiteUpdates') {
-      filteredWebsiteUpdates = sortRecords(filteredWebsiteUpdates);
-    } else if (activeTab === 'smsRequests') {
-      filteredSmsRequests = sortRecords(filteredSmsRequests);
-    } else if (activeTab === 'avRequests') {
-      filteredAvRequests = sortRecords(filteredAvRequests);
-    } else if (activeTab === 'flyerReviews') {
-      filteredFlyerReviews = sortRecords(filteredFlyerReviews);
-    } else if (activeTab === 'graphicDesign') {
-      filteredGraphicDesign = sortRecords(filteredGraphicDesign);
-    }
-    
-    return {
-      filteredAnnouncements,
-      filteredWebsiteUpdates,
-      filteredSmsRequests,
-      filteredAvRequests,
-      filteredFlyerReviews,
-      filteredGraphicDesign
-    };
-  }
-
-  // If loading or unauthenticated, show appropriate UI
-  if (status === 'loading') {
-    return (
-      <div className="flex items-center justify-center h-screen bg-gray-100 dark:bg-gray-900">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-sh-primary border-t-transparent mb-4"></div>
-          <p className="text-gray-800 dark:text-gray-200">Loading session...</p>
-        </div>
-      </div>
-    );
-  }
-  
-  if (status === 'unauthenticated') {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen bg-gray-100 dark:bg-gray-900">
-        <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow-md max-w-md w-full">
-          <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Sign In Required</h2>
-          <p className="text-gray-600 dark:text-gray-300 mb-6">
-            You must be signed in to view the admin dashboard.
-          </p>
-          <Button
-            onClick={() => signIn('azure-ad')}
-            className="w-full"
-            size="lg"
-          >
-            Sign In with Microsoft 365
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  // Get filtered records
-  const { 
-    filteredAnnouncements, 
-    filteredWebsiteUpdates, 
-    filteredSmsRequests,
-    filteredAvRequests,
-    filteredFlyerReviews,
-    filteredGraphicDesign
-  } = getFilteredRecords();
+  if (status === 'loading') return null;
+  if (status !== 'authenticated') return null;
 
   return (
-    <AdminLayout title="Dashboard">
-      {/* Dashboard Stats */}
-      <DashboardStats 
-        announcements={announcements}
-        websiteUpdates={websiteUpdates}
-        smsRequests={smsRequests}
-        avRequests={avRequests}
-        flyerReviews={flyerReviews}
-        graphicDesign={graphicDesign}
-        hideCompleted={hideCompleted}
-      />
-      
-      {/* Mobile-Optimized Toolbar */}
-      <div className="mb-6 sm:mb-8">
-        {/* Primary toolbar with search and important actions */}
-        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-200/60 dark:border-slate-700/60 p-4 sm:p-5 mb-4 sm:mb-5 transition-all" style={{ boxShadow: '0 2px 8px -2px rgba(31, 52, 109, 0.06)' }}>
-          {/* Mobile-first layout: Search first, then actions */}
-          <div className="space-y-4 sm:space-y-0 sm:flex sm:flex-col lg:flex-row lg:items-center gap-4 lg:gap-5">
-            {/* Search field - full width on mobile, constrained on desktop */}
-            <div className="relative flex-grow lg:max-w-sm">
-              <div className="absolute inset-y-0 left-0 pl-3 sm:pl-4 flex items-center pointer-events-none">
-                <MagnifyingGlassIcon className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
-              </div>
-              <input
-                type="text"
-                className="pl-10 sm:pl-11 pr-3 sm:pr-4 py-2.5 sm:py-3 w-full bg-gray-50 dark:bg-slate-700 border-0 shadow-inner rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 dark:text-white transition-all text-sm sm:text-base"
-                placeholder="Search communications..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
+    <InboxBody
+      view={view}
+      setView={setView}
+      q={q}
+      setQ={setQ}
+      queue={queue}
+      type={type}
+      selected={selected}
+      setSelected={setSelected}
+      close={close}
+      clearFilter={() => router.push('/admin')}
+    />
+  );
+}
 
-            {/* Action buttons and toggle - responsive layout */}
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-              {/* Main action buttons */}
-              <div className="flex flex-wrap gap-2 sm:gap-3">
-                <Button
-                  onClick={fetchAllRequests}
-                  variant="outline"
-                  className="rounded-lg sm:rounded-xl h-9 sm:h-11 text-xs sm:text-sm px-3 sm:px-4 flex-1 sm:flex-initial"
-                  disabled={loadingData}
-                  icon={<ArrowPathIcon className={`h-4 w-4 sm:h-5 sm:w-5 ${loadingData ? 'animate-spin' : ''}`} />}
-                >
-                  <span className="hidden xs:inline">Refresh</span>
-                </Button>
+function InboxBody(props: {
+  view: View;
+  setView: (v: View) => void;
+  q: string;
+  setQ: (s: string) => void;
+  queue: 'inbox' | 'week';
+  type: RequestType | null;
+  selected: string | null;
+  setSelected: (id: string | null) => void;
+  close: () => void;
+  clearFilter: () => void;
+}) {
+  const { view, setView, q, setQ, queue, type, selected, setSelected, close } = props;
+  const { requests, loading, error, refresh, loadedAt } = useRequests();
+  const weekend = nextWeekendIso();
 
-{/* Calendar button hidden for now */}
-              </div>
+  const visible = useMemo(() => {
+    let v = requests;
+    if (queue === 'week') v = v.filter((r) => r.status !== 'done' && inThisWeek(r, weekend));
+    else v = v.filter((r) => r.status !== 'done' || isRecent(r.completedAt || r.submittedAt, 14));
+    if (type) v = v.filter((r) => r.type === type);
+    if (q.trim()) {
+      const s = q.trim().toLowerCase();
+      v = v.filter((r) => `${r.title} ${r.requester} ${r.ministry} ${r.body} ${REQUEST_TYPES[r.type].label}`.toLowerCase().includes(s));
+    }
+    return v;
+  }, [requests, queue, type, q, weekend]);
 
-              {/* Hide completed toggle - optimized for mobile */}
-              <div className="flex items-center justify-center sm:justify-start p-1.5 bg-gray-50 dark:bg-slate-700 rounded-lg sm:rounded-xl">
-                <div className="relative inline-flex items-center cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    id="hideCompleted" 
-                    className="sr-only peer" 
-                    checked={hideCompleted}
-                    onChange={() => setHideCompleted(!hideCompleted)}
-                  />
-                  <div className="w-10 h-5 sm:w-12 sm:h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer dark:bg-slate-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 sm:after:h-5 sm:after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                  <span className="ml-2 sm:ml-3 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
-                    <span className="hidden sm:inline">Hide Completed</span>
-                    <span className="sm:hidden">Hide Done</span>
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+  const open = visible.filter((r) => r.status !== 'done');
+  const waiting = open.filter((r) => r.status === 'approval').length;
+  const sel = selected ? requests.find((r) => r.id === selected) || null : null;
 
-        {/* Mobile-Optimized Secondary toolbar with sorting options */}
-        <div className="bg-[hsl(40,33%,98%)] dark:bg-slate-800/50 backdrop-blur-lg rounded-2xl border border-gray-200/40 dark:border-slate-700/40 p-3 sm:py-3 sm:px-5 transition-all">
-          {/* Mobile: Vertical layout, Desktop: Horizontal layout */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-              <span className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">Sort by:</span>
-              
-              <div className="flex bg-gray-50 dark:bg-slate-700 rounded-lg sm:rounded-xl p-1 overflow-x-auto">
-                <button
-                  onClick={() => handleSortChange('age')}
-                  className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm rounded-md sm:rounded-lg flex items-center transition-all whitespace-nowrap ${
-                    sortField === 'age' 
-                      ? 'bg-blue-600 text-white shadow-md' 
-                      : 'hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-300'
-                  }`}
-                >
-                  Age
-                  {sortField === 'age' && (
-                    <span className="ml-1 sm:ml-1.5">
-                      {sortDirection === 'asc' ? <ArrowUpIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> : <ArrowDownIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />}
-                    </span>
-                  )}
-                </button>
-                
-                <button
-                  onClick={() => handleSortChange('name')}
-                  className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm rounded-md sm:rounded-lg flex items-center mx-1 transition-all whitespace-nowrap ${
-                    sortField === 'name' 
-                      ? 'bg-blue-600 text-white shadow-md' 
-                      : 'hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-300'
-                  }`}
-                >
-                  Name
-                  {sortField === 'name' && (
-                    <span className="ml-1 sm:ml-1.5">
-                      {sortDirection === 'asc' ? <ArrowUpIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> : <ArrowDownIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />}
-                    </span>
-                  )}
-                </button>
-                
-                <button
-                  onClick={() => handleSortChange('date')}
-                  className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm rounded-md sm:rounded-lg flex items-center transition-all whitespace-nowrap ${
-                    sortField === 'date' 
-                      ? 'bg-blue-600 text-white shadow-md' 
-                      : 'hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-300'
-                  }`}
-                >
-                  <span className="hidden sm:inline">Event Date</span>
-                  <span className="sm:hidden">Date</span>
-                  {sortField === 'date' && (
-                    <span className="ml-1 sm:ml-1.5">
-                      {sortDirection === 'asc' ? <ArrowUpIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> : <ArrowDownIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />}
-                    </span>
-                  )}
-                </button>
-              </div>
-            </div>
-            
-            <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 flex items-center justify-center sm:justify-end">
-              <span className="hidden sm:inline">Showing</span> 
-              <span className="ml-1 font-medium text-blue-600 dark:text-blue-400">
-                {
-                  activeTab === 'announcements' ? filteredAnnouncements.length :
-                  activeTab === 'websiteUpdates' ? filteredWebsiteUpdates.length :
-                  activeTab === 'smsRequests' ? filteredSmsRequests.length :
-                  activeTab === 'avRequests' ? filteredAvRequests.length :
-                  activeTab === 'flyerReviews' ? filteredFlyerReviews.length :
-                  filteredGraphicDesign.length
-                }
-              </span> 
-              <span className="ml-1 hidden sm:inline">items</span>
-              <span className="ml-1 sm:hidden">found</span>
-            </div>
-          </div>
-        </div>
-      </div>
+  const title = type ? REQUEST_TYPES[type].plural : queue === 'week' ? `This weekend · ${weekendLabel(weekend)}` : 'Inbox';
+  const subtitle = loading && !requests.length
+    ? 'Loading…'
+    : `${open.length} open${waiting ? ` · ${waiting} waiting on approval` : ''}${queue === 'inbox' && !type ? ' · bulletin closes Monday at noon' : ''}`;
 
-      {/* Mobile-Optimized Navigation Tabs */}
-      <div className="mb-6 sm:mb-8 overflow-x-auto">
-        <div className="min-w-max">
-          <nav className="flex space-x-1 sm:space-x-2 bg-white dark:bg-slate-800 p-2 rounded-2xl border border-gray-200/60 dark:border-slate-700/60" style={{ boxShadow: '0 2px 8px -2px rgba(31, 52, 109, 0.06)' }}>
-            {[
-              { id: 'announcements', label: 'Announcements', shortLabel: 'Announce', count: filteredAnnouncements.length, icon: <MegaphoneIcon className="h-3 w-3 sm:h-4 sm:w-4" /> },
-              { id: 'websiteUpdates', label: 'Website Updates', shortLabel: 'Website', count: filteredWebsiteUpdates.length, icon: <GlobeAltIcon className="h-3 w-3 sm:h-4 sm:w-4" /> },
-              { id: 'smsRequests', label: 'SMS Requests', shortLabel: 'SMS', count: filteredSmsRequests.length, icon: <ChatBubbleLeftRightIcon className="h-3 w-3 sm:h-4 sm:w-4" /> },
-              { id: 'avRequests', label: 'A/V Requests', shortLabel: 'A/V', count: filteredAvRequests.length, icon: <VideoCameraIcon className="h-3 w-3 sm:h-4 sm:w-4" /> },
-              { id: 'flyerReviews', label: 'Flyer Reviews', shortLabel: 'Flyers', count: filteredFlyerReviews.length, icon: <DocumentTextIcon className="h-3 w-3 sm:h-4 sm:w-4" /> },
-              { id: 'graphicDesign', label: 'Graphic Design', shortLabel: 'Design', count: filteredGraphicDesign.length, icon: <PencilSquareIcon className="h-3 w-3 sm:h-4 sm:w-4" /> }
-            ].map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as TableName)}
-                className={`whitespace-nowrap py-2 px-2 sm:px-4 rounded-md sm:rounded-lg font-medium text-xs sm:text-sm flex items-center transition-all ${
-                  activeTab === tab.id
-                    ? 'bg-blue-600 text-white shadow-md'
-                    : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-700'
-                }`}
-              >
-                <span className="mr-1 sm:mr-1.5">{tab.icon}</span>
-                <span className="hidden sm:inline">{tab.label}</span>
-                <span className="sm:hidden">{tab.shortLabel}</span>
-                {tab.count > 0 && (
-                  <span className={`ml-1 sm:ml-1.5 px-1.5 py-0.5 rounded-full text-xs ${
-                    activeTab === tab.id 
-                      ? 'bg-white/20 text-white'
-                      : 'bg-gray-200 dark:bg-slate-600 text-gray-800 dark:text-gray-300'
-                  }`}>
-                    {tab.count}
-                  </span>
-                )}
-              </button>
-            ))}
-          </nav>
-        </div>
-      </div>
-
-      {/* Error messages */}
-      {errorMessage && (
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg mb-6 overflow-hidden">
-          <div className="bg-red-500 h-2"></div>
-          <div className="p-5 flex items-start">
-            <div className="flex-shrink-0 bg-red-100 dark:bg-red-900/30 p-2 rounded-full mr-4">
-              <svg className="h-6 w-6 text-red-600 dark:text-red-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div className="flex-1">
-              <h3 className="text-lg font-medium text-red-800 dark:text-red-300 mb-1">Error</h3>
-              <p className="text-red-700 dark:text-red-300">{errorMessage}</p>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {/* Success messages */}
-      {successMessage && (
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg mb-6 overflow-hidden">
-          <div className="bg-green-500 h-2"></div>
-          <div className="p-5 flex items-start">
-            <div className="flex-shrink-0 bg-green-100 dark:bg-green-900/30 p-2 rounded-full mr-4">
-              <svg className="h-6 w-6 text-green-600 dark:text-green-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <div className="flex-1">
-              <h3 className="text-lg font-medium text-green-800 dark:text-green-300 mb-1">Success</h3>
-              <p className="text-green-700 dark:text-green-300">{successMessage}</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-{/* Calendar Results section hidden for now */}
-
-      {/* Loading indicator - modern pulse effect */}
-      {loadingData && (
-        <div className="flex flex-col justify-center items-center p-12">
-          <div className="relative">
-            <div className="h-16 w-16 rounded-full border-4 border-blue-200 dark:border-blue-900"></div>
-            <div className="absolute top-0 left-0 h-16 w-16 rounded-full border-t-4 border-blue-600 dark:border-blue-400 animate-spin"></div>
-          </div>
-          <p className="mt-4 text-gray-500 dark:text-gray-400">Loading data...</p>
-        </div>
-      )}
-
-      {/* No results message - styled */}
-      {!loadingData && 
-        filteredAnnouncements.length === 0 && 
-        filteredWebsiteUpdates.length === 0 && 
-        filteredSmsRequests.length === 0 &&
-        filteredAvRequests.length === 0 &&
-        filteredFlyerReviews.length === 0 &&
-        filteredGraphicDesign.length === 0 && (
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-12 text-center flex flex-col items-center justify-center">
-          <div className="bg-gray-50 dark:bg-slate-700 rounded-full p-6 mb-6 relative">
-            <div className="absolute inset-0 bg-blue-500/10 dark:bg-blue-500/20 rounded-full animate-pulse" style={{ animationDuration: '3s' }}></div>
-            <MagnifyingGlassIcon className="h-12 w-12 text-gray-400 dark:text-gray-500 relative z-10" />
-          </div>
-          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No items found</h3>
-          <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-md">
-            {searchQuery ? 
-              "Your search didn't match any items. Try adjusting your search terms or filters." : 
-              "There are no items to display at this time."}
-          </p>
-          <Button
-            onClick={() => {
-              setSearchQuery('');
-              setHideCompleted(false);
-            }}
-            variant="outline"
-            className="rounded-xl px-6 py-3"
-            icon={<AdjustmentsHorizontalIcon className="h-5 w-5 mr-2" />}
-          >
-            Reset Filters
+  return (
+    <AdminLayout
+      title={title}
+      subtitle={subtitle}
+      actions={
+        <>
+          <Button variant="ghost" onClick={() => refresh()} icon={<ArrowPathIcon className={loading ? 'animate-spin' : ''} />} title={loadedAt ? `Updated ${relativeTime(loadedAt.toISOString())}` : undefined}>
+            <span className="hidden sm:inline">Refresh</span>
           </Button>
+          <Link href="/" className="inline-flex h-8 items-center gap-1.5 rounded bg-navy px-3 text-sm font-medium text-on-navy hover:bg-navy-hover">
+            <PlusIcon className="h-4 w-4" />
+            <span className="hidden sm:inline">New request</span>
+          </Link>
+        </>
+      }
+      views={
+        <>
+          <ViewTab on={view === 'board'} onClick={() => setView('board')}>Board</ViewTab>
+          <ViewTab on={view === 'list'} onClick={() => setView('list')} n={visible.length}>List</ViewTab>
+          <ViewTab on={view === 'week'} onClick={() => setView('week')}>Week run-sheet</ViewTab>
+          <ViewTools>
+            <SearchInput value={q} onChange={setQ} placeholder="Search requests" className="hidden md:flex" />
+            {type && (
+              <Button variant="ghost" onClick={props.clearFilter}>
+                Clear filter
+              </Button>
+            )}
+          </ViewTools>
+        </>
+      }
+      panel={sel ? <RequestPanel request={sel} onClose={close} /> : null}
+    >
+      {error && (
+        <div className="mb-4">
+          <Notice tone="error">{error}</Notice>
         </div>
       )}
-      
-      {/* Announcements Section */}
-            {activeTab === 'announcements' && (
-        <section id="announcements" className="mb-8">
-          <div className="space-y-4">
-            {filteredAnnouncements.length > 0 ? (
-              filteredAnnouncements.map((record) => (
-                <AnnouncementCard
-                  key={record.id}
-                  record={record}
-                  calendarMap={calendarMap}
-                  onToggleCalendar={handleToggleCalendar}
-                  onOverrideStatus={handleOverrideStatus}
-                  onToggleCompleted={handleCompleted}
-                />
-              ))
-            ) : (
-              <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow">
-                <p className="text-gray-500 dark:text-gray-400">No announcements available</p>
-              </div>
-            )}
-          </div>
-        </section>
-      )}
+      <div className="mb-3 md:hidden">
+        <SearchInput value={q} onChange={setQ} placeholder="Search requests" hotkey={null} className="w-full" />
+      </div>
 
-      {/* Website Updates Section */}
-      {activeTab === 'websiteUpdates' && (
-        <section id="websiteUpdates" className="mb-8">
-          <div className="space-y-4">
-            {filteredWebsiteUpdates.length > 0 ? (
-              filteredWebsiteUpdates.map((record) => (
-                <WebsiteUpdateCard
-                  key={record.id}
-                  record={record}
-                  onToggleCompleted={handleCompleted}
-                />
-              ))
-            ) : (
-              <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow">
-                <p className="text-gray-500 dark:text-gray-400">No website updates available</p>
-              </div>
-            )}
-          </div>
-        </section>
-      )}
+      {view === 'board' && <Board items={visible} selected={selected} onSelect={setSelected} />}
+      {view === 'list' && <List items={visible} selected={selected} onSelect={setSelected} />}
+      {view === 'week' && <Week items={requests.filter((r) => (type ? r.type === type : true))} weekend={weekend} onSelect={setSelected} />}
 
-      {/* SMS Requests Section */}
-      {activeTab === 'smsRequests' && (
-        <section id="smsRequests" className="mb-8">
-          <div className="space-y-4">
-            {filteredSmsRequests.length > 0 ? (
-              filteredSmsRequests.map((record) => (
-                <SmsRequestCard
-                  key={record.id}
-                  record={record}
-                  onToggleCompleted={handleCompleted}
-                />
-              ))
-            ) : (
-              <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow">
-                <p className="text-gray-500 dark:text-gray-400">No SMS requests available</p>
-              </div>
-            )}
-          </div>
-        </section>
-      )}
-
-      {/* A/V Requests Section */}
-      {activeTab === 'avRequests' && (
-        <section id="avRequests" className="mb-8">
-          <div className="space-y-4">
-            {filteredAvRequests.length > 0 ? (
-              filteredAvRequests.map((record) => (
-                <AVRequestCard
-                  key={record.id}
-                  record={record}
-                  onToggleCompleted={handleCompleted}
-                />
-              ))
-            ) : (
-              <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow">
-                <p className="text-gray-500 dark:text-gray-400">No A/V requests available</p>
-              </div>
-            )}
-          </div>
-        </section>
-      )}
-
-      {/* Flyer Reviews Section */}
-      {activeTab === 'flyerReviews' && (
-        <section id="flyerReviews" className="mb-8">
-          <div className="space-y-4">
-            {filteredFlyerReviews.length > 0 ? (
-              filteredFlyerReviews.map((record) => (
-                <FlyerReviewCard
-                  key={record.id}
-                  record={record}
-                  onToggleCompleted={handleCompleted}
-                />
-              ))
-            ) : (
-              <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow">
-                <p className="text-gray-500 dark:text-gray-400">No flyer reviews available</p>
-              </div>
-            )}
-          </div>
-        </section>
-      )}
-
-      {/* Graphic Design Section */}
-      {activeTab === 'graphicDesign' && (
-        <section id="graphicDesign" className="mb-8">
-          <div className="space-y-4">
-            {filteredGraphicDesign.length > 0 ? (
-              filteredGraphicDesign.map((record) => (
-                <GraphicDesignCard
-                  key={record.id}
-                  record={record}
-                  onToggleCompleted={handleCompleted}
-                  onUpdateStatus={handleUpdateStatus}
-                />
-              ))
-            ) : (
-              <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow">
-                <p className="text-gray-500 dark:text-gray-400">No graphic design requests available</p>
-              </div>
-            )}
-          </div>
-        </section>
+      {!loading && !visible.length && !error && (
+        <p className="py-10 text-center text-sm text-ink-3">Nothing here{q ? ' that matches' : ''}.</p>
       )}
     </AdminLayout>
+  );
+}
+
+/* ---------------- helpers ---------------- */
+
+function isRecent(iso: string | null, days: number) {
+  if (!iso) return false;
+  return Date.now() - new Date(iso).getTime() < days * 86400000;
+}
+
+function inThisWeek(r: PortalRequest, weekend: string) {
+  if (r.type === 'announcement') return sameWeekend(r.runsOn, weekend);
+  if (!r.runsOn) return false;
+  const end = new Date(`${weekend}T12:00:00Z`);
+  end.setUTCDate(end.getUTCDate() + 1);
+  return r.runsOn <= end.toISOString().slice(0, 10);
+}
+
+function Who({ r }: { r: PortalRequest }) {
+  return (
+    <span className="text-xs text-ink-3">
+      {r.requester}
+      {r.ministry ? ` · ${r.ministry}` : ''}
+    </span>
+  );
+}
+
+/* ---------------- board ---------------- */
+
+function Board({ items, selected, onSelect }: { items: PortalRequest[]; selected: string | null; onSelect: (id: string) => void }) {
+  const fresh = items.filter((r) => r.status === 'new');
+  const cols: RequestStatus[] = ['review', 'approval', 'approved', 'scheduled', 'done'];
+  return (
+    <>
+      {fresh.length > 0 && (
+        <div className="mb-3.5 rounded-lg border border-dashed border-line-2 bg-surface px-3 py-2.5">
+          <h3 className="mb-1 flex items-center gap-2 text-[12.5px] font-semibold text-ink-2">
+            Just arrived <span className="font-medium text-ink-3">{fresh.length}</span>
+          </h3>
+          {fresh.map((r, i) => (
+            <div
+              key={r.id}
+              className={`grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 py-2 sm:grid-cols-[auto_1fr_auto_auto] ${i ? 'border-t border-line' : ''}`}
+            >
+              <span className="col-span-2 sm:col-span-1">
+                <TypeMark type={r.type} />
+              </span>
+              <button type="button" onClick={() => onSelect(r.id)} className="min-w-0 text-left">
+                <div className="truncate text-[13.5px] font-semibold">{r.title}</div>
+                <div className="text-xs text-ink-3">
+                  {r.requester}
+                  {r.ministry ? ` · ${r.ministry}` : ''} · {relativeTime(r.submittedAt)}
+                </div>
+              </button>
+              <Avatar name={r.requester} />
+              <div className="col-span-2 flex gap-1.5 sm:col-span-1">
+                <Button size="sm" variant="secondary" onClick={() => onSelect(r.id)}>
+                  Open
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))] 2xl:[grid-auto-flow:column] 2xl:[grid-auto-columns:minmax(236px,1fr)] 2xl:[grid-template-columns:none]">
+        {cols.map((c) => {
+          const list = items.filter((r) => r.status === c);
+          return (
+            <div key={c} className="min-h-[120px] rounded-lg bg-black/[.025] p-2 dark:bg-white/[.03]">
+              <h3 className="mb-2 flex items-center gap-2 px-1 py-0.5 text-[12.5px] font-semibold text-ink-2">
+                <i className={`h-2 w-2 rounded-full ${STATUS_DOT[c]}`} />
+                {STATUS_LABEL[c]}
+                <span className="font-medium text-ink-3">{list.length}</span>
+              </h3>
+              {list.length ? (
+                list.map((r) => <Card key={r.id} r={r} selected={selected === r.id} onSelect={onSelect} />)
+              ) : (
+                <div className="px-1 py-1.5 text-[12.5px] text-ink-3">Nothing here</div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
+function Card({ r, selected, onSelect }: { r: PortalRequest; selected: boolean; onSelect: (id: string) => void }) {
+  const tags: Array<{ t: string; warn?: boolean }> = [];
+  if (r.calendar === 'requested') tags.push({ t: 'calendar draft' });
+  if (r.status === 'approval') tags.push({ t: r.ministry || 'needs coordinator', warn: true });
+  if (r.urgent) tags.push({ t: 'urgent', warn: true });
+  if (r.type === 'announcement' && r.words > 90) tags.push({ t: `${r.words} words`, warn: true });
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(r.id)}
+      className={`mb-2 block w-full rounded-[7px] border bg-surface px-[11px] pb-2 pt-2.5 text-left shadow-[0_1px_1px_rgba(0,0,0,.03)] ${
+        selected ? 'border-navy ring-1 ring-navy' : 'border-line hover:border-line-2'
+      }`}
+    >
+      <div className="mb-1 flex items-center justify-between gap-2">
+        <TypeMark type={r.type} />
+        {r.runsOn && (
+          <span className="tnum whitespace-nowrap text-xs text-ink-3">
+            {r.type === 'announcement' ? 'runs ' : ''}
+            {r.runsLabel}
+          </span>
+        )}
+      </div>
+      <p className="mb-0.5 text-[13.5px] font-semibold leading-snug">{r.title}</p>
+      <p className="mb-2">
+        <Who r={r} />
+      </p>
+      {tags.length > 0 && (
+        <div className="mb-2 flex flex-wrap gap-1">
+          {tags.map((t) => (
+            <Tag key={t.t} tone={t.warn ? 'warn' : 'neutral'}>
+              {t.t}
+            </Tag>
+          ))}
+        </div>
+      )}
+      <div className="flex items-center gap-2 text-xs text-ink-3">
+        <Avatar name={r.requester} />
+        <Platforms platforms={r.platforms} />
+        <span className="flex-1" />
+        {r.files.length > 0 && (
+          <span className="inline-flex items-center gap-0.5" title={`${r.files.length} file${r.files.length > 1 ? 's' : ''}`}>
+            <PaperClipIcon className="h-3.5 w-3.5" /> {r.files.length}
+          </span>
+        )}
+        <span className="tnum whitespace-nowrap">{relativeTime(r.submittedAt)}</span>
+      </div>
+    </button>
+  );
+}
+
+/* ---------------- list ---------------- */
+
+const GRID = 'grid-cols-[minmax(240px,2fr)_minmax(150px,1.2fr)_140px_90px_80px_70px]';
+
+function List({ items, selected, onSelect }: { items: PortalRequest[]; selected: string | null; onSelect: (id: string) => void }) {
+  const groups: RequestStatus[] = ['new', 'review', 'approval', 'approved', 'scheduled', 'done'];
+  return (
+    <div className="overflow-hidden rounded-lg border border-line bg-surface">
+      <div className="overflow-x-auto">
+        <div className="min-w-[820px]">
+          <div className={`grid ${GRID} h-[34px] items-center gap-3 border-b border-line px-3 text-xs text-ink-3`}>
+            <span>Request</span>
+            <span>From</span>
+            <span>Status</span>
+            <span>Runs</span>
+            <span className="text-right">Sent</span>
+            <span />
+          </div>
+          {groups.map((g) => {
+            const l = items.filter((r) => r.status === g);
+            if (!l.length) return null;
+            return (
+              <div key={g}>
+                <div className="flex items-center gap-2 border-b border-line bg-surface-2 px-3 py-2 text-[12.5px] font-semibold text-ink-2">
+                  <i className={`h-2 w-2 rounded-full ${STATUS_DOT[g]}`} />
+                  {STATUS_LABEL[g]}
+                  <span className="font-medium text-ink-3">{l.length}</span>
+                </div>
+                {l.map((r) => (
+                  <button
+                    key={r.id}
+                    type="button"
+                    onClick={() => onSelect(r.id)}
+                    className={`grid ${GRID} h-11 w-full items-center gap-3 border-b border-line px-3 text-left ${
+                      selected === r.id ? 'bg-navy-soft' : 'hover:bg-surface-2'
+                    }`}
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-[13.5px] font-semibold">{r.title}</span>
+                      <span className="block truncate text-xs text-ink-3">
+                        <TypeMark type={r.type} />
+                        {r.page ? ` · ${r.page}` : ''}
+                        {r.calendar !== 'none' ? ` · calendar ${r.calendar}` : ''}
+                      </span>
+                    </span>
+                    <span className="inline-flex min-w-0 items-center gap-1.5 text-sm text-ink-2">
+                      <Avatar name={r.requester} />
+                      <span className="truncate">{r.requester}</span>
+                    </span>
+                    <span>
+                      <StatusPill status={r.status} label={STATUS_LABEL[r.status]} />
+                    </span>
+                    <span className="tnum text-[12.5px] text-ink-2">{r.runsLabel}</span>
+                    <span className="tnum text-right text-[12.5px] text-ink-2">{relativeTime(r.submittedAt)}</span>
+                    <span>
+                      <Platforms platforms={r.platforms} />
+                    </span>
+                  </button>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- week run-sheet ---------------- */
+
+function Week({ items, weekend, onSelect }: { items: PortalRequest[]; weekend: string; onSelect: (id: string) => void }) {
+  const wk = items.filter((r) => r.type === 'announcement' && r.status !== 'done' && sameWeekend(r.runsOn, weekend));
+  const has = (r: PortalRequest, k: string) => r.platforms.some((p) => p.toLowerCase().includes(k));
+  const bulletin = wk.filter((r) => has(r, 'bulletin'));
+  const email = wk.filter((r) => has(r, 'email'));
+  const screens = wk.filter((r) => has(r, 'screen'));
+  const texts = items.filter((r) => r.type === 'text' && r.status !== 'done' && inThisWeek(r, weekend));
+  const words = bulletin.reduce((n, r) => n + r.words, 0);
+
+  const sat = new Date(`${weekend}T12:00:00Z`);
+  const mon = new Date(sat);
+  mon.setUTCDate(sat.getUTCDate() - 5);
+  const wed = new Date(sat);
+  wed.setUTCDate(sat.getUTCDate() - 3);
+  const fmt = (d: Date) => d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC' });
+
+  const Row = ({ r, k }: { r: PortalRequest; k: string }) => (
+    <li>
+      <button
+        type="button"
+        onClick={() => onSelect(r.id)}
+        className="grid w-full grid-cols-[22px_1fr_auto] items-center gap-2.5 px-3 py-[7px] text-left text-sm hover:bg-surface-2"
+      >
+        <Avatar name={r.requester} />
+        <span className="flex min-w-0 items-center gap-1.5">
+          <span className="truncate">{r.title}</span>
+          {r.status === 'approval' && <Tag tone="warn">needs approval</Tag>}
+          {r.status === 'new' && <Tag>new</Tag>}
+        </span>
+        <span className="tnum text-xs text-ink-3">{k}</span>
+      </button>
+    </li>
+  );
+
+  const Slot = ({ title, sub, cap, n, children, foot }: { title: string; sub?: string; cap: string; n: React.ReactNode; children: React.ReactNode; foot?: React.ReactNode }) => (
+    <div className="overflow-hidden rounded-lg border border-line bg-surface">
+      <h3 className="flex items-center gap-2 border-b border-line px-3 py-2.5 text-sm font-semibold">
+        {title} {sub && <small className="font-normal text-ink-3">· {sub}</small>}
+        <span className="ml-auto text-xs font-medium text-ink-3">{n}</span>
+      </h3>
+      <p className="border-b border-line bg-surface-2 px-3 py-1.5 text-xs text-ink-3">{cap}</p>
+      <ol className="py-1">{children}</ol>
+      {foot && <div className="border-t border-line px-3 pb-2.5 pt-1.5 text-xs text-ink-3">{foot}</div>}
+    </div>
+  );
+  const Empty = ({ text }: { text: string }) => <li className="px-3 py-2 text-sm text-ink-3">{text}</li>;
+
+  return (
+    <div className="grid gap-3 lg:grid-cols-3">
+      <Slot
+        title="Bulletin"
+        sub={weekendLabel(weekend)}
+        n={`${bulletin.length} item${bulletin.length === 1 ? '' : 's'}`}
+        cap={`Closes ${fmt(mon)}, noon`}
+        foot={
+          <>
+            {words} words in total · 90 per item
+            {bulletin.some((r) => r.words > 90) && <span className="text-status-approval-t"> · some run long</span>}
+          </>
+        }
+      >
+        {bulletin.length ? bulletin.map((r) => <Row key={r.id} r={r} k={`${r.words} w`} />) : <Empty text="Nothing for the bulletin yet" />}
+      </Slot>
+      <Slot
+        title="Wednesday email"
+        sub={wed.toLocaleDateString('en-US', { month: 'long', day: 'numeric', timeZone: 'UTC' })}
+        n={email.length}
+        cap="One lead item, the rest get a line and a link"
+      >
+        {email.length ? email.map((r, i) => <Row key={r.id} r={r} k={i === 0 ? 'lead' : 'line'} />) : <Empty text="Nothing for the email yet" />}
+      </Slot>
+      <Slot title="Church screens" n={screens.length} cap="Rolling · dated slides come down Monday">
+        {screens.length ? screens.map((r) => <Row key={r.id} r={r} k="slide" />) : <Empty text="Nothing for the screens yet" />}
+      </Slot>
+      {texts.length > 0 && (
+        <Slot title="Texts this week" n={texts.length} cap="Requested send dates through the weekend">
+          {texts.map((r) => (
+            <Row key={r.id} r={r} k={r.runsLabel} />
+          ))}
+        </Slot>
+      )}
+    </div>
   );
 }

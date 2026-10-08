@@ -59,7 +59,7 @@ export const PUBLIC_STATUS_LABEL: Record<RequestStatus, string> = {
 
 export type ApiRecord = { id: string; fields: Record<string, any> };
 
-export type Request = {
+export type PortalRequest = {
   id: string;
   type: RequestType;
   /** which admin API table it came from (flyer reviews are a design type) */
@@ -73,6 +73,7 @@ export type Request = {
   approvalStatus?: string; // pending | approved | rejected
   completed: boolean;
   submittedAt: string | null; // ISO
+  completedAt: string | null; // ISO
   /** when it should run: the publication weekend for announcements, requested date for texts */
   runsOn: string | null; // YYYY-MM-DD
   runsLabel: string; // "Oct 10–11", "Oct 6", "—"
@@ -198,7 +199,7 @@ function statusOf(f: Record<string, any>, type: RequestType): RequestStatus {
   return 'review';
 }
 
-export function toRequest(table: ApiTable, rec: ApiRecord): Request {
+export function toRequest(table: ApiTable, rec: ApiRecord): PortalRequest {
   const f = rec.fields || {};
   const type = TABLE_TO_TYPE[table];
   const submittedAt = str(f['Submitted At'] || f['Created At']) || null;
@@ -223,8 +224,8 @@ export function toRequest(table: ApiTable, rec: ApiRecord): Request {
       break;
     case 'websiteUpdates':
       page = str(f['Page to Update']) || undefined;
-      title = page ? `${page}` : 'Website update';
       body = str(f.Description);
+      title = body.split(/[.!?\n]/)[0].slice(0, 80) || (page ? `Update ${page}` : 'Website update');
       break;
     case 'smsRequests':
       title = str(f['SMS Message']).slice(0, 80) || 'Text message';
@@ -269,7 +270,7 @@ export function toRequest(table: ApiTable, rec: ApiRecord): Request {
       break;
   }
 
-  const calendar: Request['calendar'] = f['WordPress Event ID']
+  const calendar: PortalRequest['calendar'] = f['WordPress Event ID']
     ? 'published'
     : f['Add to Events Calendar'] === 'Yes' || f['Add to Events Calendar'] === true
       ? 'requested'
@@ -288,6 +289,7 @@ export function toRequest(table: ApiTable, rec: ApiRecord): Request {
     approvalStatus: str(f['Approval Status']) || undefined,
     completed: f.Completed === true || f.Completed === 'Yes',
     submittedAt,
+    completedAt: str(f['Completed Date']) || null,
     runsOn,
     runsLabel,
     platforms: list(f.Platforms),
@@ -306,8 +308,8 @@ export function toRequest(table: ApiTable, rec: ApiRecord): Request {
 }
 
 /** Flatten the admin API payload into one list, newest first. */
-export function toRequests(payload: Partial<Record<ApiTable, ApiRecord[]>>): Request[] {
-  const out: Request[] = [];
+export function toRequests(payload: Partial<Record<ApiTable, ApiRecord[]>>): PortalRequest[] {
+  const out: PortalRequest[] = [];
   (Object.keys(payload) as ApiTable[]).forEach((table) => {
     if (!TABLE_TO_TYPE[table]) return;
     (payload[table] || []).forEach((rec) => out.push(toRequest(table, rec)));
