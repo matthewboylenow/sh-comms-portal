@@ -334,3 +334,73 @@ export function sameWeekend(a: string | null, b: string | null): boolean {
   if (!a || !b) return false;
   return weekendLabel(a) === weekendLabel(b);
 }
+
+/**
+ * A plain-text summary of a request with everything the office would pass
+ * along to the pastor: who sent it, when it runs, the event details, the
+ * links and files, the notes, and the text itself. Pastes cleanly into
+ * email or Teams.
+ */
+export function summarizeRequest(r: PortalRequest): string {
+  const f = r.raw.fields;
+  const lines: string[] = [];
+  const add = (label: string, value?: string | null) => {
+    if (value && String(value).trim()) lines.push(`${label}: ${String(value).trim()}`);
+  };
+
+  lines.push(r.title);
+  lines.push(`${REQUEST_TYPES[r.type].label} · ${STATUS_LABEL[r.status]}`);
+  lines.push('');
+  add('From', [r.requester, r.ministry].filter(Boolean).join(', '));
+  add('Email', r.email);
+  add('Sent', r.submittedAt ? new Date(r.submittedAt).toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' }) : '');
+
+  if (r.type === 'announcement') {
+    add('Runs', r.runsOn ? `Weekend of ${weekendLabel(r.runsOn)}` : '');
+    add('Where it runs', r.platforms.map((p) => (/email/i.test(p) ? 'Wednesday email' : /screen/i.test(p) ? 'Church screens' : p)).join(', '));
+    add('Event', r.eventLabel);
+    if (r.calendar === 'published') add('Parish calendar', r.wordpressEventUrl || 'Published');
+    else if (r.calendar === 'requested') add('Parish calendar', 'Requested, not yet published');
+    const links: Array<{ label?: string; url: string }> = Array.isArray(f['Sign Up Links']) ? f['Sign Up Links'] : [];
+    if (links.length) add('Sign-up', links.map((l) => (l.label ? `${l.label}: ${l.url}` : l.url)).join('; '));
+    else add('Sign-up', str(f['Sign Up URL']));
+    if (f['Requires Approval'] === true || f['Requires Approval'] === 'Yes') {
+      add('Ministry approval', r.approvalStatus === 'approved' ? `Approved${f['Approved By'] ? ` by ${f['Approved By']}` : ''}` : r.approvalStatus === 'rejected' ? 'Sent back' : 'Waiting on the coordinator');
+    }
+  } else if (r.type === 'text') {
+    add('Send on', r.runsLabel !== '—' ? r.runsLabel : '');
+  } else if (r.type === 'website') {
+    add('Page', r.page);
+    if (r.urgent) add('Urgent', 'Yes');
+  } else if (r.type === 'av') {
+    add('When', r.eventLabel);
+    add('Attendees', f['Expected Attendees'] ? String(f['Expected Attendees']) : '');
+    add('Livestream', f['Needs Livestream'] === true || f['Needs Livestream'] === 'Yes' ? 'Yes' : '');
+  } else if (r.type === 'design') {
+    add(r.table === 'graphicDesign' ? 'Needed by' : 'Event date', r.runsLabel !== '—' ? r.runsLabel : '');
+    add('Size', str(f['Required Size/Dimensions']));
+    add('Audience', str(f['Target Audience']));
+    if (r.urgent) add('Urgent', 'Yes');
+  }
+  if (r.forMsgr) add('Flagged', 'To review with Msgr. Tom');
+
+  if (r.body) {
+    lines.push('');
+    lines.push(r.type === 'announcement' ? `Text as submitted (${r.words} words):` : r.type === 'text' ? `Text (${r.chars} characters):` : 'Request:');
+    lines.push(r.body.trim());
+  }
+  if (r.notes) {
+    lines.push('');
+    lines.push('Notes to the office:');
+    lines.push(r.notes.trim());
+  }
+  if (r.files.length) {
+    lines.push('');
+    lines.push(r.files.length === 1 ? 'Attachment:' : 'Attachments:');
+    r.files.forEach((u) => {
+      const name = decodeURIComponent(u.split('/').pop() || u).replace(/^\d{10,}-/, '');
+      lines.push(`${name}: ${u}`);
+    });
+  }
+  return lines.join('\n');
+}

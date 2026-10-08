@@ -16,7 +16,7 @@ import CopyReviewPanel from './CopyReviewPanel';
 import CommentsSection from './CommentsSection';
 import { useRequests } from '../../context/RequestsContext';
 import { usePermissions } from '../../hooks/usePermissions';
-import { STATUS_LABEL, relativeTime, shortDate, type PortalRequest } from '../../lib/requests';
+import { STATUS_LABEL, relativeTime, shortDate, summarizeRequest, type PortalRequest } from '../../lib/requests';
 
 type Tab = 'details' | 'edit' | 'activity';
 
@@ -124,7 +124,17 @@ export default function RequestPanel({
       if (!res.ok) throw new Error('Could not update the design status');
     });
 
-  const copyText = () => navigator.clipboard?.writeText(r.body).catch(() => {});
+  const [copied, setCopied] = useState<'summary' | 'text' | null>(null);
+  const copy = (what: 'summary' | 'text') => {
+    const payload = what === 'summary' ? summarizeRequest(r) : r.body;
+    navigator.clipboard
+      ?.writeText(payload)
+      .then(() => {
+        setCopied(what);
+        setTimeout(() => setCopied(null), 2000);
+      })
+      .catch(() => setError('Could not copy. Your browser may be blocking the clipboard.'));
+  };
 
   const canApprove = permissions?.canAccessApprovals && r.type === 'announcement';
   const canCalendar = r.type === 'announcement' && r.calendar !== 'none';
@@ -186,9 +196,12 @@ export default function RequestPanel({
           {busy === 'flag' ? 'Saving…' : r.forMsgr ? 'Flagged for Msgr. Tom' : 'Review with Msgr. Tom'}
         </Button>
       )}
+      <Button variant="ghost" onClick={() => copy('summary')} title="Everything about this request, ready to paste into an email or Teams">
+        {copied === 'summary' ? 'Copied' : 'Copy summary'}
+      </Button>
       {r.body && (
-        <Button variant="ghost" onClick={copyText}>
-          Copy text
+        <Button variant="ghost" onClick={() => copy('text')} title="Just the submitted text">
+          {copied === 'text' ? 'Copied' : 'Copy text'}
         </Button>
       )}
     </div>
