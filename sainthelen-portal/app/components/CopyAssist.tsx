@@ -13,10 +13,8 @@ type CopyKind = 'announcement' | 'website_update';
 
 // Echoes the quick reference card in the Saint Helen Writing Guide
 const HINTS: Record<CopyKind, string> = {
-  announcement:
-    'Write it the way you’d tell a neighbor, and include the day, date, time, place, cost, and a contact name and email. We’ll edit for length and voice. Your facts and contact stay.',
-  website_update:
-    'Say which page, what should change, and the exact wording you’d like. Plain and specific beats polished. We’ll edit for voice, and your facts stay.',
+  announcement: 'We edit for length and voice. Your facts and contact stay.',
+  website_update: 'We edit for voice and house style. Your facts and links stay.',
 };
 
 const MIN_LENGTH = 30;
@@ -69,44 +67,44 @@ export default function CopyAssist({
   }
 
   return (
-    <div className="mt-2 space-y-2">
+    <div className="mt-1.5 space-y-2">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-        <p className="text-xs text-gray-500 dark:text-gray-400">{HINTS[kind]}</p>
+        <p className="text-xs text-ink-3">{HINTS[kind]}</p>
         <button
           type="button"
           onClick={tighten}
           disabled={loading || value.trim().length < MIN_LENGTH}
-          className="flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-sh-primary/40 text-sh-primary dark:text-white dark:border-gray-500 hover:bg-sh-primary/5 disabled:opacity-40 disabled:cursor-not-allowed"
+          className="inline-flex h-7 flex-shrink-0 items-center gap-1.5 rounded border border-line-2 bg-surface px-2.5 text-xs font-medium text-ink hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-40"
         >
           {loading ? <ArrowPathIcon className="w-4 h-4 animate-spin" /> : <SparklesIcon className="w-4 h-4" />}
           {loading ? 'Working on it…' : 'Tighten this up'}
         </button>
       </div>
 
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && <p className="text-xs text-status-approval-t">{error}</p>}
 
       {looksGood && current && (
-        <p className="inline-flex items-center gap-1.5 text-xs text-green-700 dark:text-green-400">
+        <p className="inline-flex items-center gap-1.5 text-xs text-status-approved-t">
           <CheckCircleIcon className="w-4 h-4" /> Looks good as is.
         </p>
       )}
 
       {suggestion && current && (
-        <div className="rounded-md border border-sh-primary/30 bg-sh-primary/5 dark:bg-gray-700/50 p-3 space-y-2">
-          <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">Suggested version</p>
-          <div className="text-sm text-gray-800 dark:text-gray-100 whitespace-pre-wrap break-words">{suggestion}</div>
+        <div className="space-y-2 rounded border border-line bg-surface-2 p-3">
+          <p className="text-xs font-semibold text-ink-3">Suggested version</p>
+          <div className="whitespace-pre-wrap break-words text-sm text-ink">{suggestion}</div>
           <div className="flex gap-2">
             <button
               type="button"
               onClick={useSuggestion}
-              className="px-3 py-1.5 text-xs font-semibold rounded-md bg-sh-primary text-white hover:bg-sh-primary-dark"
+              className="inline-flex h-7 items-center rounded bg-navy px-2.5 text-xs font-medium text-on-navy hover:bg-navy-hover"
             >
               Use this
             </button>
             <button
               type="button"
               onClick={() => setSuggestion(null)}
-              className="px-3 py-1.5 text-xs font-medium rounded-md text-gray-600 dark:text-gray-300 hover:underline"
+              className="inline-flex h-7 items-center px-2 text-xs font-medium text-ink-2 hover:underline"
             >
               Keep mine
             </button>

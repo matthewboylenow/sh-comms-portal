@@ -1,461 +1,133 @@
 // app/page.tsx
+// The request chooser: which form, how long it takes, how far ahead to send
+// it. The deadline that matters this week sits under the list, not in a
+// banner.
 'use client';
 
-import FrontLayout from './components/FrontLayout';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { FrontCard, FrontCardContent, FrontCardHeader, FrontCardTitle } from './components/ui/FrontCard';
-import {
-  CheckCircleIcon,
-  ClockIcon,
-  QuestionMarkCircleIcon,
-  MegaphoneIcon,
-  GlobeAltIcon,
-  ChatBubbleLeftRightIcon,
-  VideoCameraIcon,
-  DocumentTextIcon,
-  PencilSquareIcon,
-  CameraIcon,
-  ArrowRightIcon
-} from '@heroicons/react/24/outline';
+import FrontLayout from './components/FrontLayout';
+import { TypeSquare } from './components/ui/TypeMark';
+import { nextWeekendIso, weekendLabel, type RequestType } from './lib/requests';
+
+const CHOICES: Array<{ type: RequestType; href: string; title: string; blurb: string; time: string; lead: string }> = [
+  {
+    type: 'announcement',
+    href: '/announcements',
+    title: 'Announcement',
+    blurb: 'Bulletin, Wednesday email, church screens. Add it to the parish calendar in the same form.',
+    time: '5 min',
+    lead: '2–3 weeks ahead',
+  },
+  {
+    type: 'website',
+    href: '/website-updates',
+    title: 'Website update',
+    blurb: 'A change to a page on sainthelen.org.',
+    time: '3 min',
+    lead: '2–3 business days',
+  },
+  {
+    type: 'text',
+    href: '/sms-requests',
+    title: 'Text message',
+    blurb: 'A short parish text for something time-sensitive.',
+    time: '2 min',
+    lead: '1 week ahead',
+  },
+  {
+    type: 'av',
+    href: '/av-requests',
+    title: 'A/V or livestream',
+    blurb: 'Sound, projection, or streaming for an event or meeting.',
+    time: '4 min',
+    lead: '1–2 weeks ahead',
+  },
+  {
+    type: 'design',
+    href: '/flyer-review',
+    title: 'Flier review',
+    blurb: 'Feedback on a flier you made before it goes out.',
+    time: '3 min',
+    lead: '1 week ahead',
+  },
+  {
+    type: 'design',
+    href: '/graphic-design',
+    title: 'Design request',
+    blurb: 'A flier, graphic, or social post made for you.',
+    time: '4 min',
+    lead: '2 weeks ahead',
+  },
+  {
+    type: 'photo',
+    href: '/share-photos',
+    title: 'Share photos',
+    blurb: 'Took photos at a parish event? Send them in.',
+    time: '2 min',
+    lead: '',
+  },
+];
 
 export default function HomePage() {
+  const weekend = nextWeekendIso();
+  const sat = new Date(`${weekend}T12:00:00Z`);
+  const mon = new Date(sat);
+  mon.setUTCDate(sat.getUTCDate() - 5);
+  const monLabel = mon.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC' });
+
   return (
-    <FrontLayout>
-      {/* Hero Section */}
-      <section className="relative overflow-hidden">
-        {/* Decorative orbs */}
-        <div className="sh-orb w-96 h-96 -top-48 -right-48 absolute" />
-        <div className="sh-orb sh-orb-rust w-64 h-64 top-1/2 -left-32 absolute" />
+    <FrontLayout width="page">
+      <div className="mx-auto max-w-[760px] py-7 sm:py-9">
+        <h1 className="text-[22px] font-semibold tracking-[-0.01em]">New request</h1>
+        <p className="mt-1 text-sm text-ink-2">
+          Pick the form that fits. You will get a confirmation by email, and the office will write back if anything is missing.
+        </p>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
-          <motion.div
-            className="text-center max-w-4xl mx-auto"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: 'easeOut' }}
-          >
-            <motion.h1
-              className="text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-sh-navy dark:text-white mb-6"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-            >
-              Communications Portal
-            </motion.h1>
-            <motion.p
-              className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 leading-relaxed mb-8"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.4 }}
-            >
-              One place to request announcements, website updates, and other
-              communications support for your ministry or event.
-            </motion.p>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.6 }}
-            >
-              <Link
-                href="#forms"
-                className="inline-flex items-center gap-2 bg-sh-navy hover:bg-sh-navy-700 text-white px-8 py-4 rounded-button font-medium transition-all duration-300 hover:-translate-y-1 hover:shadow-button-hover group"
-              >
-                Get Started
-                <ArrowRightIcon className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
+        <ul className="mt-5 divide-y divide-line overflow-hidden rounded-lg border border-line bg-surface">
+          {CHOICES.map((c) => (
+            <li key={c.href}>
+              <Link href={c.href} className="group flex items-start gap-3.5 px-4 py-3.5 hover:bg-surface-2 sm:items-center sm:px-5">
+                <TypeSquare type={c.type} className="mt-[7px] h-[11px] w-[11px] sm:mt-0" />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[15px] font-semibold leading-snug">{c.title}</span>
+                  <span className="block text-sm text-ink-2">{c.blurb}</span>
+                </span>
+                <span className="tnum whitespace-nowrap text-xs text-ink-3">
+                  {c.time}
+                  {c.lead ? ` · ${c.lead}` : ''}
+                </span>
+                <span aria-hidden="true" className="ml-1 hidden text-ink-3 group-hover:text-ink sm:block">
+                  →
+                </span>
               </Link>
-            </motion.div>
-          </motion.div>
-        </div>
-      </section>
+            </li>
+          ))}
+        </ul>
 
-      {/* Forms Section */}
-      <section id="forms" className="sh-section sh-section-cream-alt">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            className="text-center mb-16"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-          >
-            <h2 className="text-3xl md:text-4xl font-serif font-bold text-sh-navy dark:text-white sh-heading-underline">
-              Submit Your Request
-            </h2>
-          </motion.div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[
-              {
-                title: 'Announcements',
-                description: 'Share your event or news in the bulletin, weekly email, and church screens.',
-                icon: MegaphoneIcon,
-                href: '/announcements',
-                buttonText: 'Submit Announcement',
-                color: 'sh-navy'
-              },
-              {
-                title: 'Website Updates',
-                description: 'Request updates to the parish website, including new pages, events, or changes.',
-                icon: GlobeAltIcon,
-                href: '/website-updates',
-                buttonText: 'Request Update',
-                color: 'sh-rust'
-              },
-              {
-                title: 'SMS Requests',
-                description: 'Submit text message alerts for time-sensitive announcements or reminders.',
-                icon: ChatBubbleLeftRightIcon,
-                href: '/sms-requests',
-                buttonText: 'Submit SMS Request',
-                color: 'emerald'
-              },
-              {
-                title: 'A/V Requests',
-                description: 'Request audio/visual support or livestreaming for your event or meeting.',
-                icon: VideoCameraIcon,
-                href: '/av-requests',
-                buttonText: 'Submit A/V Request',
-                color: 'purple'
-              },
-              {
-                title: 'Flyer Review',
-                description: 'Get feedback on your flyer design or request help making your flyer more effective.',
-                icon: DocumentTextIcon,
-                href: '/flyer-review',
-                buttonText: 'Submit Flyer',
-                color: 'amber'
-              },
-              {
-                title: 'Graphic Design',
-                description: 'Request graphic design services for ministry materials, social media, posters, and more.',
-                icon: PencilSquareIcon,
-                href: '/graphic-design',
-                buttonText: 'Request Design',
-                color: 'rose'
-              }
-            ].map((item, index) => (
-              <motion.div
-                key={item.title}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-              >
-                <FrontCard gradient className="h-full">
-                  <FrontCardContent className="flex flex-col items-center text-center p-8 h-full">
-                    <div className={`
-                      w-16 h-16 rounded-2xl flex items-center justify-center mb-6
-                      ${item.color === 'sh-navy' ? 'bg-sh-navy-100 dark:bg-sh-navy-900/50' : ''}
-                      ${item.color === 'sh-rust' ? 'bg-sh-rust-100 dark:bg-sh-rust-900/50' : ''}
-                      ${item.color === 'emerald' ? 'bg-emerald-100 dark:bg-emerald-900/50' : ''}
-                      ${item.color === 'purple' ? 'bg-purple-100 dark:bg-purple-900/50' : ''}
-                      ${item.color === 'amber' ? 'bg-amber-100 dark:bg-amber-900/50' : ''}
-                      ${item.color === 'rose' ? 'bg-rose-100 dark:bg-rose-900/50' : ''}
-                    `}>
-                      <item.icon className={`
-                        w-8 h-8
-                        ${item.color === 'sh-navy' ? 'text-sh-navy dark:text-sh-navy-300' : ''}
-                        ${item.color === 'sh-rust' ? 'text-sh-rust dark:text-sh-rust-300' : ''}
-                        ${item.color === 'emerald' ? 'text-emerald-600 dark:text-emerald-400' : ''}
-                        ${item.color === 'purple' ? 'text-purple-600 dark:text-purple-400' : ''}
-                        ${item.color === 'amber' ? 'text-amber-600 dark:text-amber-400' : ''}
-                        ${item.color === 'rose' ? 'text-rose-600 dark:text-rose-400' : ''}
-                      `} />
-                    </div>
-                    <h3 className="font-serif font-bold text-xl mb-3 text-sh-navy dark:text-white">
-                      {item.title}
-                    </h3>
-                    <p className="text-gray-600 dark:text-gray-300 mb-8 leading-relaxed flex-grow">
-                      {item.description}
-                    </p>
-                    <Link
-                      href={item.href}
-                      className={`
-                        inline-flex items-center gap-2 px-6 py-3 rounded-button font-medium
-                        transition-all duration-300 hover:-translate-y-1 hover:shadow-button-hover group text-white hover:text-white
-                        ${item.color === 'sh-navy' ? 'bg-sh-navy hover:bg-sh-navy-700' : ''}
-                        ${item.color === 'sh-rust' ? 'bg-sh-rust hover:bg-sh-rust-600' : ''}
-                        ${item.color === 'emerald' ? 'bg-emerald-600 hover:bg-emerald-700' : ''}
-                        ${item.color === 'purple' ? 'bg-purple-600 hover:bg-purple-700' : ''}
-                        ${item.color === 'amber' ? 'bg-amber-600 hover:bg-amber-700' : ''}
-                        ${item.color === 'rose' ? 'bg-rose-600 hover:bg-rose-700' : ''}
-                      `}
-                    >
-                      {item.buttonText}
-                      <ArrowRightIcon className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
-                    </Link>
-                  </FrontCardContent>
-                </FrontCard>
-              </motion.div>
-            ))}
+        <dl className="mt-6 grid gap-x-8 gap-y-3 text-sm sm:grid-cols-3">
+          <div>
+            <dt className="text-xs font-semibold text-ink-3">Bulletin for {weekendLabel(weekend)}</dt>
+            <dd className="mt-0.5 text-ink">Closes {monLabel}, noon</dd>
           </div>
-
-          {/* Share Photos banner */}
-          <motion.div
-            className="mt-10"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-          >
-            <FrontCard>
-              <FrontCardContent className="flex flex-col sm:flex-row items-center gap-5 p-6 sm:p-8">
-                <div className="w-14 h-14 rounded-2xl bg-sky-100 dark:bg-sky-900/50 flex items-center justify-center flex-shrink-0">
-                  <CameraIcon className="w-7 h-7 text-sky-600 dark:text-sky-400" />
-                </div>
-                <div className="flex-1 text-center sm:text-left">
-                  <h3 className="font-serif font-bold text-xl text-sh-navy dark:text-white mb-1">
-                    Took photos at a parish event?
-                  </h3>
-                  <p className="text-gray-600 dark:text-gray-300">
-                    Send them to the communications team right from your phone — no form-filling,
-                    no write-up. Just tell us what&apos;s happening and hit send.
-                  </p>
-                </div>
-                <Link
-                  href="/share-photos"
-                  className="inline-flex items-center gap-2 bg-sky-600 hover:bg-sky-700 text-white px-6 py-3 rounded-button font-medium transition-all duration-300 hover:-translate-y-1 hover:shadow-button-hover group flex-shrink-0"
-                >
-                  Share Photos
-                  <ArrowRightIcon className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
-                </Link>
-              </FrontCardContent>
-            </FrontCard>
-          </motion.div>
-
-          <motion.div
-            className="text-center mt-12"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-          >
-            <p className="text-gray-600 dark:text-gray-300">
-              Need additional communications support? Contact us at{' '}
-              <a
-                href="mailto:communications@sainthelen.org"
-                className="text-sh-rust hover:text-sh-rust-600 font-medium transition-colors"
-              >
+          <div>
+            <dt className="text-xs font-semibold text-ink-3">Wednesday email</dt>
+            <dd className="mt-0.5 text-ink">Drafted Monday, sent Wednesday</dd>
+          </div>
+          <div>
+            <dt className="text-xs font-semibold text-ink-3">Questions</dt>
+            <dd className="mt-0.5">
+              <a href="mailto:communications@sainthelen.org" className="text-navy hover:underline">
                 communications@sainthelen.org
               </a>
-            </p>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* How It Works */}
-      <section className="sh-section bg-white dark:bg-slate-900">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            className="text-center mb-16"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-          >
-            <h2 className="text-3xl md:text-4xl font-serif font-bold text-sh-navy dark:text-white sh-heading-underline">
-              How It Works
-            </h2>
-          </motion.div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {[
-              {
-                step: '1',
-                title: 'Review Guidelines',
-                description: 'Read the guidelines first so you know lead times and what to include.',
-                color: 'sh-navy',
-                link: '/guidelines',
-                linkText: 'View Guidelines'
-              },
-              {
-                step: '2',
-                title: 'Submit Your Request',
-                description: 'Pick the form that matches your request and fill in the details.',
-                color: 'sh-rust',
-                link: '#forms',
-                linkText: 'View Forms'
-              },
-              {
-                step: '3',
-                title: 'Confirmation Email',
-                description: "You'll get a confirmation email right away. We'll reach out if we have questions.",
-                color: 'emerald',
-                link: null,
-                linkText: null
-              },
-              {
-                step: '4',
-                title: 'We Handle the Rest',
-                description: 'Our team prepares your announcement and publishes it in the right places.',
-                color: 'amber',
-                link: null,
-                linkText: null
-              }
-            ].map((item, index) => (
-              <motion.div
-                key={item.step}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-              >
-                <FrontCard className="h-full">
-                  <FrontCardContent className="flex flex-col items-center text-center p-8 h-full">
-                    <div className={`
-                      w-16 h-16 rounded-full flex items-center justify-center mb-6
-                      ${item.color === 'sh-navy' ? 'bg-sh-navy-100 dark:bg-sh-navy-900/50' : ''}
-                      ${item.color === 'sh-rust' ? 'bg-sh-rust-100 dark:bg-sh-rust-900/50' : ''}
-                      ${item.color === 'emerald' ? 'bg-emerald-100 dark:bg-emerald-900/50' : ''}
-                      ${item.color === 'amber' ? 'bg-amber-100 dark:bg-amber-900/50' : ''}
-                      transition-all duration-300 group-hover:scale-110
-                    `}>
-                      <span className={`
-                        text-2xl font-bold
-                        ${item.color === 'sh-navy' ? 'text-sh-navy dark:text-sh-navy-300' : ''}
-                        ${item.color === 'sh-rust' ? 'text-sh-rust dark:text-sh-rust-300' : ''}
-                        ${item.color === 'emerald' ? 'text-emerald-600 dark:text-emerald-400' : ''}
-                        ${item.color === 'amber' ? 'text-amber-600 dark:text-amber-400' : ''}
-                      `}>
-                        {item.step}
-                      </span>
-                    </div>
-                    <h3 className="font-serif font-bold text-xl mb-3 text-sh-navy dark:text-white">
-                      {item.title}
-                    </h3>
-                    <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed flex-grow">
-                      {item.description}
-                    </p>
-                    {item.link && (
-                      <Link
-                        href={item.link}
-                        className="text-sh-rust font-medium hover:text-sh-rust-600 transition-colors duration-200 flex items-center gap-1 group"
-                      >
-                        {item.linkText}
-                        <ArrowRightIcon className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
-                      </Link>
-                    )}
-                  </FrontCardContent>
-                </FrontCard>
-              </motion.div>
-            ))}
+            </dd>
           </div>
-        </div>
-      </section>
+        </dl>
 
-      {/* Estimated Turnaround */}
-      <section className="sh-section sh-section-cream">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            className="text-center mb-12"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-          >
-            <h2 className="text-2xl md:text-3xl font-serif font-bold text-sh-navy dark:text-white flex items-center justify-center gap-3">
-              <ClockIcon className="h-8 w-8 text-sh-rust" />
-              Estimated Turnaround
-            </h2>
-          </motion.div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              {
-                title: 'Bulletin & Email Blast',
-                content: 'Bulletin is typically finalized on <strong>Fridays</strong>. Email blasts are typically sent <strong>Wednesday evenings</strong>. We recommend submitting 1-2 weeks in advance.'
-              },
-              {
-                title: 'Website Updates & SMS',
-                content: 'Website changes are posted <strong>within 2-3 business days</strong> of approval. SMS messages are sent <strong>within 48 hours</strong> once approved.'
-              },
-              {
-                title: 'A/V & Flyer Reviews',
-                content: 'A/V should be submitted as early as possible, ideally <strong>1-2 weeks</strong> prior to the event. Flyer reviews are completed <strong>within 3-5 business days</strong>.'
-              }
-            ].map((item, index) => (
-              <motion.div
-                key={item.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-              >
-                <FrontCard>
-                  <FrontCardContent className="p-6">
-                    <h3 className="font-serif font-bold text-lg mb-3 text-sh-navy dark:text-white">
-                      {item.title}
-                    </h3>
-                    <p
-                      className="text-gray-600 dark:text-gray-300"
-                      dangerouslySetInnerHTML={{ __html: item.content }}
-                    />
-                  </FrontCardContent>
-                </FrontCard>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* FAQ Section */}
-      <section className="sh-section bg-white dark:bg-slate-900">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            className="text-center mb-12"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-          >
-            <h2 className="text-2xl md:text-3xl font-serif font-bold text-sh-navy dark:text-white flex items-center justify-center gap-3">
-              <QuestionMarkCircleIcon className="h-8 w-8 text-sh-rust" />
-              Frequently Asked Questions
-            </h2>
-          </motion.div>
-
-          <div className="space-y-4">
-            {[
-              {
-                question: 'Can I submit multiple PDFs or images?',
-                answer: 'Absolutely. Our forms let you attach multiple files. If your files are very large, consider linking to a shared drive or cloud service.'
-              },
-              {
-                question: "What's the difference between flyer review and an announcement?",
-                answer: 'Flyer review is for feedback on your existing design before finalizing it, while an announcement is submitting content for our team to create and publish in our bulletin, email, and screens.'
-              },
-              {
-                question: 'How far in advance should I request A/V and livestreaming?',
-                answer: 'Please submit A/V requests at least 2 weeks before your event. Livestreaming requires additional setup and planning, so earlier notice is always appreciated.'
-              },
-              {
-                question: 'Do I need to sign in to use these forms?',
-                answer: 'No sign-in required. The forms are public for easy submission. Only our communications staff needs to sign in to access the admin dashboard.'
-              }
-            ].map((item, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 10 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: index * 0.1 }}
-              >
-                <FrontCard>
-                  <FrontCardContent className="p-6">
-                    <h3 className="font-serif font-bold text-lg mb-2 text-sh-navy dark:text-white">
-                      {item.question}
-                    </h3>
-                    <p className="text-gray-600 dark:text-gray-300">
-                      {item.answer}
-                    </p>
-                  </FrontCardContent>
-                </FrontCard>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
+        <p className="mt-6 text-sm text-ink-2">
+          First time? The <Link href="/guidelines" className="text-navy hover:underline">guidelines</Link> cover lead times, word limits and how we
+          edit. Announcements run about 90 words in the bulletin.
+        </p>
+      </div>
     </FrontLayout>
   );
 }

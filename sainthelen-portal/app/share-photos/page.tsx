@@ -5,7 +5,10 @@
 
 import { useState } from 'react';
 import FrontLayout from '../components/FrontLayout';
-import { FrontCard, FrontCardContent } from '../components/ui/FrontCard';
+import { Button } from '../components/ui/Button';
+import { FormCard, FormSection, FooterNote } from '../components/ui/FormCard';
+import { Field, Input, Textarea, Select, Checkbox, Band, Notice } from '../components/ui/Field';
+import { FileDrop, AddRow, RemoveRow } from '../components/ui/FileDrop';
 import MinistryAutocomplete from '../components/ui/MinistryAutocomplete';
 import UploadProgress from '../components/ui/UploadProgress';
 import { uploadFilesWithStatus, type UploadStatus } from '../lib/upload';
@@ -81,175 +84,74 @@ export default function SharePhotosPage() {
     }
   }
 
+  const asEvent = (files: File[]) => ({ target: { files } } as unknown as React.ChangeEvent<HTMLInputElement>);
+
   return (
-    <FrontLayout title="Share Photos with Communications">
-      <div className="max-w-xl mx-auto my-8 px-4 sm:px-6">
-        <p className="text-gray-600 dark:text-gray-300 mb-6">
-          Took photos at a parish event or ministry gathering? Send them our way — they help us
-          show real parish life on the website, in email, and on social media. No write-up needed.
-        </p>
+    <FrontLayout>
+      <FormCard
+        title="Share photos"
+        intro="Took photos at a parish event? Send them in. They help us show real parish life. No write-up needed."
+        onSubmit={handleSubmit}
+        footer={
+          <>
+            <Button type="submit" size="lg" disabled={submitting || uploading || fileLinks.length === 0}>
+              {submitting ? 'Sending…' : 'Send photos'}
+            </Button>
+            {fileLinks.length === 0 && <FooterNote>Add at least one photo</FooterNote>}
+          </>
+        }
+      >
+        {successMessage && (
+          <div className="px-5 pt-4 sm:px-6">
+            <Notice tone="success">{successMessage}</Notice>
+            
+          </div>
+        )}
+        {errorMessage && (
+          <div className="px-5 pt-4 sm:px-6">
+            <Notice tone="error">{errorMessage}</Notice>
+          </div>
+        )}
 
-        <FrontCard>
-          <FrontCardContent className="p-6 sm:p-8">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* What's happening */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                  What&apos;s happening in the photos? <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  className="w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary bg-white text-gray-900 dark:bg-gray-700 dark:text-white"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  required
-                  placeholder="e.g., Food Pantry volunteers packing bags"
-                />
-              </div>
+        <Band>The photos</Band>
+        <FormSection>
+          <Field label="Photos or video" required help="Straight from your phone is fine. Add as many as you like.">
+            <FileDrop files={fileLinks} disabled={uploading} accept="image/*,video/*" onFiles={(f) => handleFiles(asEvent(f))} onRemove={(i) => setFileLinks((prev) => prev.filter((_, k) => k !== i))} hint="photos or video" label="Add photos or drop them here" />
+            <UploadProgress status={uploadStatus} />
+          </Field>
+          <Field label="What's happening in them?" htmlFor="ph-desc" required help="A line is plenty: Food Pantry volunteers packing bags.">
+            <Input id="ph-desc" value={description} onChange={(e) => setDescription(e.target.value)} required />
+          </Field>
+          <div className="grid gap-x-3 sm:grid-cols-2">
+            <Field label="Ministry or event" htmlFor="ph-ministry">
+              <MinistryAutocomplete value={ministry} onChange={(v) => setMinistry(v)} placeholder="Start typing…" />
+            </Field>
+            <Field label="Taken on" htmlFor="ph-date">
+              <Input id="ph-date" type="date" value={photoDate} onChange={(e) => setPhotoDate(e.target.value)} />
+            </Field>
+          </div>
+        </FormSection>
 
-              {/* Ministry */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                  Ministry <span className="text-gray-400 font-normal">(optional)</span>
-                </label>
-                <MinistryAutocomplete
-                  value={ministry}
-                  onChange={(value) => setMinistry(value)}
-                  placeholder="Start typing ministry name..."
-                />
-              </div>
-
-              {/* When */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                  When was this?
-                </label>
-                <input
-                  type="date"
-                  className="w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary bg-white text-gray-900 dark:bg-gray-700 dark:text-white"
-                  value={photoDate}
-                  onChange={(e) => setPhotoDate(e.target.value)}
-                />
-              </div>
-
-              {/* Upload */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                  Photos / videos <span className="text-red-500">*</span>
-                </label>
-                {uploading ? (
-                  <UploadProgress status={uploadStatus} />
-                ) : (
-                  <>
-                    <input
-                      type="file"
-                      accept="image/*,video/*"
-                      multiple
-                      onChange={handleFiles}
-                      className="sr-only"
-                      id="photo-input"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => document.getElementById('photo-input')?.click()}
-                      className="w-full py-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl text-sh-primary dark:text-blue-400 font-semibold hover:border-sh-primary hover:bg-sh-navy-50/40 dark:hover:bg-slate-700 transition-colors"
-                    >
-                      {fileLinks.length > 0 ? 'Add more photos' : 'Choose photos from your device'}
-                    </button>
-                  </>
-                )}
-                {fileLinks.length > 0 && (
-                  <div className="mt-3 flex items-center justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-300 font-medium">
-                      {fileLinks.length} {fileLinks.length === 1 ? 'file' : 'files'} ready to send
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setFileLinks([])}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      Clear
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Privacy */}
-              <div>
-                <span className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                  Is anyone pictured who should <em>not</em> be shown publicly?
-                </span>
-                <div className="flex gap-6">
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      name="privacy"
-                      className="h-4 w-4 text-sh-primary focus:ring-sh-primary border-gray-300"
-                      checked={!privacyConcern}
-                      onChange={() => setPrivacyConcern(false)}
-                    />
-                    <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">No</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      name="privacy"
-                      className="h-4 w-4 text-sh-primary focus:ring-sh-primary border-gray-300"
-                      checked={privacyConcern}
-                      onChange={() => setPrivacyConcern(true)}
-                    />
-                    <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Yes</span>
-                  </label>
-                </div>
-                {privacyConcern && (
-                  <input
-                    type="text"
-                    className="mt-3 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary bg-white text-gray-900 dark:bg-gray-700 dark:text-white"
-                    value={privacyNotes}
-                    onChange={(e) => setPrivacyNotes(e.target.value)}
-                    placeholder="Anything we should know? (e.g., 'the family on the left asked not to be posted')"
-                  />
-                )}
-              </div>
-
-              {/* Name */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                  Your name <span className="text-gray-400 font-normal">(optional)</span>
-                </label>
-                <input
-                  type="text"
-                  className="w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary bg-white text-gray-900 dark:bg-gray-700 dark:text-white"
-                  value={submitterName}
-                  onChange={(e) => setSubmitterName(e.target.value)}
-                  placeholder="So we can say thanks"
-                />
-              </div>
-
-              {/* Messages */}
-              {successMessage && (
-                <div className="p-4 rounded-xl bg-green-50 dark:bg-green-900/40 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-300">
-                  {successMessage}
-                </div>
-              )}
-              {errorMessage && (
-                <div className="p-4 rounded-xl bg-red-50 dark:bg-red-900/40 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300">
-                  {errorMessage}
-                </div>
-              )}
-
-              {/* Submit */}
-              <button
-                type="submit"
-                className="w-full bg-sh-navy hover:bg-sh-navy-700 text-white text-lg px-6 py-4 rounded-2xl font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={submitting || uploading || fileLinks.length === 0}
-              >
-                {submitting ? 'Sending...' : 'Send to Communications'}
-              </button>
-            </form>
-          </FrontCardContent>
-        </FrontCard>
-      </div>
+        <Band>Before we post</Band>
+        <FormSection>
+          <Field label="Is anyone pictured who should not be shown publicly?">
+            <label className="flex items-center gap-2.5 py-1.5 text-md">
+              <input type="radio" name="privacy" className="m-0 h-[17px] w-[17px]" checked={!privacyConcern} onChange={() => setPrivacyConcern(false)} />
+              No
+            </label>
+            <label className="flex items-center gap-2.5 py-1.5 text-md">
+              <input type="radio" name="privacy" className="m-0 h-[17px] w-[17px]" checked={privacyConcern} onChange={() => setPrivacyConcern(true)} />
+              Yes
+            </label>
+            {privacyConcern && (
+              <Input className="mt-2" value={privacyNotes} onChange={(e) => setPrivacyNotes(e.target.value)} placeholder="Who, and what they asked. 'The family on the left asked not to be posted.'" aria-label="Privacy note" />
+            )}
+          </Field>
+          <Field label="Your name" htmlFor="ph-name" help="So we can say thanks.">
+            <Input id="ph-name" value={submitterName} onChange={(e) => setSubmitterName(e.target.value)} autoComplete="name" className="max-w-[360px]" />
+          </Field>
+        </FormSection>
+      </FormCard>
     </FrontLayout>
   );
 }

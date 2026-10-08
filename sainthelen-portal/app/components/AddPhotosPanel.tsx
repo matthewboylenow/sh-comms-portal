@@ -30,32 +30,32 @@ export default function AddPhotosPanel({ recordType, recordId }: AddPhotosPanelP
   };
 
   return (
-    <div className="mt-4 p-5 bg-sh-navy-50/60 dark:bg-sh-navy-900/20 border border-sh-navy-100 dark:border-sh-navy-800/50 rounded-2xl">
-      <h3 className="font-bold text-gray-900 dark:text-white mb-1">
+    <div className="mt-4 rounded-lg border border-line bg-surface p-4">
+      <h3 className="mb-1 text-md font-semibold text-ink">
         Have photos or videos on your phone?
       </h3>
-      <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+      <p className="mb-3 text-sm text-ink-2">
         Scan this code with your phone&apos;s camera to add them to this request — no need to
         fill anything out again. The link works for 30 days.
       </p>
       <div className="flex flex-col sm:flex-row items-center gap-5">
-        <div className="bg-white p-3 rounded-xl border border-gray-200">
+        <div className="rounded border border-line bg-white p-2">
           <QRCodeSVG value={uploadUrl} size={132} />
         </div>
         <div className="flex-1 w-full text-center sm:text-left">
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+          <p className="mb-1.5 text-xs text-ink-3">
             On your phone already? Use the link instead:
           </p>
           <a
             href={uploadUrl}
-            className="block text-sm text-sh-rust hover:text-sh-rust-600 font-medium break-all underline"
+            className="block break-all text-sm font-medium text-navy underline"
           >
             {uploadUrl}
           </a>
           <button
             type="button"
             onClick={handleCopy}
-            className="mt-3 px-4 py-2 text-sm font-medium bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors"
+            className="mt-2 inline-flex h-8 items-center rounded border border-line-2 bg-surface px-3 text-sm font-medium text-ink hover:bg-surface-2"
           >
             {copied ? 'Copied!' : 'Copy link'}
           </button>

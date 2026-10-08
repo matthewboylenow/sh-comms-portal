@@ -2,12 +2,12 @@
 'use client';
 
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import FrontLayout from '../components/FrontLayout';
 import CopyAssist from '../components/CopyAssist';
-import { FrontCard, FrontCardContent, FrontCardHeader, FrontCardTitle } from '../components/ui/FrontCard';
 import { Button } from '../components/ui/Button';
-import { ExclamationCircleIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
+import { FormCard, FormSection, FooterNote } from '../components/ui/FormCard';
+import { Field, Input, Textarea, Select, Checkbox, Band, Notice } from '../components/ui/Field';
+import { FileDrop, AddRow, RemoveRow } from '../components/ui/FileDrop';
 import MinistryAutocomplete from '../components/ui/MinistryAutocomplete';
 import AddPhotosPanel from '../components/AddPhotosPanel';
 import UploadProgress from '../components/ui/UploadProgress';
@@ -124,6 +124,14 @@ export default function AnnouncementsFormPage() {
 
   const upcomingWeekends = getUpcomingWeekends();
   const selectedWeekend = upcomingWeekends.find(w => w.value === promotionStart);
+  const words = announcementBody.trim() ? announcementBody.trim().split(/\s+/).length : 0;
+  const deadline = (() => {
+    const sat = new Date(`${(selectedWeekend || upcomingWeekends[0]).value}T12:00:00`);
+    const mon = new Date(sat);
+    mon.setDate(sat.getDate() - 5);
+    return mon.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  })();
+  const weekendShort = (w: { label: string }) => w.label.replace(/^Weekend of /, '').replace(/, \d{4}$/, '');
 
   // Handle ministry selection
   const handleMinistryChange = (value: string, ministryObj?: Ministry) => {
@@ -341,726 +349,218 @@ export default function AnnouncementsFormPage() {
   }
 
   return (
-    <FrontLayout title="Submit an Announcement">
-      <div className="max-w-4xl mx-auto my-8 px-4 sm:px-6 lg:px-8">
-        {/* Editorial Notice */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <FrontCard className="mb-8 border-l-4 border-l-amber-500 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-soft">
-            <FrontCardContent className="flex items-start gap-4 p-6">
-              <div className="flex-shrink-0">
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ duration: 0.3, delay: 0.2 }}
-                >
-                  <InformationCircleIcon className="h-7 w-7 text-amber-500" />
-                </motion.div>
-              </div>
-              <div>
-                <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-2">Editorial Notice</h3>
-                <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-                  We may edit your announcement to fit Saint Helen's style and tone. If your
-                  message needs a major rewrite, we'll let you know before it's published;
-                  minor edits (grammar, length, formatting) may be made without notice. Final
-                  decisions on messaging rest with the Director of Communications in
-                  collaboration with the Pastor.
-                </p>
-              </div>
-            </FrontCardContent>
-          </FrontCard>
-        </motion.div>
+    <FrontLayout>
+      <FormCard
+        title="Announcement"
+        intro="For the bulletin, the Wednesday email, and the church screens. About five minutes."
+        onSubmit={handleSubmitForm}
+        footer={
+          <>
+            <Button type="submit" size="lg" disabled={submittingForm || uploadingFiles}>
+              {submittingForm ? 'Sending…' : 'Submit announcement'}
+            </Button>
+            <FooterNote>
+              Bulletin for {weekendShort(selectedWeekend || upcomingWeekends[0])} closes {deadline} at noon
+            </FooterNote>
+          </>
+        }
+      >
+        {successMessage && (
+          <div className="px-5 pt-4 sm:px-6">
+            <Notice tone="success">
+              <p className="font-medium">{successMessage}</p>
+              <p className="mt-1">We will email you if we have a question. Minor edits for length and voice are made without notice.</p>
+            </Notice>
+            {submittedRecordId && <AddPhotosPanel recordType="announcements" recordId={submittedRecordId} />}
+          </div>
+        )}
+        {errorMessage && (
+          <div className="px-5 pt-4 sm:px-6">
+            <Notice tone="error">{errorMessage}</Notice>
+          </div>
+        )}
 
+        <Band>About you</Band>
+        <FormSection>
+          <Field label="Your name" htmlFor="ann-name" required>
+            <Input id="ann-name" value={name} onChange={(e) => setName(e.target.value)} required autoComplete="name" className="max-w-[360px]" />
+          </Field>
+          <Field label="Email" htmlFor="ann-email" required help="We'll send a confirmation and any questions here.">
+            <Input id="ann-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" className="max-w-[360px]" />
+          </Field>
+          <Field label="Ministry" htmlFor="ann-ministry">
+            <div className="max-w-[360px]">
+              <MinistryAutocomplete
+                value={ministry}
+                onChange={handleMinistryChange}
+                onApprovalStatusChange={handleApprovalStatusChange}
+                placeholder="Start typing…"
+              />
+            </div>
+          </Field>
+          <Checkbox
+            label="This is for a group or event outside Saint Helen"
+            checked={isExternalEvent}
+            onChange={(e) => setIsExternalEvent(e.target.checked)}
+          />
+          {isExternalEvent && (
+            <div className="mb-2">
+              <Notice tone="warn">
+                Saint Helen events and ministries come first. We fit outside events in where there is room.
+              </Notice>
+            </div>
+          )}
+        </FormSection>
 
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-        >
-          <FrontCard className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-soft-lg border border-white/20 dark:border-gray-700/50">
-            <FrontCardHeader className="border-b border-gray-200/50 dark:border-gray-700/50 pb-4">
-              <FrontCardTitle className="text-2xl font-bold bg-gradient-to-r from-sh-primary to-sh-sage bg-clip-text text-transparent">
-                Announcement Details
-              </FrontCardTitle>
-            </FrontCardHeader>
-            <FrontCardContent className="p-8">
-              <form onSubmit={handleSubmitForm} className="space-y-8">
-              {/* Name */}
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.3, delay: 0.4 }}
-              >
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                  Your Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  className="w-full px-4 py-3 border border-gray-300/50 dark:border-gray-600/50 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-sh-primary/50 focus:border-sh-primary bg-white/80 text-gray-900 dark:bg-gray-700/50 dark:text-white transition-all duration-200 backdrop-blur-sm"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                  placeholder="Enter your full name"
-                />
-              </motion.div>
-
-              {/* Email */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Email Address <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="email"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary bg-white text-gray-900 dark:bg-gray-700 dark:text-white"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </div>
-
-              {/* Ministry */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Ministry/Organization
-                </label>
-                <MinistryAutocomplete
-                  value={ministry}
-                  onChange={handleMinistryChange}
-                  onApprovalStatusChange={handleApprovalStatusChange}
-                  placeholder="Start typing ministry name..."
-                />
-              </div>
-
-              {/* External Event Checkbox */}
-              <div>
-                <label className="inline-flex items-center">
-                  <input
-                    type="checkbox"
-                    className="rounded border-gray-300 dark:border-gray-600 text-sh-primary focus:ring-sh-primary dark:bg-gray-700"
-                    checked={isExternalEvent}
-                    onChange={(e) => setIsExternalEvent(e.target.checked)}
-                  />
-                  <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
-                    This is an external event or ministry outside of Saint Helen
-                  </span>
-                </label>
-              </div>
-
-              {/* External Event Warning */}
-              {isExternalEvent && (
-                <div className="p-4 bg-amber-50/80 dark:bg-amber-900/30 backdrop-blur-sm border border-amber-200/50 dark:border-amber-800/50 rounded-2xl shadow-soft">
-                  <div className="flex items-start gap-3">
-                    <InformationCircleIcon className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
-                    <div className="text-sm">
-                      <p className="font-semibold text-amber-800 dark:text-amber-300">
-                        External Event Notice
-                      </p>
-                      <p className="text-amber-700 dark:text-amber-400 mt-1 leading-relaxed">
-                        Priority is given to events directly affiliated with Saint Helen and Saint Helen Ministries. 
-                        We may not have available space for external events, however we will make every effort to 
-                        include where appropriate.
-                      </p>
-                    </div>
-                  </div>
+        <Band note="skip if it isn't one">The event</Band>
+        <FormSection>
+          <Field label="When does it happen?" help="Add a row for each date.">
+            <div className="flex max-w-[460px] flex-col gap-2">
+              {eventDates.map((entry) => (
+                <div key={entry.id} className="flex items-center gap-2">
+                  <Input type="date" value={entry.date} onChange={(e) => updateEventDate(entry.id, 'date', e.target.value)} aria-label="Date" />
+                  <Input type="time" step="300" value={entry.time} onChange={(e) => updateEventDate(entry.id, 'time', e.target.value)} aria-label="Time" />
+                  {eventDates.length > 1 && <RemoveRow onClick={() => removeEventDate(entry.id)} />}
                 </div>
-              )}
+              ))}
+            </div>
+            <AddRow onClick={addEventDate}>Add another date</AddRow>
+          </Field>
 
-              {/* Event Dates / Times */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Date(s) and Time(s) of Event
-                </label>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-                  Happening more than once? Add a row for each date.
-                </p>
-                <div className="space-y-3">
-                  {eventDates.map((entry) => (
-                    <div key={entry.id} className="flex flex-col md:flex-row gap-3 md:items-end">
-                      <div className="flex-1">
-                        <input
-                          type="date"
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary bg-white text-gray-900 dark:bg-gray-700 dark:text-white"
-                          value={entry.date}
-                          onChange={(e) => updateEventDate(entry.id, 'date', e.target.value)}
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <input
-                          type="time"
-                          step="300"
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary bg-white text-gray-900 dark:bg-gray-700 dark:text-white"
-                          value={entry.time}
-                          onChange={(e) => updateEventDate(entry.id, 'time', e.target.value)}
-                        />
-                      </div>
-                      {eventDates.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeEventDate(entry.id)}
-                          className="px-3 py-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md transition-colors self-start md:self-end"
-                        >
-                          Remove
-                        </button>
-                      )}
-                    </div>
-                  ))}
+          <Checkbox
+            label="Put it on the parish calendar at sainthelen.org"
+            checked={addToCalendar}
+            onChange={(e) => setAddToCalendar(e.target.checked)}
+          />
+
+          {addToCalendar && (
+            <div className="mb-2 mt-1 rounded-md border border-line bg-surface-2 px-4 pb-2 pt-1">
+              <p className="pt-2 text-xs text-ink-3">We clean this up into a calendar listing and send you a preview before it goes live.</p>
+              <Field label="Event name" htmlFor="cal-name" required>
+                <Input id="cal-name" value={calendarEventName} onChange={(e) => setCalendarEventName(e.target.value)} placeholder="As it should read on the calendar" />
+              </Field>
+              <div className="grid gap-x-3 sm:grid-cols-3">
+                <Field label="Date" htmlFor="cal-date" required>
+                  <Input id="cal-date" type="date" value={calendarEventDate} onChange={(e) => setCalendarEventDate(e.target.value)} />
+                </Field>
+                <Field label="Starts" htmlFor="cal-start" required>
+                  <Input id="cal-start" type="time" step="300" value={calendarEventStartTime} onChange={(e) => setCalendarEventStartTime(e.target.value)} />
+                </Field>
+                <Field label="Ends" htmlFor="cal-end">
+                  <Input id="cal-end" type="time" step="300" value={calendarEventEndTime} onChange={(e) => setCalendarEventEndTime(e.target.value)} />
+                </Field>
+              </div>
+              <Field label="Where" htmlFor="cal-where" required help="The gym, Meaney Hall, the Gathering Space, the church.">
+                <Input id="cal-where" value={calendarEventLocation} onChange={(e) => setCalendarEventLocation(e.target.value)} />
+              </Field>
+              <Field label="Short description" htmlFor="cal-desc" required>
+                <Textarea id="cal-desc" rows={3} value={calendarEventDescription} onChange={(e) => setCalendarEventDescription(e.target.value)} />
+              </Field>
+              <Field label="Sign-up link for the calendar" htmlFor="cal-link">
+                <Input id="cal-link" type="url" value={calendarEventSignUpLink} onChange={(e) => setCalendarEventSignUpLink(e.target.value)} placeholder="https://" />
+              </Field>
+            </div>
+          )}
+        </FormSection>
+
+        <Band>The announcement</Band>
+        <FormSection>
+          <Field label="Where should it run?" required>
+            <Checkbox label="Bulletin" checked={platforms.includes('Bulletin')} onChange={() => handlePlatformChange('Bulletin')} />
+            <Checkbox label="Wednesday email" checked={platforms.includes('Email Blast')} onChange={() => handlePlatformChange('Email Blast')} />
+            <Checkbox label="Church screens" checked={platforms.includes('Church Screens')} onChange={() => handlePlatformChange('Church Screens')} />
+          </Field>
+
+          <Field
+            label="Which weekend should it start?"
+            htmlFor="ann-weekend"
+            help={selectedWeekend ? `The Wednesday email for that weekend goes out ${selectedWeekend.emailBlastDate}.` : 'A request; we may shift it a week if space is tight.'}
+          >
+            <Select id="ann-weekend" value={promotionStart} onChange={(e) => setPromotionStart(e.target.value)} className="max-w-[300px]">
+              <option value="">Choose a weekend…</option>
+              {upcomingWeekends.map((w) => (
+                <option key={w.value} value={w.value}>
+                  {weekendShort(w)}
+                </option>
+              ))}
+            </Select>
+          </Field>
+
+          <Field
+            label="Announcement text"
+            htmlFor="ann-body"
+            required
+            help="Write it the way you'd tell a neighbor. Day, date, time, place, cost, and who to contact. The bulletin limit is 90 words."
+          >
+            <Textarea id="ann-body" rows={7} value={announcementBody} onChange={(e) => setAnnouncementBody(e.target.value)} required />
+            <div className="mt-1.5 flex items-start justify-between gap-3">
+              <span className={`tnum text-xs ${words > 90 ? 'text-status-approval-t' : 'text-ink-3'}`}>
+                {words} {words === 1 ? 'word' : 'words'}
+                {words > 90 ? ' · over the bulletin limit' : ''}
+              </span>
+            </div>
+            <CopyAssist kind="announcement" value={announcementBody} onChange={setAnnouncementBody} />
+          </Field>
+
+          <Field label="Sign-up links" help="If different groups sign up in different places, add a row for each with a short label.">
+            <div className="flex flex-col gap-2">
+              {signUpLinks.map((entry) => (
+                <div key={entry.id} className="flex items-center gap-2">
+                  <Input value={entry.label} onChange={(e) => updateSignUpLink(entry.id, 'label', e.target.value)} placeholder="Label (optional)" className="max-w-[180px]" aria-label="Link label" />
+                  <Input type="url" value={entry.url} onChange={(e) => updateSignUpLink(entry.id, 'url', e.target.value)} placeholder="https://" aria-label="Link" />
+                  {signUpLinks.length > 1 && <RemoveRow onClick={() => removeSignUpLink(entry.id)} />}
                 </div>
-                <button
-                  type="button"
-                  onClick={addEventDate}
-                  className="mt-2 text-sm text-sh-primary hover:text-blue-600 font-medium inline-flex items-center gap-1"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
-                  Add another date
-                </button>
-              </div>
+              ))}
+            </div>
+            <AddRow onClick={addSignUpLink}>Add another link</AddRow>
+          </Field>
 
-              {/* Requested Publication Weekend */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Requested Publication Weekend
-                </label>
-                <select
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary bg-white text-gray-900 dark:bg-gray-700 dark:text-white"
-                  value={promotionStart}
-                  onChange={(e) => setPromotionStart(e.target.value)}
-                >
-                  <option value="">Select a weekend...</option>
-                  {upcomingWeekends.map((weekend) => (
-                    <option key={weekend.value} value={weekend.value}>
-                      {weekend.label}
-                    </option>
-                  ))}
-                </select>
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  This is a request and may be adjusted based on scheduling needs and space availability.
-                </p>
-                {selectedWeekend && (
-                  <p className="mt-1 text-xs text-sh-primary dark:text-blue-400 font-medium">
-                    The email blast for this weekend would go out on {selectedWeekend.emailBlastDate}.
-                  </p>
-                )}
-              </div>
+          <Field label="Fliers or files" help="PDF, Word, or images. We read them for details the form leaves out.">
+            <FileDrop
+              files={fileLinks}
+              disabled={uploadingFiles}
+              onFiles={(files) => handleFileUpload({ target: { files } } as unknown as React.ChangeEvent<HTMLInputElement>)}
+              onRemove={(i) => setFileLinks((prev) => prev.filter((_, k) => k !== i))}
+            />
+            <UploadProgress status={uploadStatus} />
+          </Field>
+        </FormSection>
 
-              {/* Publication Notes */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Publication Notes
-                </label>
-                <textarea
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary bg-white text-gray-900 dark:bg-gray-700 dark:text-white"
-                  rows={3}
-                  value={publicationNotes}
-                  onChange={(e) => setPublicationNotes(e.target.value)}
-                  placeholder="Any timing details we should know? e.g., 'Sign-up deadline is March 5', 'Materials need to be ordered 2 weeks prior', 'Would like this to run for 3 consecutive weekends'"
-                />
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  Include any deadlines, ordering timelines, or scheduling preferences that would help us plan publication.
-                </p>
-              </div>
+        <Band note="not published">For the office</Band>
+        <FormSection>
+          <Field label="Notes" htmlFor="ann-notes" help="Deadlines, ordering timelines, or how many weekends you'd like it to run.">
+            <Textarea id="ann-notes" rows={3} value={publicationNotes} onChange={(e) => setPublicationNotes(e.target.value)} />
+          </Field>
 
-              {/* Platforms */}
-              <div>
-                <span className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Where should this announcement appear?</span>
-                <div className="space-y-2">
-                  <div className="flex items-center">
-                    <input
-                      id="platform-email"
-                      type="checkbox"
-                      className="h-4 w-4 text-sh-primary focus:ring-sh-primary border-gray-300 rounded"
-                      checked={platforms.includes('Email Blast')}
-                      onChange={() => handlePlatformChange('Email Blast')}
-                    />
-                    <label htmlFor="platform-email" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
-                      Email Blast
-                    </label>
-                  </div>
-                  <div className="flex items-center">
-                    <input
-                      id="platform-bulletin"
-                      type="checkbox"
-                      className="h-4 w-4 text-sh-primary focus:ring-sh-primary border-gray-300 rounded"
-                      checked={platforms.includes('Bulletin')}
-                      onChange={() => handlePlatformChange('Bulletin')}
-                    />
-                    <label htmlFor="platform-bulletin" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
-                      Bulletin
-                    </label>
-                  </div>
-                  <div className="flex items-center">
-                    <input
-                      id="platform-screens"
-                      type="checkbox"
-                      className="h-4 w-4 text-sh-primary focus:ring-sh-primary border-gray-300 rounded"
-                      checked={platforms.includes('Church Screens')}
-                      onChange={() => handlePlatformChange('Church Screens')}
-                    />
-                    <label htmlFor="platform-screens" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
-                      Church Screens
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              {/* Announcement Body */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Announcement Body <span className="text-red-500">*</span>
-                </label>
-                <textarea
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary bg-white text-gray-900 dark:bg-gray-700 dark:text-white"
-                  rows={6}
-                  value={announcementBody}
-                  onChange={(e) => setAnnouncementBody(e.target.value)}
-                  required
-                  placeholder="Provide the full text of your announcement. Include all relevant details such as what, when, where, and contact information."
-                />
-                <CopyAssist kind="announcement" value={announcementBody} onChange={setAnnouncementBody} />
-              </div>
-
-              {/* Sign-Up Links */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Sign-Up Link(s) (if applicable)
-                </label>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-                  Where can parishioners sign up or register? If you have separate links for
-                  different activities or groups, add each one with a short label.
-                </p>
-                <div className="space-y-3">
-                  {signUpLinks.map((entry) => (
-                    <div key={entry.id} className="flex flex-col md:flex-row gap-3">
-                      <div className="md:w-1/3">
-                        <input
-                          type="text"
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary bg-white text-gray-900 dark:bg-gray-700 dark:text-white"
-                          value={entry.label}
-                          onChange={(e) => updateSignUpLink(entry.id, 'label', e.target.value)}
-                          placeholder="Label (e.g., Youth Group)"
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <input
-                          type="url"
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary bg-white text-gray-900 dark:bg-gray-700 dark:text-white"
-                          value={entry.url}
-                          onChange={(e) => updateSignUpLink(entry.id, 'url', e.target.value)}
-                          placeholder="https://example.com/signup"
-                        />
-                      </div>
-                      {signUpLinks.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeSignUpLink(entry.id)}
-                          className="px-3 py-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md transition-colors self-start"
-                        >
-                          Remove
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                <button
-                  type="button"
-                  onClick={addSignUpLink}
-                  className="mt-2 text-sm text-sh-primary hover:text-blue-600 font-medium inline-flex items-center gap-1"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
-                  Add another link
-                </button>
-              </div>
-
-              {/* Add to Events Calendar */}
-              <div className="flex items-center">
-                <input
-                  id="add-to-calendar"
-                  type="checkbox"
-                  className="h-4 w-4 text-sh-primary focus:ring-sh-primary border-gray-300 rounded"
-                  checked={addToCalendar}
-                  onChange={(e) => setAddToCalendar(e.target.checked)}
-                />
-                <label htmlFor="add-to-calendar" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
-                  Add to Saint Helen Events Calendar?
-                </label>
-              </div>
-
-              {/* Conditional Event Calendar Details */}
-              <AnimatePresence>
-                {addToCalendar && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="overflow-hidden"
-                  >
-                    <div className="p-5 bg-blue-50/80 dark:bg-blue-900/20 backdrop-blur-sm border border-blue-200/50 dark:border-blue-800/50 rounded-2xl space-y-4">
-                      <h4 className="font-semibold text-blue-900 dark:text-blue-200 text-sm">
-                        Events Calendar Details
-                      </h4>
-                      <p className="text-xs text-blue-700 dark:text-blue-300">
-                        These details will be used to create an event on the Saint Helen Events Calendar.
-                      </p>
-
-                      {/* Event Name */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                          Event Name <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary bg-white text-gray-900 dark:bg-gray-700 dark:text-white"
-                          value={calendarEventName}
-                          onChange={(e) => setCalendarEventName(e.target.value)}
-                          placeholder="Name of the event as it should appear on the calendar"
-                        />
-                      </div>
-
-                      {/* Event Date */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                          Event Date <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="date"
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary bg-white text-gray-900 dark:bg-gray-700 dark:text-white"
-                          value={calendarEventDate}
-                          onChange={(e) => setCalendarEventDate(e.target.value)}
-                        />
-                      </div>
-
-                      {/* Start/End Time */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Event Start Time <span className="text-red-500">*</span>
-                          </label>
-                          <input
-                            type="time"
-                            step="300"
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary bg-white text-gray-900 dark:bg-gray-700 dark:text-white"
-                            value={calendarEventStartTime}
-                            onChange={(e) => setCalendarEventStartTime(e.target.value)}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Event End Time <span className="text-gray-400">(optional)</span>
-                          </label>
-                          <input
-                            type="time"
-                            step="300"
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary bg-white text-gray-900 dark:bg-gray-700 dark:text-white"
-                            value={calendarEventEndTime}
-                            onChange={(e) => setCalendarEventEndTime(e.target.value)}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Short Event Description */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                          Short Event Description <span className="text-red-500">*</span>
-                        </label>
-                        <textarea
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary bg-white text-gray-900 dark:bg-gray-700 dark:text-white"
-                          rows={3}
-                          value={calendarEventDescription}
-                          onChange={(e) => setCalendarEventDescription(e.target.value)}
-                          placeholder="A brief description of the event for the calendar listing"
-                        />
-                      </div>
-
-                      {/* Event Location */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                          Event Location <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary bg-white text-gray-900 dark:bg-gray-700 dark:text-white"
-                          value={calendarEventLocation}
-                          onChange={(e) => setCalendarEventLocation(e.target.value)}
-                          placeholder="e.g., Parish Center Room 201, Church, etc."
-                        />
-                      </div>
-
-                      {/* Event Sign Up Link */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                          Event Sign Up Link <span className="text-gray-400">(optional)</span>
-                        </label>
-                        <input
-                          type="url"
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary bg-white text-gray-900 dark:bg-gray-700 dark:text-white"
-                          value={calendarEventSignUpLink}
-                          onChange={(e) => setCalendarEventSignUpLink(e.target.value)}
-                          placeholder="https://example.com/signup"
-                        />
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Consider for Social Media */}
-              <div>
-                <div className="flex items-center">
-                  <input
-                    id="social-consideration"
-                    type="checkbox"
-                    className="h-4 w-4 text-sh-primary focus:ring-sh-primary border-gray-300 rounded"
-                    checked={socialConsideration}
-                    onChange={(e) => setSocialConsideration(e.target.checked)}
-                  />
-                  <label htmlFor="social-consideration" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
-                    Consider for Social Media
+          <Checkbox
+            label="Worth a social media post?"
+            checked={socialConsideration}
+            onChange={(e) => setSocialConsideration(e.target.checked)}
+          />
+          {socialConsideration && (
+            <div className="mb-2 mt-1 rounded-md border border-line bg-surface-2 px-4 pb-2 pt-1">
+              <p className="pt-2 text-xs text-ink-3">The office decides timing and format; checking this is a nudge, not a booking.</p>
+              <Field label="What should people know or do?" htmlFor="soc-know">
+                <Textarea id="soc-know" rows={2} value={socialWhatToKnow} onChange={(e) => setSocialWhatToKnow(e.target.value)} placeholder="One or two sentences is plenty." />
+              </Field>
+              <Field label="Do you have photos or video?">
+                {[
+                  { value: 'yes', label: 'Yes' },
+                  { value: 'no', label: 'No' },
+                  { value: 'not_yet', label: 'Not yet. I will after the event.' },
+                ].map((o) => (
+                  <label key={o.value} className="flex items-center gap-2.5 py-1.5 text-md">
+                    <input type="radio" name="social-has-photos" className="m-0 h-[17px] w-[17px]" checked={socialHasPhotos === o.value} onChange={() => setSocialHasPhotos(o.value)} />
+                    {o.label}
                   </label>
-                </div>
-                <p className="mt-1 ml-6 text-xs text-gray-500 dark:text-gray-400">
-                  Check this if you think this event or announcement may be a good fit for Saint
-                  Helen social media. Submission does not guarantee a post — the communications
-                  team decides timing, format, and whether it's a fit.
-                </p>
-              </div>
-
-              {/* Conditional Social Media Details */}
-              <AnimatePresence>
-                {socialConsideration && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="overflow-hidden"
-                  >
-                    <div className="p-5 bg-purple-50/80 dark:bg-purple-900/20 backdrop-blur-sm border border-purple-200/50 dark:border-purple-800/50 rounded-2xl space-y-4">
-                      <h4 className="font-semibold text-purple-900 dark:text-purple-200 text-sm">
-                        A Little More for Social Media
-                      </h4>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                          What would you like people to know or do? <span className="text-gray-400">(optional)</span>
-                        </label>
-                        <textarea
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sh-primary focus:border-sh-primary bg-white text-gray-900 dark:bg-gray-700 dark:text-white"
-                          rows={2}
-                          value={socialWhatToKnow}
-                          onChange={(e) => setSocialWhatToKnow(e.target.value)}
-                          placeholder="One or two sentences is plenty."
-                        />
-                      </div>
-
-                      <div>
-                        <span className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Do you have photos or video?
-                        </span>
-                        <div className="space-y-2">
-                          {[
-                            { value: 'yes', label: 'Yes' },
-                            { value: 'no', label: 'No' },
-                            { value: 'not_yet', label: 'Not yet — I will after the event' },
-                          ].map((option) => (
-                            <label key={option.value} className="flex items-center">
-                              <input
-                                type="radio"
-                                name="social-has-photos"
-                                className="h-4 w-4 text-sh-primary focus:ring-sh-primary border-gray-300"
-                                checked={socialHasPhotos === option.value}
-                                onChange={() => setSocialHasPhotos(option.value)}
-                              />
-                              <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">{option.label}</span>
-                            </label>
-                          ))}
-                        </div>
-                        {socialHasPhotos === 'yes' && (
-                          <p className="mt-2 text-xs text-purple-700 dark:text-purple-300">
-                            Great — attach them below, or use the &quot;add photos from your phone&quot;
-                            link on the confirmation screen after you submit.
-                          </p>
-                        )}
-                        {socialHasPhotos === 'not_yet' && (
-                          <p className="mt-2 text-xs text-purple-700 dark:text-purple-300">
-                            No problem — after you submit, you&apos;ll get a link you can use later to
-                            add photos to this request from your phone.
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* File Upload */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Attach Files (optional)
-                </label>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                  You can attach as many files as you need — flyers, photos, PDFs.
-                </p>
-                <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-md">
-                  <div className="space-y-1 text-center">
-                    <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
-                      <path
-                        d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                        strokeWidth={2}
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                    <div className="flex text-sm text-gray-600 dark:text-gray-400">
-                      <label
-                        htmlFor="file-upload"
-                        className="relative cursor-pointer bg-white dark:bg-gray-700 rounded-md font-medium text-sh-primary dark:text-blue-400 hover:text-blue-600 focus-within:outline-none"
-                      >
-                        <span className="px-2 py-1">Upload files</span>
-                        <input
-                          id="file-upload"
-                          name="file-upload"
-                          type="file"
-                          className="sr-only"
-                          multiple
-                          accept="image/*,.heic,.heif,.pdf,application/pdf"
-                          onChange={handleFileUpload}
-                          disabled={uploadingFiles}
-                        />
-                      </label>
-                      <p className="pl-1">or drag and drop</p>
-                    </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      Photos (iPhone photos welcome) and PDFs
-                    </p>
-                  </div>
-                </div>
-                <UploadProgress status={uploadStatus} />
-                {fileLinks.length > 0 && (
-                  <div className="mt-3">
-                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Uploaded Files:</h4>
-                    <div className="space-y-2">
-                      {fileLinks.map((link, index) => (
-                        <div key={index} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                          <a href={link} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 dark:text-blue-400 hover:underline truncate flex-1 mr-2">
-                            {link.split('/').pop() || `File ${index + 1}`}
-                          </a>
-                          <button
-                            type="button"
-                            onClick={() => setFileLinks(prev => prev.filter((_, i) => i !== index))}
-                            className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
-                            title="Remove file"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => document.getElementById('file-upload')?.click()}
-                      className="mt-2 text-sm text-sh-primary hover:text-sh-primary-dark font-medium inline-flex items-center gap-1"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                      </svg>
-                      Add another file
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Success and Error Messages */}
-              <AnimatePresence>
-                {successMessage && (
-                  <motion.div 
-                    className="p-5 mb-4 rounded-xl bg-green-50/90 dark:bg-green-900/40 backdrop-blur-sm border border-green-200/50 dark:border-green-800/50 text-green-800 dark:text-green-300 shadow-soft"
-                    initial={{ opacity: 0, scale: 0.9, y: -10 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.9, y: -10 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <div className="flex items-start gap-3">
-                      <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ duration: 0.3, delay: 0.1 }}
-                      >
-                        <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                          <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                        </div>
-                      </motion.div>
-                      <div>
-                        <p className="font-medium">{successMessage}</p>
-                      </div>
-                    </div>
-                    {submittedRecordId && (
-                      <AddPhotosPanel recordType="announcements" recordId={submittedRecordId} />
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              <AnimatePresence>
-                {errorMessage && (
-                  <motion.div 
-                    className="p-5 mb-4 rounded-xl bg-red-50/90 dark:bg-red-900/40 backdrop-blur-sm border border-red-200/50 dark:border-red-800/50 text-red-800 dark:text-red-300 shadow-soft"
-                    initial={{ opacity: 0, scale: 0.9, y: -10 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.9, y: -10 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <div className="flex items-start gap-3">
-                      <ExclamationCircleIcon className="h-6 w-6 flex-shrink-0 mt-0.5 text-red-500" />
-                      <div>
-                        <p className="font-medium">{errorMessage}</p>
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Submit Button */}
-              <motion.div 
-                className="pt-4"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.6 }}
-              >
-                <motion.button
-                  type="submit"
-                  className="w-full bg-gradient-to-r from-sh-primary to-sh-primary-light hover:from-sh-primary-light hover:to-sh-primary text-white px-8 py-4 rounded-2xl font-semibold transition-all duration-300 shadow-soft hover:shadow-soft-lg transform hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sh-primary disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                  disabled={submittingForm || uploadingFiles}
-                  whileHover={{ scale: submittingForm || uploadingFiles ? 1 : 1.02 }}
-                  whileTap={{ scale: submittingForm || uploadingFiles ? 1 : 0.98 }}
-                >
-                  <div className="flex items-center justify-center">
-                    {submittingForm && (
-                      <motion.div
-                        className="w-5 h-5 border-2 border-white border-t-transparent rounded-full mr-3"
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                      />
-                    )}
-                    {submittingForm ? 'Submitting...' : 'Submit Announcement'}
-                  </div>
-                </motion.button>
-              </motion.div>
-            </form>
-          </FrontCardContent>
-        </FrontCard>
-        </motion.div>
-      </div>
+                ))}
+                {socialHasPhotos === 'yes' && <p className="mt-1 text-xs text-ink-3">Attach them above, or use the phone link on the confirmation screen.</p>}
+                {socialHasPhotos === 'not_yet' && <p className="mt-1 text-xs text-ink-3">After you submit you get a link to add photos from your phone later.</p>}
+              </Field>
+            </div>
+          )}
+        </FormSection>
+      </FormCard>
     </FrontLayout>
   );
 }

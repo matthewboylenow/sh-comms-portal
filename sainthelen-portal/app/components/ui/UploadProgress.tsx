@@ -27,18 +27,18 @@ export default function UploadProgress({ status }: UploadProgressProps) {
         : `Uploading file ${status.current} of ${status.total}... ${status.percent}%`;
 
   return (
-    <div className="mt-3 p-4 bg-sh-navy-50/60 dark:bg-slate-700/60 border border-sh-navy-100 dark:border-slate-600 rounded-xl">
+    <div className="mt-2 rounded border border-line bg-surface-2 px-3 py-2.5">
       <div className="flex items-center gap-3 mb-2">
-        <div className="animate-spin rounded-full h-4 w-4 border-2 border-sh-navy dark:border-blue-400 border-t-transparent flex-shrink-0"></div>
-        <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{label}</span>
+        <div className="h-3.5 w-3.5 flex-shrink-0 animate-spin rounded-full border-2 border-navy border-t-transparent"></div>
+        <span className="text-sm font-medium text-ink">{label}</span>
       </div>
-      <div className="w-full h-2 bg-gray-200 dark:bg-slate-600 rounded-full overflow-hidden">
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-line">
         <div
-          className="h-full bg-sh-navy dark:bg-blue-500 rounded-full transition-all duration-300"
+          className="h-full rounded-full bg-navy transition-all duration-300"
           style={{ width: `${Math.max(overallPercent, 4)}%` }}
         />
       </div>
-      <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+      <p className="mt-1.5 text-xs text-ink-3">
         Please keep this page open until the upload finishes.
       </p>
     </div>

@@ -148,7 +148,7 @@ export default function MinistryAutocomplete({
         <input
           ref={inputRef}
           type="text"
-          className={`w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-2xl shadow-soft focus:outline-none focus:ring-2 focus:ring-sh-primary/50 focus:border-sh-primary dark:bg-gray-800/50 dark:text-white backdrop-blur-sm transition-all duration-200 ${className}`}
+          className={`block h-10 w-full rounded border border-line-2 bg-surface px-[11px] text-md text-ink placeholder:text-ink-3 focus:border-navy focus:outline-none focus:ring-2 focus:ring-navy/25 ${className}`}
           value={value}
           onChange={handleInputChange}
           onFocus={handleInputFocus}
@@ -160,7 +160,7 @@ export default function MinistryAutocomplete({
         
         {selectedMinistry && (
           <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-            <InformationCircleIcon className="h-5 w-5 text-green-500" />
+            <InformationCircleIcon className="h-4 w-4 text-status-approved-d" />
           </div>
         )}
       </div>
@@ -169,35 +169,35 @@ export default function MinistryAutocomplete({
       {isOpen && suggestions.length > 0 && (
         <div
           ref={dropdownRef}
-          className="absolute z-10 w-full mt-2 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm border border-gray-200/50 dark:border-gray-600/50 rounded-2xl shadow-soft max-h-60 overflow-y-auto"
+          className="absolute z-10 mt-1 max-h-60 w-full overflow-y-auto rounded-md border border-line bg-surface shadow-pop"
         >
           {suggestions.map((ministry) => (
             <div
               key={ministry.id}
-              className="px-4 py-3 cursor-pointer hover:bg-gray-50/70 dark:hover:bg-gray-700/70 border-b border-gray-100/50 dark:border-gray-700/50 last:border-b-0 transition-all duration-200 first:rounded-t-2xl last:rounded-b-2xl"
+              className="cursor-pointer border-b border-line px-3 py-2 last:border-b-0 hover:bg-surface-2"
               onClick={() => handleSuggestionClick(ministry)}
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="font-medium text-gray-900 dark:text-white">
+                  <div className="text-sm font-medium text-ink">
                     {ministry.name}
                   </div>
                   {ministry.description && (
-                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                    <div className="text-xs text-ink-3">
                       {ministry.description}
                     </div>
                   )}
                 </div>
                 {ministry.requiresApproval && (
-                  <ExclamationTriangleIcon className="h-4 w-4 text-amber-500 flex-shrink-0 ml-2" />
+                  <ExclamationTriangleIcon className="ml-2 h-4 w-4 flex-shrink-0 text-status-review-d" />
                 )}
               </div>
             </div>
           ))}
           
           {!selectedMinistry && value.trim() && (
-            <div className="px-4 py-3 border-t border-gray-200/50 dark:border-gray-600/50 bg-gray-50/50 dark:bg-gray-700/50 rounded-b-2xl">
-              <div className="text-sm text-gray-600 dark:text-gray-400">
+            <div className="border-t border-line bg-surface-2 px-3 py-2">
+              <div className="text-xs text-ink-2">
                 Don't see your ministry? You can still submit "{value}" as a custom entry.
               </div>
             </div>
@@ -207,14 +207,14 @@ export default function MinistryAutocomplete({
 
       {/* Approval Warning */}
       {showApprovalWarning && selectedMinistry && (
-        <div className="mt-3 p-4 bg-amber-50/80 dark:bg-amber-900/30 backdrop-blur-sm border border-amber-200/50 dark:border-amber-800/50 rounded-2xl shadow-soft">
+        <div className="mt-2 rounded-r border-l-[3px] border-status-review-d bg-status-review-bg px-3.5 py-2.5">
           <div className="flex items-start gap-3">
-            <ExclamationTriangleIcon className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
+            <ExclamationTriangleIcon className="mt-0.5 h-4 w-4 flex-shrink-0 text-status-review-t" />
             <div className="text-sm">
-              <p className="font-semibold text-amber-800 dark:text-amber-300">
+              <p className="font-semibold text-status-review-t">
                 Approval Required
               </p>
-              <p className="text-amber-700 dark:text-amber-400 mt-1 leading-relaxed">
+              <p className="text-status-review-t mt-1 leading-relaxed">
                 This announcement will require approval from the Coordinator of Adult Discipleship 
                 before being published. You will receive an email notification once reviewed.
               </p>
