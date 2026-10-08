@@ -1,10 +1,11 @@
 // app/api/admin/stage/route.ts
 // POST { table, recordId, stage: 'review' | 'approved' | null }
-// Records where the office placed a card on the board.
+// POST { table, recordId, flag: 'msgr' | null }
+// Records where the office placed a card on the board, or a flag on it.
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminAccess } from '../../../lib/adminAuth';
 import { useNeonDatabase } from '../../../lib/db';
-import { setStage } from '../../../lib/db/services/request-stages';
+import { setStage, setFlag } from '../../../lib/db/services/request-stages';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,15 +21,24 @@ export async function POST(request: NextRequest) {
   if (!useNeonDatabase()) {
     return NextResponse.json({ error: 'Board stages need the Neon database' }, { status: 501 });
   }
-  const { table, recordId, stage } = await request.json().catch(() => ({}));
+  const body = await request.json().catch(() => ({}));
+  const { table, recordId } = body;
   if (!TABLES.has(table) || typeof recordId !== 'string' || !recordId) {
     return NextResponse.json({ error: 'table and recordId are required' }, { status: 400 });
   }
-  if (stage !== null && stage !== 'review' && stage !== 'approved') {
-    return NextResponse.json({ error: 'stage must be review, approved, or null' }, { status: 400 });
-  }
+  const by = session.user?.email || undefined;
   try {
-    await setStage(table, recordId, stage, session.user?.email || undefined);
+    if ('flag' in body) {
+      if (body.flag !== null && body.flag !== 'msgr') {
+        return NextResponse.json({ error: 'flag must be msgr or null' }, { status: 400 });
+      }
+      await setFlag(table, recordId, body.flag, by);
+      return NextResponse.json({ ok: true });
+    }
+    if (body.stage !== null && body.stage !== 'review' && body.stage !== 'approved') {
+      return NextResponse.json({ error: 'stage must be review, approved, or null' }, { status: 400 });
+    }
+    await setStage(table, recordId, body.stage, by);
     return NextResponse.json({ ok: true });
   } catch (err: any) {
     console.error('setStage failed:', err);

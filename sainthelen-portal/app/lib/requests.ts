@@ -69,6 +69,8 @@ export type PortalRequest = {
   requiresApproval: boolean;
   approvalStatus?: string; // pending | approved | rejected
   stage?: 'review' | 'approved'; // set by dragging on the board
+  /** Flagged to go over with Msgr. Tom */
+  forMsgr: boolean;
   completed: boolean;
   submittedAt: string | null; // ISO
   completedAt: string | null; // ISO
@@ -288,6 +290,7 @@ export function toRequest(table: ApiTable, rec: ApiRecord): PortalRequest {
     requiresApproval: f['Requires Approval'] === true || f['Requires Approval'] === 'Yes',
     approvalStatus: str(f['Approval Status']) || undefined,
     stage: f.Stage === 'approved' || f.Stage === 'review' ? f.Stage : undefined,
+    forMsgr: f.Flag === 'msgr',
     completed: f.Completed === true || f.Completed === 'Yes',
     submittedAt,
     completedAt: str(f['Completed Date']) || null,

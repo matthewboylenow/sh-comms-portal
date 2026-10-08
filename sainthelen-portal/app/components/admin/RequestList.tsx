@@ -6,7 +6,7 @@
 import { StatusPill } from '../ui/StatusPill';
 import { TypeMark } from '../ui/TypeMark';
 import { Avatar } from '../ui/Avatar';
-import { Platforms } from '../ui/Tag';
+import { Platforms, Tag } from '../ui/Tag';
 import { REQUEST_TYPES, STATUS_LABEL, relativeTime, type PortalRequest, type RequestStatus, type RequestType } from '../../lib/requests';
 
 export const STATUS_DOT: Record<RequestStatus, string> = {
@@ -103,7 +103,10 @@ export default function RequestList({ items, selected, onSelect, groupBy = 'stat
                     />
                   )}
                   <span className="min-w-0">
-                    <span className="block truncate text-[13.5px] font-semibold">{r.title}</span>
+                    <span className="flex items-center gap-1.5 truncate text-[13.5px] font-semibold">
+                      <span className="truncate">{r.title}</span>
+                      {r.forMsgr && <Tag tone="flag">Msgr. Tom</Tag>}
+                    </span>
                     <span className="block truncate text-xs text-ink-3">
                       <TypeMark type={r.type} />
                       {r.page ? ` · ${r.page}` : ''}

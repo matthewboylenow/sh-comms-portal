@@ -46,16 +46,18 @@ function Inbox() {
   const { status } = useSession();
   const search = useSearchParams();
   const router = useRouter();
-  const queue = search.get('queue') === 'week' ? 'week' : 'inbox';
+  const q0 = search.get('queue');
+  const queue: 'inbox' | 'week' | 'msgr' = q0 === 'week' ? 'week' : q0 === 'msgr' ? 'msgr' : 'inbox';
   const typeParam = search.get('type') as RequestType | null;
   const type = typeParam && REQUEST_TYPES[typeParam] ? typeParam : null;
 
-  const [view, setView] = useState<View>(queue === 'week' ? 'week' : 'board');
+  const [view, setView] = useState<View>(queue === 'week' ? 'week' : queue === 'msgr' ? 'list' : 'board');
   const [q, setQ] = useState('');
   const [selected, setSelected] = useState<string | null>(null);
 
   useEffect(() => {
     if (queue === 'week') setView('week');
+    if (queue === 'msgr') setView('list');
   }, [queue]);
 
   useEffect(() => {
@@ -88,7 +90,7 @@ function InboxBody(props: {
   setView: (v: View) => void;
   q: string;
   setQ: (s: string) => void;
-  queue: 'inbox' | 'week';
+  queue: 'inbox' | 'week' | 'msgr';
   type: RequestType | null;
   selected: string | null;
   setSelected: (id: string | null) => void;
@@ -114,6 +116,7 @@ function InboxBody(props: {
   const visible = useMemo(() => {
     let v = requests;
     if (queue === 'week') v = v.filter((r) => r.status !== 'done' && inThisWeek(r, weekend));
+    else if (queue === 'msgr') v = v.filter((r) => r.status !== 'done' && r.forMsgr);
     else v = v.filter((r) => r.status !== 'done');
     if (type) v = v.filter((r) => r.type === type);
     if (q.trim()) {
@@ -127,7 +130,7 @@ function InboxBody(props: {
   const waiting = open.filter((r) => r.status === 'approval').length;
   const sel = selected ? requests.find((r) => r.id === selected) || null : null;
 
-  const title = type ? REQUEST_TYPES[type].plural : queue === 'week' ? `This weekend · ${weekendLabel(weekend)}` : 'Inbox';
+  const title = type ? REQUEST_TYPES[type].plural : queue === 'week' ? `This weekend · ${weekendLabel(weekend)}` : queue === 'msgr' ? 'For Msgr. Tom' : 'Inbox';
   const subtitle = loading && !requests.length
     ? 'Loading…'
     : `${open.length} open${waiting ? ` · ${waiting} waiting on approval` : ''}`;
@@ -358,7 +361,8 @@ function Card({
   dragProps?: React.HTMLAttributes<HTMLElement> & { draggable?: boolean };
   dragging?: boolean;
 }) {
-  const tags: Array<{ t: string; warn?: boolean }> = [];
+  const tags: Array<{ t: string; warn?: boolean; flag?: boolean }> = [];
+  if (r.forMsgr) tags.push({ t: 'Review with Msgr. Tom', flag: true });
   if (r.calendar === 'requested') tags.push({ t: 'calendar draft' });
   if (r.calendar === 'published') tags.push({ t: 'on the calendar' });
   if (r.status === 'approval') tags.push({ t: r.ministry || 'needs coordinator', warn: true });
@@ -389,7 +393,7 @@ function Card({
       {tags.length > 0 && (
         <div className="mb-2 flex flex-wrap gap-1">
           {tags.map((t) => (
-            <Tag key={t.t} tone={t.warn ? 'warn' : 'neutral'}>
+            <Tag key={t.t} tone={t.flag ? 'flag' : t.warn ? 'warn' : 'neutral'}>
               {t.t}
             </Tag>
           ))}

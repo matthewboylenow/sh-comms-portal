@@ -18,6 +18,8 @@ type RequestsContextType = {
   patch: (id: string, fields: Record<string, unknown>) => void;
   /** Move a request between board stages; writes to the server and rolls back on failure. */
   move: (req: PortalRequest, to: MoveTarget) => Promise<void>;
+  /** Flag or unflag a request for review with Msgr. Tom. */
+  setMsgrFlag: (req: PortalRequest, on: boolean) => Promise<void>;
 };
 
 export type MoveTarget = 'review' | 'approved' | 'done';
@@ -114,7 +116,23 @@ export function RequestsProvider({ children }: { children: React.ReactNode }) {
     [patch, refresh]
   );
 
-  return <Ctx.Provider value={{ requests, loading, error, loadedAt, refresh, patch, move }}>{children}</Ctx.Provider>;
+  const setMsgrFlag = useCallback(
+    async (req: PortalRequest, on: boolean) => {
+      patch(req.id, { Flag: on ? 'msgr' : null });
+      const res = await fetch('/api/admin/stage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ table: req.table, recordId: req.id, flag: on ? 'msgr' : null }),
+      });
+      if (!res.ok) {
+        await refresh();
+        throw new Error((await res.json().catch(() => ({}))).error || 'Could not save the flag');
+      }
+    },
+    [patch, refresh]
+  );
+
+  return <Ctx.Provider value={{ requests, loading, error, loadedAt, refresh, patch, move, setMsgrFlag }}>{children}</Ctx.Provider>;
 }
 
 export function useRequests() {

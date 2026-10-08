@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
         graphicDesignService.getAllGraphicDesignRequests({ includeCompleted })
       ]);
       // Board stages the office set by dragging cards; missing table = none
-      const stages = await getAllStages().catch(() => new Map<string, string>());
+      const stages = await getAllStages().catch(() => new Map<string, { stage: string | null; flag: string | null }>());
 
       // Helper to safely format dates (handles both Date objects and strings)
       const formatDate = (d: any) => {
@@ -199,8 +199,9 @@ export async function GET(request: NextRequest) {
 
       (Object.keys(data) as Array<keyof typeof data>).forEach((table) => {
         data[table].forEach((rec: { id: string; fields: Record<string, unknown> }) => {
-          const stage = stages.get(`${table}:${rec.id}`);
-          if (stage) rec.fields.Stage = stage;
+          const row = stages.get(`${table}:${rec.id}`);
+          if (row?.stage) rec.fields.Stage = row.stage;
+          if (row?.flag) rec.fields.Flag = row.flag;
         });
       });
 

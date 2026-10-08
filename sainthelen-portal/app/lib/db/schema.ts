@@ -447,7 +447,8 @@ export const requestStages = pgTable('request_stages', {
   id: uuid('id').primaryKey().defaultRandom(),
   sourceTable: varchar('source_table', { length: 30 }).notNull(), // announcements | websiteUpdates | ...
   recordId: varchar('record_id', { length: 64 }).notNull(),
-  stage: varchar('stage', { length: 20 }).notNull(), // review | approved
+  stage: varchar('stage', { length: 20 }), // review | approved | null
+  flag: varchar('flag', { length: 30 }), // msgr | null
   setBy: varchar('set_by', { length: 255 }),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

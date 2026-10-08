@@ -26,6 +26,7 @@ import {
   SunIcon,
   ArrowRightOnRectangleIcon,
   CalendarIcon,
+  FlagIcon,
 } from '@heroicons/react/24/outline';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useRequests } from '../../context/RequestsContext';
@@ -142,6 +143,7 @@ function Sidebar() {
     week: open.filter((r) => sameWeekend(r.runsOn, weekend) || (r.type === 'text' && r.runsOn && r.runsOn <= weekend)).length,
     approval: open.filter((r) => r.status === 'approval').length,
     calendar: open.filter((r) => r.calendar === 'requested').length,
+    msgr: open.filter((r) => r.forMsgr).length,
   };
   const typeCounts = (t: RequestType) => open.filter((r) => r.type === t).length;
 
@@ -153,6 +155,7 @@ function Sidebar() {
   const queues = [
     canMain && { href: '/admin', label: 'Inbox', icon: InboxIcon, n: counts.inbox, on: onInbox && !queue && !type },
     canMain && { href: '/admin?queue=week', label: `This weekend`, icon: CalendarIcon, n: counts.week, on: onInbox && queue === 'week' },
+    canMain && { href: '/admin?queue=msgr', label: 'For Msgr. Tom', icon: FlagIcon, n: counts.msgr, on: onInbox && queue === 'msgr' },
     permissions?.canAccessApprovals && {
       href: '/admin/approvals',
       label: permissions?.role === 'adult_faith_approver' ? 'Adult Faith approvals' : 'Waiting on approval',

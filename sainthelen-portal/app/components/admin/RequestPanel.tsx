@@ -35,7 +35,7 @@ export default function RequestPanel({
   const [error, setError] = useState<string | null>(null);
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState('');
-  const { patch, refresh, move } = useRequests();
+  const { patch, refresh, move, setMsgrFlag } = useRequests();
   const { permissions } = usePermissions();
 
   useEffect(() => {
@@ -176,6 +176,16 @@ export default function RequestPanel({
           Calendar event <ArrowTopRightOnSquareIcon className="h-3.5 w-3.5" />
         </a>
       )}
+      {r.status !== 'done' && (
+        <Button
+          variant={r.forMsgr ? 'secondary' : 'ghost'}
+          onClick={() => call('flag', () => setMsgrFlag(r, !r.forMsgr))}
+          disabled={!!busy}
+          title={r.forMsgr ? 'Remove the flag' : 'Flag this to go over with Msgr. Tom'}
+        >
+          {busy === 'flag' ? 'Saving…' : r.forMsgr ? 'Flagged for Msgr. Tom' : 'Review with Msgr. Tom'}
+        </Button>
+      )}
       {r.body && (
         <Button variant="ghost" onClick={copyText}>
           Copy text
@@ -190,6 +200,7 @@ export default function RequestPanel({
         <div className="flex items-center gap-2">
           <TypeMark type={r.type} />
           <StatusPill status={r.status} label={STATUS_LABEL[r.status]} />
+          {r.forMsgr && <Tag tone="flag">Msgr. Tom</Tag>}
           <button
             type="button"
             onClick={onClose}

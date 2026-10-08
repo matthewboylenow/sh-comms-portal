@@ -8,13 +8,15 @@ export function Tag({
   className = '',
 }: {
   children: React.ReactNode;
-  tone?: 'neutral' | 'warn';
+  tone?: 'neutral' | 'warn' | 'flag';
   className?: string;
 }) {
   const cls =
     tone === 'warn'
       ? 'bg-status-approval-bg text-status-approval-t border-transparent'
-      : 'bg-surface-2 text-ink-2 border-line';
+      : tone === 'flag'
+        ? 'bg-navy-soft text-navy border-transparent'
+        : 'bg-surface-2 text-ink-2 border-line';
   return (
     <span className={`inline-flex h-5 items-center whitespace-nowrap rounded-sm border px-[7px] text-[11.5px] font-medium ${cls} ${className}`}>
       {children}
