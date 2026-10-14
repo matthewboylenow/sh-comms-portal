@@ -1,6 +1,7 @@
 import { db } from '../index';
 import { announcements, type Announcement, type NewAnnouncement } from '../schema';
-import { eq, and, or, desc, inArray, isNull, not } from 'drizzle-orm';
+import { eq, and, or, desc, inArray, isNull, not, ilike } from 'drizzle-orm';
+import { ministries } from '../schema';
 
 /**
  * Announcement Service - Database operations for announcements
@@ -33,8 +34,15 @@ export async function getAnnouncements(options: {
   }
 
   if (options.ministries && options.ministries.length > 0) {
-    const ministryConditions = options.ministries.map(m => eq(announcements.ministry, m));
-    conditions.push(or(...ministryConditions)!);
+    // Match on the linked ministry record where we have one, and on the
+    // typed name (case-insensitive) for older rows that were never linked.
+    const linked = await db
+      .select({ id: ministries.id })
+      .from(ministries)
+      .where(or(...options.ministries.map((m) => ilike(ministries.name, m)))!);
+    const ids = linked.map((r) => r.id);
+    const nameConditions = options.ministries.map((m) => ilike(announcements.ministry, m));
+    conditions.push(or(...(ids.length ? [inArray(announcements.ministryId, ids)] : []), ...nameConditions)!);
   }
 
   if (conditions.length > 0) {

@@ -7,6 +7,7 @@ import { Button } from '../components/ui/Button';
 import { FormCard, FormSection, FooterNote } from '../components/ui/FormCard';
 import { Field, Input, Textarea, Select, Checkbox, Band, Notice } from '../components/ui/Field';
 import { FileDrop, AddRow, RemoveRow } from '../components/ui/FileDrop';
+import MinistryPicker from '../components/ui/MinistryPicker';
 import UploadProgress from '@/app/components/ui/UploadProgress';
 import { uploadFilesWithStatus, type UploadStatus } from '@/app/lib/upload';
 
@@ -139,8 +140,8 @@ export default function GraphicDesignFormPage() {
           <Field label="Email" htmlFor="gd-email" required>
             <Input id="gd-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" className="max-w-[360px]" />
           </Field>
-          <Field label="Ministry" htmlFor="gd-ministry">
-            <Input id="gd-ministry" value={ministry} onChange={(e) => setMinistry(e.target.value)} className="max-w-[360px]" />
+          <Field label="Ministry or group" htmlFor="gd-ministry" required help="Choose from the list, or Other.">
+            <MinistryPicker id="gd-ministry" value={ministry} onChange={(v) => setMinistry(v === '__none__' ? '' : v)} required allowNone noneLabel="Parish-wide, no particular ministry" />
           </Field>
         </FormSection>
 

@@ -8,7 +8,7 @@ import { Button } from '../components/ui/Button';
 import { FormCard, FormSection, FooterNote } from '../components/ui/FormCard';
 import { Field, Input, Textarea, Select, Checkbox, Band, Notice } from '../components/ui/Field';
 import { FileDrop, AddRow, RemoveRow } from '../components/ui/FileDrop';
-import MinistryAutocomplete from '../components/ui/MinistryAutocomplete';
+import MinistryPicker from '../components/ui/MinistryPicker';
 import AddPhotosPanel from '../components/AddPhotosPanel';
 import UploadProgress from '../components/ui/UploadProgress';
 import { uploadFilesWithStatus, type UploadStatus } from '../lib/upload';
@@ -129,7 +129,7 @@ export default function AnnouncementsFormPage() {
 
   // Handle ministry selection
   const handleMinistryChange = (value: string, ministryObj?: Ministry) => {
-    setMinistry(value);
+    setMinistry(value === '__none__' ? '' : value);
     setSelectedMinistry(ministryObj);
   };
 
@@ -214,6 +214,11 @@ export default function AnnouncementsFormPage() {
     }
     if (!email.trim()) {
       setErrorMessage('Email is required');
+      setSubmittingForm(false);
+      return;
+    }
+    if (!ministry.trim()) {
+      setErrorMessage('Please choose a ministry or group, or Other.');
       setSubmittingForm(false);
       return;
     }
@@ -379,15 +384,8 @@ export default function AnnouncementsFormPage() {
           <Field label="Email" htmlFor="ann-email" required help="For your confirmation and any questions.">
             <Input id="ann-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" className="max-w-[360px]" />
           </Field>
-          <Field label="Ministry" htmlFor="ann-ministry">
-            <div className="max-w-[360px]">
-              <MinistryAutocomplete
-                value={ministry}
-                onChange={handleMinistryChange}
-                onApprovalStatusChange={handleApprovalStatusChange}
-                placeholder="Start typing…"
-              />
-            </div>
+          <Field label="Ministry or group" htmlFor="ann-ministry" required help="Choose from the list. If yours is not there, choose Other and tell us the name.">
+            <MinistryPicker id="ann-ministry" value={ministry} onChange={handleMinistryChange} onApprovalStatusChange={handleApprovalStatusChange} required />
           </Field>
           <Checkbox
             label="This is for a group or event outside Saint Helen"

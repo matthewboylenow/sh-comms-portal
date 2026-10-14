@@ -6,6 +6,7 @@ import { getAirtableBase, TABLE_NAMES } from '../../../lib/airtable';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
 import { getUserApprovalScope, getUserPermissions } from '../../../config/permissions';
+import * as ministriesService from '../../../lib/db/services/ministries';
 
 // New Neon database imports
 import { useNeonDatabase } from '../../../lib/db';
@@ -201,9 +202,15 @@ export async function POST(request: NextRequest) {
       submitterName = currentRecord.name;
       ministry = currentRecord.ministry || '';
 
-      // Verify user has permission to approve this ministry
+      // Verify user has permission to approve this ministry: the linked
+      // ministry record first, then the typed name, case-insensitive.
       const approvalScope = await getUserApprovalScope(session.user.email);
-      if (approvalScope && !approvalScope.includes(ministry)) {
+      const linkedName = currentRecord.ministryId
+        ? (await ministriesService.getMinistryById(currentRecord.ministryId))?.name
+        : undefined;
+      const inScope = (list: string[]) =>
+        list.some((m) => m.toLowerCase() === (linkedName || '').toLowerCase() || m.toLowerCase() === ministry.toLowerCase());
+      if (approvalScope && !inScope(approvalScope)) {
         return new NextResponse(
           JSON.stringify({ error: 'You do not have permission to approve this ministry' }),
           { status: 403 }
@@ -328,7 +335,15 @@ async function handleBulkApproval(
       for (const record of announcements) {
         if (!record) continue;
         const ministry = record.ministry || '';
-        if (approvalScope && !approvalScope.includes(ministry)) {
+        const linkedName = record.ministryId
+          ? (await ministriesService.getMinistryById(record.ministryId))?.name
+          : undefined;
+        const inScope =
+          !approvalScope ||
+          approvalScope.some(
+            (m) => m.toLowerCase() === (linkedName || '').toLowerCase() || m.toLowerCase() === ministry.toLowerCase()
+          );
+        if (!inScope) {
           return new NextResponse(
             JSON.stringify({ error: `You do not have permission to approve ${ministry}` }),
             { status: 403 }

@@ -1,6 +1,8 @@
 // app/config/permissions.ts
 
 import { getAirtableBase, TABLE_NAMES } from '../lib/airtable';
+import { useNeonDatabase } from '../lib/db';
+import { getMinistriesRequiringApproval } from '../lib/db/services/ministries';
 
 export type UserRole = 'admin' | 'adult_faith_approver';
 
@@ -81,6 +83,17 @@ export async function getUserApprovalScope(email: string): Promise<string[] | un
 
 // Helper function to get ministries that require approval from Airtable
 export async function getApprovalRequiredMinistries(): Promise<string[]> {
+  // The ministries table lives in Neon once USE_NEON_DB is on; the Airtable
+  // copy is the legacy list and goes stale.
+  if (useNeonDatabase()) {
+    try {
+      const rows = await getMinistriesRequiringApproval();
+      return rows.filter((m) => m.active).map((m) => m.name);
+    } catch (error) {
+      console.error('Error fetching approval-required ministries from Neon:', error);
+      return [];
+    }
+  }
   try {
     const base = getAirtableBase();
     const records = await base(TABLE_NAMES.MINISTRIES)

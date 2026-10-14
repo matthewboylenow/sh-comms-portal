@@ -9,7 +9,7 @@ import { Button } from '../components/ui/Button';
 import { FormCard, FormSection, FooterNote } from '../components/ui/FormCard';
 import { Field, Input, Textarea, Select, Checkbox, Band, Notice } from '../components/ui/Field';
 import { FileDrop, AddRow, RemoveRow } from '../components/ui/FileDrop';
-import MinistryAutocomplete from '../components/ui/MinistryAutocomplete';
+import MinistryPicker from '../components/ui/MinistryPicker';
 import UploadProgress from '../components/ui/UploadProgress';
 import { uploadFilesWithStatus, type UploadStatus } from '../lib/upload';
 
@@ -124,7 +124,7 @@ export default function SharePhotosPage() {
           </Field>
           <div className="grid gap-x-3 sm:grid-cols-2">
             <Field label="Ministry or event" htmlFor="ph-ministry">
-              <MinistryAutocomplete value={ministry} onChange={(v) => setMinistry(v)} placeholder="Start typing…" />
+              <MinistryPicker id="ph-ministry" value={ministry} onChange={(v) => setMinistry(v === '__none__' ? '' : v)} allowNone noneLabel="A parish event, no particular ministry" />
             </Field>
             <Field label="Taken on" htmlFor="ph-date">
               <Input id="ph-date" type="date" value={photoDate} onChange={(e) => setPhotoDate(e.target.value)} />
