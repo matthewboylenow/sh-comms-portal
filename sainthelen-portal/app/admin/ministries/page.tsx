@@ -138,6 +138,39 @@ export default function MinistriesPage() {
     }
   };
 
+  const [suggestions, setSuggestions] = useState<Array<{ name: string; count: number; tables: string[] }>>([]);
+  const [adding, setAdding] = useState<string | null>(null);
+  const loadSuggestions = async () => {
+    try {
+      const res = await fetch('/api/admin/ministries/suggestions', { cache: 'no-store' });
+      if (res.ok) setSuggestions((await res.json()).suggestions || []);
+    } catch {
+      /* leave empty */
+    }
+  };
+  useEffect(() => {
+    loadSuggestions();
+  }, []);
+  const addSuggested = async (names: string[]) => {
+    setAdding(names.join('|'));
+    try {
+      for (const name of names) {
+        const res = await fetch('/api/admin/ministries', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, requiresApproval: false, approvalCoordinator: 'adult-discipleship', active: true }),
+        });
+        if (!res.ok && res.status !== 409) throw new Error((await res.json()).error || `Could not add ${name}`);
+      }
+      await fetchMinistries();
+      await loadSuggestions();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setAdding(null);
+    }
+  };
+
   const activeMinistries = ministries.filter(m => m.active);
   const inactiveMinistries = ministries.filter(m => !m.active);
 
@@ -182,6 +215,33 @@ export default function MinistriesPage() {
           <div className="space-y-8">
             {/* Active Ministries */}
             <div>
+              {suggestions.length > 0 && (
+                <Card className="mb-6">
+                  <div className="flex flex-wrap items-center gap-2 border-b border-line px-5 py-3">
+                    <div>
+                      <h2 className="text-md font-semibold">Typed on a form but not on the list</h2>
+                      <p className="text-sm text-ink-2">Add the real ones. They are added without approval; edit any that need it.</p>
+                    </div>
+                    {suggestions.filter((x) => x.count >= 2).length > 0 && (
+                      <Button className="ml-auto" variant="secondary" disabled={!!adding} onClick={() => addSuggested(suggestions.filter((x) => x.count >= 2).map((x) => x.name))}>
+                        Add all used twice or more
+                      </Button>
+                    )}
+                  </div>
+                  <ul className="divide-y divide-line">
+                    {suggestions.map((x) => (
+                      <li key={x.name} className="flex items-center gap-3 px-5 py-2 text-sm">
+                        <span className="font-medium">{x.name}</span>
+                        <span className="tnum text-ink-3">{x.count} {x.count === 1 ? 'submission' : 'submissions'} · {x.tables.join(', ')}</span>
+                        <Button size="sm" variant="secondary" className="ml-auto" disabled={!!adding} onClick={() => addSuggested([x.name])}>
+                          {adding === x.name ? 'Adding…' : 'Add'}
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                </Card>
+              )}
+
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                 Active Ministries ({activeMinistries.length})
               </h2>

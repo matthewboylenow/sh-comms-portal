@@ -4,6 +4,7 @@ import { getAirtableBase, TABLE_NAMES } from '../../../lib/airtable';
 // New Neon database imports
 import { useNeonDatabase } from '../../../lib/db';
 import * as ministriesService from '../../../lib/db/services/ministries';
+import { requireAdminAccess } from '../../../lib/adminAuth';
 
 export const dynamic = 'force-dynamic';
 
@@ -62,6 +63,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    await requireAdminAccess().catch(() => {
+      throw Object.assign(new Error('Sign in required'), { status: 401 });
+    });
     const { name, requiresApproval, approvalCoordinator, description, active } = await request.json();
 
     if (!name?.trim()) {
@@ -149,13 +153,16 @@ export async function POST(request: NextRequest) {
     console.error('Error creating ministry:', error);
     return new NextResponse(
       JSON.stringify({ error: error.message || 'Failed to create ministry' }),
-      { status: 500 }
+      { status: error.status || 500 }
     );
   }
 }
 
 export async function PUT(request: NextRequest) {
   try {
+    await requireAdminAccess().catch(() => {
+      throw Object.assign(new Error('Sign in required'), { status: 401 });
+    });
     const { id, name, requiresApproval, approvalCoordinator, description, active } = await request.json();
 
     if (!id || !name?.trim()) {
@@ -242,13 +249,16 @@ export async function PUT(request: NextRequest) {
     console.error('Error updating ministry:', error);
     return new NextResponse(
       JSON.stringify({ error: error.message || 'Failed to update ministry' }),
-      { status: 500 }
+      { status: error.status || 500 }
     );
   }
 }
 
 export async function DELETE(request: NextRequest) {
   try {
+    await requireAdminAccess().catch(() => {
+      throw Object.assign(new Error('Sign in required'), { status: 401 });
+    });
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
@@ -276,7 +286,7 @@ export async function DELETE(request: NextRequest) {
     console.error('Error deleting ministry:', error);
     return new NextResponse(
       JSON.stringify({ error: error.message || 'Failed to delete ministry' }),
-      { status: 500 }
+      { status: error.status || 500 }
     );
   }
 }
