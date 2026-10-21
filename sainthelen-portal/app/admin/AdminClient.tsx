@@ -7,7 +7,7 @@
 import React, { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { useSession, signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowPathIcon, PaperClipIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { ArrowPathIcon, PaperClipIcon, PlusIcon, LinkIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import AdminLayout, { ViewTab, ViewTools } from '../components/admin/AdminLayout';
 import RequestPanel from '../components/admin/RequestPanel';
@@ -403,6 +403,11 @@ function Card({
         <Avatar name={r.requester} />
         <Platforms platforms={r.platforms} />
         <span className="flex-1" />
+        {r.links.length > 0 && (
+          <span className="inline-flex items-center gap-0.5" title={r.links.map((l) => l.url).join('\n')}>
+            <LinkIcon className="h-3.5 w-3.5" /> {r.links.length}
+          </span>
+        )}
         {r.files.length > 0 && (
           <span className="inline-flex items-center gap-0.5" title={`${r.files.length} file${r.files.length > 1 ? 's' : ''}`}>
             <PaperClipIcon className="h-3.5 w-3.5" /> {r.files.length}

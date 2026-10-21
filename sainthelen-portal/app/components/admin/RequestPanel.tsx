@@ -390,6 +390,22 @@ function Details({ r, onDesignStatus }: { r: PortalRequest; onDesignStatus: (s: 
         </>
       )}
 
+      {r.links.length > 0 && (
+        <>
+          <div className="mb-1.5 mt-3.5 text-xs font-semibold text-ink-3">Links</div>
+          <ul className="flex flex-col gap-1">
+            {r.links.map((l) => (
+              <li key={l.url} className="flex items-baseline gap-2 rounded border border-line px-2.5 py-1.5 text-sm">
+                <span className="flex-none text-xs text-ink-3">{l.label}</span>
+                <a href={l.url} target="_blank" rel="noopener noreferrer" className="min-w-0 truncate text-navy hover:underline">
+                  {l.url}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+
       {r.files.length > 0 && (
         <>
           <div className="mb-1.5 mt-3.5 text-xs font-semibold text-ink-3">Files</div>

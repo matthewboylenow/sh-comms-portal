@@ -82,6 +82,8 @@ export type PortalRequest = {
   words: number;
   chars: number;
   files: string[];
+  /** Sign-up and other links the submitter gave, with the calendar sign-up link if any */
+  links: Array<{ label: string; url: string }>;
   calendar: 'none' | 'requested' | 'draft' | 'published';
   wordpressEventUrl?: string;
   eventLabel?: string; // "Sat Oct 17, 5:00 PM · Gathering Space"
@@ -201,11 +203,39 @@ function statusOf(f: Record<string, any>, type: RequestType): RequestStatus {
   return 'review';
 }
 
+/** Every link a submitter provided, from whichever field name the table uses. */
+function collectLinks(f: Record<string, any>): Array<{ label: string; url: string }> {
+  const out: Array<{ label: string; url: string }> = [];
+  const seen = new Set<string>();
+  const push = (label: string, url: unknown) => {
+    const u = str(url);
+    if (!u || seen.has(u)) return;
+    seen.add(u);
+    out.push({ label, url: u });
+  };
+  for (const key of ['Sign Up Links', 'Sign-Up Links']) {
+    let v = f[key];
+    if (typeof v === 'string') {
+      try {
+        v = JSON.parse(v);
+      } catch {
+        v = [];
+      }
+    }
+    if (Array.isArray(v)) v.forEach((l: any) => push(str(l?.label) || 'Sign-up', l?.url));
+  }
+  push('Sign-up', f['Sign Up URL']);
+  push('Sign-up', f['Sign-Up URL']);
+  push('Calendar sign-up', f['Calendar Event Sign Up Link']);
+  return out;
+}
+
 export function toRequest(table: ApiTable, rec: ApiRecord): PortalRequest {
   const f = rec.fields || {};
   const type = TABLE_TO_TYPE[table];
   const submittedAt = str(f['Submitted At'] || f['Created At']) || null;
   const files = list(f['File Links']);
+  const links = collectLinks(f);
 
   let title = '';
   let body = '';
@@ -301,6 +331,7 @@ export function toRequest(table: ApiTable, rec: ApiRecord): PortalRequest {
     words: wordCount(body),
     chars: body.length,
     files,
+    links,
     calendar,
     wordpressEventUrl: str(f['WordPress Event URL']) || undefined,
     eventLabel,
@@ -361,9 +392,6 @@ export function summarizeRequest(r: PortalRequest): string {
     add('Event', r.eventLabel);
     if (r.calendar === 'published') add('Parish calendar', r.wordpressEventUrl || 'Published');
     else if (r.calendar === 'requested') add('Parish calendar', 'Requested, not yet published');
-    const links: Array<{ label?: string; url: string }> = Array.isArray(f['Sign Up Links']) ? f['Sign Up Links'] : [];
-    if (links.length) add('Sign-up', links.map((l) => (l.label ? `${l.label}: ${l.url}` : l.url)).join('; '));
-    else add('Sign-up', str(f['Sign Up URL']));
     if (f['Requires Approval'] === true || f['Requires Approval'] === 'Yes') {
       add('Ministry approval', r.approvalStatus === 'approved' ? `Approved${f['Approved By'] ? ` by ${f['Approved By']}` : ''}` : r.approvalStatus === 'rejected' ? 'Sent back' : 'Waiting on the coordinator');
     }
@@ -381,6 +409,9 @@ export function summarizeRequest(r: PortalRequest): string {
     add('Size', str(f['Required Size/Dimensions']));
     add('Audience', str(f['Target Audience']));
     if (r.urgent) add('Urgent', 'Yes');
+  }
+  if (r.links.length) {
+    r.links.forEach((l) => add(l.label, l.url));
   }
   if (r.forMsgr) add('Flagged', 'To review with Msgr. Tom');
 
