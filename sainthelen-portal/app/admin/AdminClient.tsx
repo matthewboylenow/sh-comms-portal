@@ -53,7 +53,7 @@ function Inbox() {
 
   const [view, setView] = useState<View>(queue === 'week' ? 'week' : queue === 'msgr' ? 'list' : 'board');
   const [q, setQ] = useState('');
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null>(search.get('open'));
 
   useEffect(() => {
     if (queue === 'week') setView('week');

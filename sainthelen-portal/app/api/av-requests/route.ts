@@ -1,5 +1,6 @@
 // app/api/av-requests/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { createPortalTask } from '../../lib/portal-task';
 import Airtable from 'airtable';
 import { Client } from '@microsoft/microsoft-graph-client';
 import { TokenCredentialAuthenticationProvider } from '@microsoft/microsoft-graph-client/authProviders/azureTokenCredentials';
@@ -78,7 +79,7 @@ export async function POST(request: NextRequest) {
 
     if (useNeon) {
       // ===== NEON DATABASE PATH =====
-      await avRequestsService.createAVRequest({
+      const createdRow = await avRequestsService.createAVRequest({
         name: data.name,
         email: data.email,
         ministry: data.ministry || null,
@@ -91,6 +92,12 @@ export async function POST(request: NextRequest) {
         expectedAttendees: data.expectedAttendees || null,
         additionalNotes: data.additionalNotes || null,
         fileLinks: data.fileLinks?.length ? data.fileLinks : null,
+      });
+      void createPortalTask('av', createdRow.id, {
+        title: `A/V: ${data.eventName}`,
+        requesterName: data.name,
+        requesterEmail: data.email,
+        dueAt: data.dateTimeEntries?.[0]?.date ? `${data.dateTimeEntries[0].date}T12:00:00-04:00` : null,
       });
       console.log('Neon record created');
     } else {

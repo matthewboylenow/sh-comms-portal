@@ -14,6 +14,7 @@ import * as flyerReviewsService from '../../../lib/db/services/flyer-reviews';
 import * as graphicDesignService from '../../../lib/db/services/graphic-design';
 import * as photoSubmissionsService from '../../../lib/db/services/photo-submissions';
 import { sendEmailViaGraph, getAdminNotificationEmail, isEmailConfigured } from '../../../lib/email';
+import { digestTasks, type TaskRow } from '../../../lib/db/services/portal-tasks';
 
 export const dynamic = 'force-dynamic';
 
@@ -163,10 +164,16 @@ export async function GET(request: NextRequest) {
       },
     ];
 
+    // Tasks that need attention today: high importance or due within 48 hours
+    const attention: TaskRow[] = await digestTasks().catch((err) => {
+      console.error('[daily-digest] tasks lookup failed:', err);
+      return [];
+    });
+
     const totalPending = sections.reduce((sum, s) => sum + s.items.length, 0);
 
     // Nothing waiting and no new photos? Don't send an empty email.
-    if (totalPending === 0 && photoItems.length === 0) {
+    if (totalPending === 0 && photoItems.length === 0 && attention.length === 0) {
       console.log('[daily-digest] Queue is empty, skipping email');
       return NextResponse.json({ success: true, sent: false, totalPending: 0 });
     }
@@ -191,9 +198,10 @@ export async function GET(request: NextRequest) {
         socialItems,
         photoItems,
         sections,
+        attention,
       }),
-      importance: overdueWebsiteUpdates.length > 0 ? 'high' : 'normal',
-      flag: overdueWebsiteUpdates.length > 0,
+      importance: overdueWebsiteUpdates.length > 0 || attention.length > 0 ? 'high' : 'normal',
+      flag: overdueWebsiteUpdates.length > 0 || attention.length > 0,
     });
 
     console.log(
@@ -227,6 +235,7 @@ function buildDigestEmail({
   socialItems,
   photoItems,
   sections,
+  attention = [],
 }: {
   date: string;
   totalPending: number;
@@ -234,8 +243,34 @@ function buildDigestEmail({
   socialItems: DigestItem[];
   photoItems: DigestItem[];
   sections: { label: string; items: DigestItem[] }[];
+  attention?: TaskRow[];
 }): string {
   const portalUrl = process.env.NEXTAUTH_URL || 'https://comms.sainthelen.org';
+
+  const fmtDue = (iso: string | null) =>
+    iso
+      ? new Date(iso).toLocaleString('en-US', { timeZone: 'America/New_York', weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+      : '';
+  const attentionSection =
+    attention.length > 0
+      ? `
+        <div style="margin-bottom: 24px; padding: 16px; background-color: #e9edf6; border-radius: 8px; border-left: 4px solid #1f346d;">
+          <h3 style="color: #1f346d; margin: 0 0 12px 0; font-size: 16px;">Needs attention (${attention.length})</h3>
+          ${attention
+            .map(
+              (t) => `
+            <div style="padding: 6px 0; border-bottom: 1px solid #d3cec2; font-size: 14px;">
+              <a href="${portalUrl}/admin/tasks" style="color: #1c1e24; text-decoration: none; font-weight: 600;">${t.title}</a>
+              ${t.importance === 'high' ? '<span style="color: #b91c1c; font-size: 11px; font-weight: 700; margin-left: 6px;">HIGH</span>' : ''}
+              <div style="color: #575b66; font-size: 12px;">${[t.requester_name, t.due_at ? `due ${fmtDue(t.due_at)}` : ''].filter(Boolean).join(' · ')}</div>
+            </div>
+          `
+            )
+            .join('')}
+          <div style="margin-top: 10px; font-size: 12px;"><a href="${portalUrl}/admin/tasks" style="color: #1f346d;">Open the Tasks tab</a></div>
+        </div>
+      `
+      : '';
 
   const overdueSection =
     overdueWebsiteUpdates.length > 0
@@ -339,7 +374,8 @@ function buildDigestEmail({
           <span style="color: #1f346d; font-weight: 600;">${totalPending} item${totalPending === 1 ? '' : 's'} waiting in the queue</span>
         </div>
 
-        ${overdueSection}
+        ${attentionSection}
+          ${overdueSection}
         ${socialSection}
         ${photoSection}
         ${sectionsHtml}

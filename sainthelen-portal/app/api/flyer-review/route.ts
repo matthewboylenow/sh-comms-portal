@@ -1,5 +1,6 @@
 // app/api/flyer-review/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { createPortalTask } from '../../lib/portal-task';
 import Airtable from 'airtable';
 import { Client } from '@microsoft/microsoft-graph-client';
 import { TokenCredentialAuthenticationProvider } from '@microsoft/microsoft-graph-client/authProviders/azureTokenCredentials';
@@ -111,7 +112,7 @@ export async function POST(request: NextRequest) {
 
     if (useNeon) {
       // ===== NEON DATABASE PATH =====
-      await flyerReviewsService.createFlyerReview({
+      const createdRow = await flyerReviewsService.createFlyerReview({
         name: data.name,
         email: data.email,
         ministry: data.ministry || null,
@@ -123,6 +124,12 @@ export async function POST(request: NextRequest) {
         urgency: data.urgency || 'standard',
         fileLinks: data.fileLinks,
         status: 'Pending',
+      });
+      void createPortalTask('flyer', createdRow.id, {
+        title: `Flier review: ${data.eventName}`,
+        requesterName: data.name,
+        requesterEmail: data.email,
+        dueAt: data.eventDate ? `${data.eventDate}T12:00:00-04:00` : null, urgent: data.urgency === 'urgent',
       });
       console.log('Neon record created');
     } else {

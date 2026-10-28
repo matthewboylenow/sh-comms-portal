@@ -289,6 +289,15 @@ export const tasks = pgTable('tasks', {
   linkedRecordId: uuid('linked_record_id'),
   linkedRecordType: varchar('linked_record_type', { length: 50 }), // announcement, website_update, etc.
   recurringReminderId: uuid('recurring_reminder_id'),
+  // ---- Tasks tab (added 0009) ----
+  source: varchar('source', { length: 20 }).default('manual'), // email | portal | manual
+  sourceRef: varchar('source_ref', { length: 500 }), // Outlook internetMessageId, portal request id
+  sourceLink: text('source_link'), // Outlook webLink or portal request URL
+  requesterName: varchar('requester_name', { length: 255 }),
+  requesterEmail: varchar('requester_email', { length: 255 }),
+  importance: varchar('importance', { length: 20 }).default('normal'), // normal | high
+  dueAt: timestamp('due_at', { withTimezone: true }),
+  snoozedUntil: timestamp('snoozed_until', { withTimezone: true }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

@@ -21,6 +21,7 @@ import {
 import { startCalendarReview } from '../../lib/calendar-review';
 import { runCopyReview } from '../../lib/copy-review';
 import { waitUntil } from '@vercel/functions';
+import { createPortalTask } from '../../lib/portal-task';
 
 export const dynamic = 'force-dynamic';
 // Covers the calendar review that runs after the response (Claude cleanup
@@ -175,6 +176,15 @@ export async function POST(request: NextRequest) {
 
       console.log('Neon record created:', announcement.id);
       createdId = announcement.id;
+      waitUntil(
+        createPortalTask('announcement', announcement.id, {
+          title: data.calendarEventName || data.announcementBody.split(/[.!?\n]/)[0].slice(0, 80) || 'Announcement',
+          requesterName: data.name,
+          requesterEmail: data.email,
+          dueAt: data.promotionStart ? `${data.promotionStart}T12:00:00-04:00` : null,
+          notes: [data.ministry, data.platforms?.join(', ')].filter(Boolean).join(' · ') || null,
+        })
+      );
 
       // Style check for the admin card. Runs after the response; the
       // submitter never sees it.

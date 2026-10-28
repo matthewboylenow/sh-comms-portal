@@ -1,5 +1,6 @@
 // app/api/graphic-design/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { createPortalTask } from '../../lib/portal-task';
 import Airtable from 'airtable';
 import { Client } from '@microsoft/microsoft-graph-client';
 import { TokenCredentialAuthenticationProvider } from '@microsoft/microsoft-graph-client/authProviders/azureTokenCredentials';
@@ -85,7 +86,7 @@ export async function POST(request: NextRequest) {
 
     if (useNeon) {
       // ===== NEON DATABASE PATH =====
-      await graphicDesignService.createGraphicDesignRequest({
+      const createdRow = await graphicDesignService.createGraphicDesignRequest({
         name: data.name,
         email: data.email,
         ministry: data.ministry || null,
@@ -96,6 +97,12 @@ export async function POST(request: NextRequest) {
         requiredDimensions: data.dimensions || null,
         fileLinks: data.fileLinks.length > 0 ? data.fileLinks : null,
         status: 'New',
+      });
+      void createPortalTask('design', createdRow.id, {
+        title: `Design: ${data.projectType}`,
+        requesterName: data.name,
+        requesterEmail: data.email,
+        dueAt: data.deadline ? `${data.deadline}T12:00:00-04:00` : null, urgent: data.priority === 'Urgent',
       });
       console.log('Neon record created successfully');
     } else {

@@ -1,5 +1,6 @@
 // app/api/sms-requests/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { createPortalTask } from '../../lib/portal-task';
 import Airtable from 'airtable';
 import { Client } from '@microsoft/microsoft-graph-client';
 import { TokenCredentialAuthenticationProvider } from '@microsoft/microsoft-graph-client/authProviders/azureTokenCredentials';
@@ -50,7 +51,7 @@ export async function POST(request: NextRequest) {
 
     if (useNeon) {
       // ===== NEON DATABASE PATH =====
-      await smsRequestsService.createSMSRequest({
+      const createdRow = await smsRequestsService.createSMSRequest({
         name: data.name,
         email: data.email,
         ministry: data.ministry || null,
@@ -58,6 +59,12 @@ export async function POST(request: NextRequest) {
         requestedDate: data.requestedDate || null,
         additionalInfo: data.additionalInfo || null,
         fileLinks: data.fileLinks?.length ? data.fileLinks : null,
+      });
+      void createPortalTask('text', createdRow.id, {
+        title: `Text: ${data.smsMessage.slice(0, 60)}`,
+        requesterName: data.name,
+        requesterEmail: data.email,
+        dueAt: data.requestedDate ? `${data.requestedDate}T12:00:00-04:00` : null,
       });
     } else {
       // ===== AIRTABLE DATABASE PATH (Legacy) =====

@@ -1,197 +1,73 @@
 // app/api/tasks/route.ts
-
+//
+// GET  /api/tasks?status=open|done   the list for the Tasks tab
+// POST /api/tasks                    one task or an array; upserts on source_ref
+//
+// Auth: portal session, or `Authorization: Bearer <TASKS_API_KEY>` for the
+// scheduled inbox scan.
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '../auth/[...nextauth]/route';
-import * as tasksService from '../../lib/db/services/tasks';
+import { authoriseTasks } from '../../lib/tasks-auth';
+import { useNeonDatabase } from '../../lib/db';
+import { listTasks, upsertTask, type TaskInput } from '../../lib/db/services/portal-tasks';
 
 export const dynamic = 'force-dynamic';
 
-/**
- * GET /api/tasks
- * Fetches tasks for the authenticated user
- */
+const SOURCES = new Set(['email', 'portal', 'manual']);
+const IMPORTANCE = new Set(['normal', 'high']);
+
+function clean(input: any): TaskInput {
+  const t: TaskInput = { title: String(input?.title || '').trim() };
+  if (input?.notes != null) t.notes = String(input.notes);
+  if (SOURCES.has(input?.source)) t.source = input.source;
+  if (input?.source_ref != null) t.source_ref = String(input.source_ref);
+  if (input?.source_link != null) t.source_link = String(input.source_link);
+  if (input?.requester_name != null) t.requester_name = String(input.requester_name);
+  if (input?.requester_email != null) t.requester_email = String(input.requester_email);
+  if (input?.category != null) t.category = input.category;
+  if (input?.due_at != null && input.due_at !== '') {
+    const d = new Date(input.due_at);
+    if (Number.isNaN(d.getTime())) throw new Error(`due_at is not a date: ${input.due_at}`);
+    t.due_at = d.toISOString();
+  }
+  if (IMPORTANCE.has(input?.importance)) t.importance = input.importance;
+  return t;
+}
+
 export async function GET(request: NextRequest) {
+  const auth = await authoriseTasks(request);
+  if (!auth.ok) return NextResponse.json({ error: 'Sign in required' }, { status: 401 });
+  if (!useNeonDatabase()) return NextResponse.json({ error: 'Tasks need the Neon database' }, { status: 501 });
+  const status = request.nextUrl.searchParams.get('status') === 'done' ? 'done' : 'open';
   try {
-    const session = await getServerSession(authOptions);
-    if (!session || !session.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const userEmail = session.user.email;
-    const searchParams = request.nextUrl.searchParams;
-
-    const status = searchParams.get('status') || undefined;
-    const includeCompleted = searchParams.get('includeCompleted') === 'true';
-    const date = searchParams.get('date');
-    const startDate = searchParams.get('startDate');
-    const endDate = searchParams.get('endDate');
-
-    let tasks;
-
-    if (date) {
-      // Get tasks for a specific date
-      tasks = await tasksService.getTasksForDate(userEmail, date, { includeCompleted });
-    } else if (startDate && endDate) {
-      // Get tasks for a date range
-      tasks = await tasksService.getTasksForDateRange(userEmail, startDate, endDate, { includeCompleted });
-    } else {
-      // Get all tasks with optional filters
-      tasks = await tasksService.getTasksForUser(userEmail, {
-        status,
-        includeCompleted,
-      });
-    }
-
-    return NextResponse.json({
-      success: true,
-      tasks,
-    });
-  } catch (error: any) {
-    console.error('Error fetching tasks:', error);
-    return NextResponse.json(
-      { success: false, error: error.message || 'Failed to fetch tasks' },
-      { status: 500 }
-    );
+    return NextResponse.json({ tasks: await listTasks(status) });
+  } catch (err: any) {
+    console.error('[tasks] list failed:', err);
+    return NextResponse.json({ error: err.message || 'Could not load tasks' }, { status: 500 });
   }
 }
 
-/**
- * POST /api/tasks
- * Creates a new task
- */
 export async function POST(request: NextRequest) {
+  const auth = await authoriseTasks(request);
+  if (!auth.ok) return NextResponse.json({ error: 'Sign in required' }, { status: 401 });
+  if (!useNeonDatabase()) return NextResponse.json({ error: 'Tasks need the Neon database' }, { status: 501 });
+  const body = await request.json().catch(() => null);
+  const items = Array.isArray(body) ? body : body ? [body] : [];
+  if (!items.length) return NextResponse.json({ error: 'Send a task or an array of tasks' }, { status: 400 });
+  if (items.length > 100) return NextResponse.json({ error: 'At most 100 tasks per call' }, { status: 400 });
   try {
-    const session = await getServerSession(authOptions);
-    if (!session || !session.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const results = [];
+    for (const raw of items) {
+      const input = clean(raw);
+      if (!input.title) return NextResponse.json({ error: 'Every task needs a title' }, { status: 400 });
+      results.push(await upsertTask(input));
     }
-
-    const userEmail = session.user.email;
-    const body = await request.json();
-
-    const { title, description, category, priority, dueDate, dueTime, linkedRecordId, linkedRecordType } = body;
-
-    if (!title || !category) {
-      return NextResponse.json(
-        { success: false, error: 'Title and category are required' },
-        { status: 400 }
-      );
-    }
-
-    const task = await tasksService.createTask({
-      userEmail,
-      title,
-      description,
-      category,
-      priority,
-      dueDate,
-      dueTime,
-      linkedRecordId,
-      linkedRecordType,
+    const tasks = results.map((r) => r.task);
+    const created = results.filter((r) => r.created).length;
+    return NextResponse.json(Array.isArray(body) ? { tasks, created, updated: tasks.length - created } : { task: tasks[0], created: created === 1 }, {
+      status: created ? 201 : 200,
     });
-
-
-    return NextResponse.json({
-      success: true,
-      task,
-    });
-  } catch (error: any) {
-    console.error('Error creating task:', error);
-    return NextResponse.json(
-      { success: false, error: error.message || 'Failed to create task' },
-      { status: 500 }
-    );
-  }
-}
-
-/**
- * PATCH /api/tasks
- * Updates a task
- */
-export async function PATCH(request: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session || !session.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const body = await request.json();
-    const { id, ...updates } = body;
-
-    if (!id) {
-      return NextResponse.json(
-        { success: false, error: 'Task ID is required' },
-        { status: 400 }
-      );
-    }
-
-    // Verify the task belongs to the user
-    const existing = await tasksService.getTaskById(id);
-    if (!existing || existing.userEmail !== session.user.email) {
-      return NextResponse.json(
-        { success: false, error: 'Task not found' },
-        { status: 404 }
-      );
-    }
-
-    const task = await tasksService.updateTask(id, updates);
-
-
-    return NextResponse.json({
-      success: true,
-      task,
-    });
-  } catch (error: any) {
-    console.error('Error updating task:', error);
-    return NextResponse.json(
-      { success: false, error: error.message || 'Failed to update task' },
-      { status: 500 }
-    );
-  }
-}
-
-/**
- * DELETE /api/tasks
- * Deletes a task
- */
-export async function DELETE(request: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session || !session.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const searchParams = request.nextUrl.searchParams;
-    const id = searchParams.get('id');
-
-    if (!id) {
-      return NextResponse.json(
-        { success: false, error: 'Task ID is required' },
-        { status: 400 }
-      );
-    }
-
-    // Verify the task belongs to the user
-    const existing = await tasksService.getTaskById(id);
-    if (!existing || existing.userEmail !== session.user.email) {
-      return NextResponse.json(
-        { success: false, error: 'Task not found' },
-        { status: 404 }
-      );
-    }
-
-    await tasksService.deleteTask(id);
-
-
-    return NextResponse.json({
-      success: true,
-    });
-  } catch (error: any) {
-    console.error('Error deleting task:', error);
-    return NextResponse.json(
-      { success: false, error: error.message || 'Failed to delete task' },
-      { status: 500 }
-    );
+  } catch (err: any) {
+    console.error('[tasks] create failed:', err);
+    return NextResponse.json({ error: err.message || 'Could not save the task' }, { status: 500 });
   }
 }

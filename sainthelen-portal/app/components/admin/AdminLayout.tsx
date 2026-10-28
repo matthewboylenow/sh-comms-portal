@@ -27,6 +27,7 @@ import {
   ArrowRightOnRectangleIcon,
   CalendarIcon,
   FlagIcon,
+  ListBulletIcon,
 } from '@heroicons/react/24/outline';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useRequests } from '../../context/RequestsContext';
@@ -165,6 +166,7 @@ function Sidebar() {
     },
     canMain && { href: '/admin/calendar-requests', label: 'Calendar drafts', icon: CalendarDaysIcon, n: counts.calendar, on: pathname === '/admin/calendar-requests' },
     permissions?.canAccessCompleted && { href: '/admin/completed', label: 'Done', icon: CheckCircleIcon, n: 0, on: pathname === '/admin/completed' },
+    canMain && { href: '/admin/tasks', label: 'Tasks', icon: ListBulletIcon, n: 0, on: pathname === '/admin/tasks' },
   ].filter(Boolean) as Array<{ href: string; label: string; icon: any; n: number; on: boolean }>;
 
   const more = [

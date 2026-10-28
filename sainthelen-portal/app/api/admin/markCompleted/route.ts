@@ -13,6 +13,7 @@ import * as avRequestsService from '../../../lib/db/services/av-requests';
 import * as flyerReviewsService from '../../../lib/db/services/flyer-reviews';
 import * as graphicDesignService from '../../../lib/db/services/graphic-design';
 import * as userPreferencesService from '../../../lib/db/services/user-preferences';
+import { syncPortalTask } from '../../../lib/portal-task';
 
 // Force dynamic so Next.js doesn't attempt static generation
 export const dynamic = 'force-dynamic';
@@ -104,6 +105,8 @@ export async function POST(request: NextRequest) {
     if (useNeon) {
       // ===== NEON DATABASE PATH =====
       let record: any;
+      // The Tasks tab mirrors the request's completed flag
+      await syncPortalTask(recordId, completed);
 
       switch (table) {
         case 'announcements':

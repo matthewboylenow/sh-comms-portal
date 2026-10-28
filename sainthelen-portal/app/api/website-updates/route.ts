@@ -11,6 +11,7 @@ import * as websiteUpdatesService from '../../lib/db/services/website-updates';
 import { sendEmailViaGraph, getAdminNotificationEmail } from '../../lib/email';
 import { runCopyReview } from '../../lib/copy-review';
 import { waitUntil } from '@vercel/functions';
+import { createPortalTask } from '../../lib/portal-task';
 
 // Covers the style check that runs after the response
 export const maxDuration = 120;
@@ -152,6 +153,15 @@ export async function POST(request: NextRequest) {
         fileLinks: wordpressFileLinks.length > 0 ? wordpressFileLinks : null,
       });
       createdId = created.id;
+      waitUntil(
+        createPortalTask('website', created.id, {
+          title: `Update ${data.pageToUpdate || 'the website'}`,
+          requesterName: data.name,
+          requesterEmail: data.email,
+          notes: data.description?.slice(0, 300) || null,
+          urgent: !!data.urgent,
+        })
+      );
 
       // Style check for the admin card. Runs after the response; the
       // submitter never sees it.
