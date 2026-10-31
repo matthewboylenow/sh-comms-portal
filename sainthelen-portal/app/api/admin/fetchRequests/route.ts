@@ -12,6 +12,7 @@ import * as avRequestsService from '../../../lib/db/services/av-requests';
 import * as flyerReviewsService from '../../../lib/db/services/flyer-reviews';
 import * as graphicDesignService from '../../../lib/db/services/graphic-design';
 import { getAllStages } from '../../../lib/db/services/request-stages';
+import { getItemsFor } from '../../../lib/db/services/website-update-items';
 
 export const dynamic = 'force-dynamic';
 // This ensures Next never statically caches the route output.
@@ -54,6 +55,7 @@ export async function GET(request: NextRequest) {
       ]);
       // Board stages the office set by dragging cards; missing table = none
       const stages = await getAllStages().catch(() => new Map<string, { stage: string | null; flag: string | null }>());
+      const items = await getItemsFor(websiteUpdates.map((r) => r.id)).catch(() => new Map());
 
       // Helper to safely format dates (handles both Date objects and strings)
       const formatDate = (d: any) => {
@@ -114,7 +116,9 @@ export async function GET(request: NextRequest) {
             Email: r.email,
             Urgent: r.urgent ? 'Yes' : 'No',
             'Page to Update': r.pageToUpdate,
+            'New Page': (r as any).newPage ? 'Yes' : 'No',
             Description: r.description,
+            Changes: (items.get(r.id) || []).map((i: any) => ({ id: i.id, position: i.position, text: i.text, done: i.done })),
             'Sign-Up URL': r.signUpUrl,
             'Sign-Up Links': r.signUpLinks,
             'File Links': r.fileLinks?.join('\n') || '',

@@ -14,6 +14,7 @@ import * as flyerReviewsService from '../../../lib/db/services/flyer-reviews';
 import * as graphicDesignService from '../../../lib/db/services/graphic-design';
 import * as userPreferencesService from '../../../lib/db/services/user-preferences';
 import { syncPortalTask } from '../../../lib/portal-task';
+import { setAllItemsDone } from '../../../lib/db/services/website-update-items';
 
 // Force dynamic so Next.js doesn't attempt static generation
 export const dynamic = 'force-dynamic';
@@ -121,6 +122,7 @@ export async function POST(request: NextRequest) {
           record = await websiteUpdatesService.getWebsiteUpdateById(recordId);
           if (record) {
             await websiteUpdatesService.markCompleted(recordId, completed);
+            await setAllItemsDone(recordId, completed).catch(() => {});
             requestTitle = record.pageToUpdate || 'Website Update Request';
             requesterEmail = record.email;
           }

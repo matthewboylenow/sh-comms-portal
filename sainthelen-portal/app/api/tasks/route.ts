@@ -12,7 +12,7 @@ import { listTasks, upsertTask, type TaskInput } from '../../lib/db/services/por
 
 export const dynamic = 'force-dynamic';
 
-const SOURCES = new Set(['email', 'portal', 'manual']);
+const SOURCES = new Set(['email', 'teams', 'portal', 'manual']);
 const IMPORTANCE = new Set(['normal', 'high']);
 
 function clean(input: any): TaskInput {
@@ -21,6 +21,9 @@ function clean(input: any): TaskInput {
   if (SOURCES.has(input?.source)) t.source = input.source;
   if (input?.source_ref != null) t.source_ref = String(input.source_ref);
   if (input?.source_link != null) t.source_link = String(input.source_link);
+  if (input?.conversation_id != null) t.conversation_id = String(input.conversation_id);
+  if (input?.page_url != null) t.page_url = String(input.page_url);
+  if (input?.requested_at != null) t.requested_at = String(input.requested_at);
   if (input?.requester_name != null) t.requester_name = String(input.requester_name);
   if (input?.requester_email != null) t.requester_email = String(input.requester_email);
   if (input?.category != null) t.category = input.category;
@@ -59,7 +62,7 @@ export async function POST(request: NextRequest) {
     for (const raw of items) {
       const input = clean(raw);
       if (!input.title) return NextResponse.json({ error: 'Every task needs a title' }, { status: 400 });
-      results.push(await upsertTask(input));
+      results.push(await upsertTask({ ...input, actor: auth.via === 'token' ? 'scan' : undefined }));
     }
     const tasks = results.map((r) => r.task);
     const created = results.filter((r) => r.created).length;

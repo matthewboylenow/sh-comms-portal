@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authoriseTasks } from '../../../lib/tasks-auth';
 import { useNeonDatabase } from '../../../lib/db';
-import { deleteTask, getTask, patchTask, type TaskPatch } from '../../../lib/db/services/portal-tasks';
+import { deleteTask, getTask, getEvents, patchTask, type TaskPatch } from '../../../lib/db/services/portal-tasks';
 import { setRequestCompleted } from '../../../lib/portal-task';
 
 export const dynamic = 'force-dynamic';
@@ -36,7 +36,9 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   }
   if ('importance' in body) p.importance = body.importance === 'high' ? 'high' : 'normal';
   if ('status' in body) {
-    if (body.status !== 'open' && body.status !== 'done') return NextResponse.json({ error: 'status must be open or done' }, { status: 400 });
+    if (!['open', 'in_progress', 'claimed_done', 'done'].includes(body.status)) {
+      return NextResponse.json({ error: 'status must be open, in_progress, claimed_done or done' }, { status: 400 });
+    }
     p.status = body.status;
   }
   if ('snoozed_until' in body) {
@@ -53,10 +55,10 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   try {
     const before = await getTask(params.id);
     if (!before) return NextResponse.json({ error: 'No such task' }, { status: 404 });
-    const task = await patchTask(params.id, p);
+    const task = await patchTask(params.id, p, auth.via === 'session' ? 'owner' : 'api');
     if (task && p.status && task.source === 'portal' && task.source_ref) {
       // Keep the request's Completed flag in step with the task
-      await setRequestCompleted(task.source_ref, p.status === 'done').catch((err) =>
+      if (p.status === 'done' || p.status === 'open') await setRequestCompleted(task.source_ref, p.status === 'done').catch((err) =>
         console.error('[tasks] could not sync request completion:', err)
       );
     }
@@ -77,4 +79,15 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Could not delete the task' }, { status: 500 });
   }
+}
+
+/** GET /api/tasks/:id → the task and its audit trail. */
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+  const auth = await authoriseTasks(request);
+  if (!auth.ok) return NextResponse.json({ error: 'Sign in required' }, { status: 401 });
+  if (!useNeonDatabase()) return NextResponse.json({ error: 'Tasks need the Neon database' }, { status: 501 });
+  const task = await getTask(params.id);
+  if (!task) return NextResponse.json({ error: 'No such task' }, { status: 404 });
+  const events = await getEvents(params.id);
+  return NextResponse.json({ task, events });
 }

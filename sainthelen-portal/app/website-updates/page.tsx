@@ -24,7 +24,37 @@ export default function WebsiteUpdatesFormPage() {
   const [email, setEmail] = useState('');
   const [urgent, setUrgent] = useState(false);
   const [pageToUpdate, setPageToUpdate] = useState('');
-  const [description, setDescription] = useState('');
+  const [newPage, setNewPage] = useState(false);
+  const [pageError, setPageError] = useState('');
+  // One row per change on this page
+  const [changes, setChanges] = useState<Array<{ id: string; text: string }>>([{ id: '1', text: '' }]);
+  const description = changes.map((c) => c.text.trim()).filter(Boolean).map((t) => `• ${t}`).join('\n');
+  const addChange = () => setChanges((cs) => [...cs, { id: String(Number(cs[cs.length - 1]?.id || '0') + 1), text: '' }]);
+  const removeChange = (id: string) => setChanges((cs) => (cs.length > 1 ? cs.filter((c) => c.id !== id) : cs));
+  const updateChange = (id: string, text: string) => setChanges((cs) => cs.map((c) => (c.id === id ? { ...c, text } : c)));
+  /** A sainthelen.org address, or a page name when a new page is wanted. */
+  const pageProblem = (v: string): string => {
+    const t = v.trim();
+    if (!t) return 'Tell us which page.';
+    if (newPage) return '';
+    if (/^https?:\/\//i.test(t)) {
+      try {
+        const u = new URL(t);
+        if (!/(^|\.)sainthelen\.org$/i.test(u.hostname)) return 'That link is not on sainthelen.org. If the page does not exist yet, tick "This is a new page".';
+        return '';
+      } catch {
+        return 'That does not look like a web address.';
+      }
+    }
+    if (/^(www\.)?sainthelen\.org/i.test(t)) return '';
+    return 'Paste the page\'s address from your browser (it starts with sainthelen.org). If the page does not exist yet, tick "This is a new page".';
+  };
+  const normalisePage = (v: string) => {
+    const t = v.trim();
+    if (newPage || /^https?:\/\//i.test(t)) return t;
+    if (/^(www\.)?sainthelen\.org/i.test(t)) return `https://${t.replace(/^www\./i, '')}`;
+    return t;
+  };
   const [signUpLinks, setSignUpLinks] = useState<SignUpLinkEntry[]>([
     { id: '1', label: '', url: '' },
   ]);
@@ -87,6 +117,20 @@ export default function WebsiteUpdatesFormPage() {
       .filter((entry) => entry.url.trim())
       .map((entry) => ({ label: entry.label.trim(), url: entry.url.trim() }));
 
+    const problem = pageProblem(pageToUpdate);
+    if (problem) {
+      setPageError(problem);
+      setErrorMessage(problem);
+      setSubmittingForm(false);
+      return;
+    }
+    const cleanChanges = changes.map((c) => c.text.trim()).filter(Boolean);
+    if (!cleanChanges.length) {
+      setErrorMessage('Describe at least one change.');
+      setSubmittingForm(false);
+      return;
+    }
+
     try {
       const res = await fetch('/api/website-updates', {
         method: 'POST',
@@ -95,8 +139,10 @@ export default function WebsiteUpdatesFormPage() {
           name,
           email,
           urgent,
-          pageToUpdate,
+          pageToUpdate: normalisePage(pageToUpdate),
+          newPage,
           description,
+          changes: cleanChanges,
           signUpUrl: filledLinks[0]?.url || '',
           signUpLinks: filledLinks,
           fileLinks,
@@ -119,7 +165,9 @@ export default function WebsiteUpdatesFormPage() {
       setEmail('');
       setUrgent(false);
       setPageToUpdate('');
-      setDescription('');
+      setChanges([{ id: '1', text: '' }]);
+      setNewPage(false);
+      setPageError('');
       setSignUpLinks([{ id: '1', label: '', url: '' }]);
       setFileLinks([]);
     } catch (err: any) {
@@ -170,12 +218,60 @@ export default function WebsiteUpdatesFormPage() {
 
         <Band>The change</Band>
         <FormSection>
-          <Field label="Which page?" htmlFor="wu-page" required help="A link to the page, or the page name.">
-            <Input id="wu-page" value={pageToUpdate} onChange={(e) => setPageToUpdate(e.target.value)} required placeholder="sainthelen.org/…" />
+          <Field
+            label={newPage ? 'What should the new page be called?' : 'Which page?'}
+            htmlFor="wu-page"
+            required
+            help={newPage ? 'A working title is fine. Say where it should live in the notes if you know.' : 'Paste the page\'s address from your browser. It starts with sainthelen.org.'}
+            error={pageError || undefined}
+          >
+            <Input
+              id="wu-page"
+              value={pageToUpdate}
+              onChange={(e) => {
+                setPageToUpdate(e.target.value);
+                if (pageError) setPageError('');
+              }}
+              onBlur={() => setPageError(pageToUpdate.trim() ? pageProblem(pageToUpdate) : '')}
+              required
+              placeholder={newPage ? 'Youth Ministry retreat 2027' : 'https://sainthelen.org/youth-ministry'}
+              inputMode={newPage ? 'text' : 'url'}
+            />
+            <div className="mt-1.5">
+              <Checkbox
+                label="This is a new page that does not exist yet"
+                checked={newPage}
+                onChange={(e) => {
+                  setNewPage(e.target.checked);
+                  setPageError('');
+                }}
+              />
+            </div>
           </Field>
-          <Field label="What should change?" htmlFor="wu-desc" required help="What to add, remove, or correct. Include the exact wording where you can.">
-            <Textarea id="wu-desc" rows={7} value={description} onChange={(e) => setDescription(e.target.value)} required />
-            <CopyAssist kind="website_update" value={description} onChange={setDescription} />
+
+          <Field label="What should change?" required help="One change per line. Add a row for each separate change so we can tick them off one at a time.">
+            <div className="flex flex-col gap-2">
+              {changes.map((c, i) => (
+                <div key={c.id} className="flex items-start gap-2">
+                  <span className="tnum mt-[11px] w-5 flex-none text-right text-xs text-ink-3">{i + 1}.</span>
+                  <Textarea
+                    rows={2}
+                    value={c.text}
+                    onChange={(e) => updateChange(c.id, e.target.value)}
+                    placeholder={i === 0 ? 'Update the volunteer registration button to point to the new form' : 'Another change on this page'}
+                    aria-label={`Change ${i + 1}`}
+                    required={i === 0}
+                  />
+                  {changes.length > 1 && <RemoveRow onClick={() => removeChange(c.id)} />}
+                </div>
+              ))}
+            </div>
+            <AddRow onClick={addChange}>Add another change</AddRow>
+            {description && (
+              <div className="mt-2">
+                <CopyAssist kind="website_update" value={description} onChange={(v) => setChanges(v.split(/\n/).map((l) => l.replace(/^[•\-*]\s*/, '').trim()).filter(Boolean).map((text, i) => ({ id: String(i + 1), text })))} />
+              </div>
+            )}
           </Field>
           <Field label="Links to add" help="Sign-ups, forms, or other pages. Add a row for each with a short label.">
             <div className="flex flex-col gap-2">

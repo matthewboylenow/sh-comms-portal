@@ -16,12 +16,7 @@ export * as flyerReviewsService from './flyer-reviews';
 export * as commentsService from './comments';
 export * as notificationsService from './notifications';
 
-// Command Center services
-export * as tasksService from './tasks';
-export * as notesService from './notes';
-export * as recurringRemindersService from './recurring-reminders';
 export * as userPreferencesService from './user-preferences';
-export * as socialMediaContentService from './social-media-content';
 
 // Re-export individual functions for convenience
 export {
@@ -62,45 +57,6 @@ export {
   markAllNotificationsAsRead,
 } from './notifications';
 
-// Command Center exports
-export {
-  getTasksForUser,
-  getTasksForDate,
-  getTasksForDateRange,
-  getOverdueTasks,
-  getTaskById,
-  createTask,
-  updateTask,
-  completeTask,
-  uncompleteTask,
-  deleteTask,
-  getPendingTaskCount,
-} from './tasks';
-
-export {
-  getNotesForUser,
-  getPinnedNotes,
-  getNoteById,
-  createNote,
-  updateNote,
-  toggleNotePin,
-  deleteNote,
-} from './notes';
-
-export {
-  getRemindersForUser,
-  getRemindersByFrequency,
-  getRemindersForDayOfWeek,
-  getReminderById,
-  createReminder,
-  updateReminder,
-  toggleReminderActive,
-  deleteReminder,
-  seedDefaultReminders,
-  getDailyRemindersToGenerate,
-  getWeeklyRemindersForToday,
-} from './recurring-reminders';
-
 export {
   getPreferencesForUser,
   updatePreferences,
@@ -109,18 +65,3 @@ export {
   setDefaultView,
   setDigestTime,
 } from './user-preferences';
-
-export {
-  getContentForUser,
-  getDraftContent,
-  getContentById,
-  getContentForSourceRecord,
-  createContent,
-  updateContent,
-  markAsPosted,
-  archiveContent,
-  deleteContent,
-  getContentSuggestionsForDate,
-  getPlatformCharacterLimit,
-  getRecommendedHashtagCount,
-} from './social-media-content';

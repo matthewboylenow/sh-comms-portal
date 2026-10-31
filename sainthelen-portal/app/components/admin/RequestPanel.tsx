@@ -309,7 +309,17 @@ function Details({ r, onDesignStatus }: { r: PortalRequest; onDesignStatus: (s: 
       </span>,
     ]);
   if (r.eventLabel) rows.push(['Event', r.eventLabel]);
-  if (r.page) rows.push(['Page', r.page]);
+  if (r.page)
+    rows.push([
+      r.newPage ? 'New page' : 'Page',
+      /^https?:\/\//i.test(r.page) ? (
+        <a key="pg" href={r.page} target="_blank" rel="noopener noreferrer" className="truncate text-navy hover:underline">
+          {r.page.replace(/^https?:\/\/(www\.)?/, '')}
+        </a>
+      ) : (
+        r.page
+      ),
+    ]);
   if (r.calendar !== 'none')
     rows.push([
       'Calendar',
@@ -373,7 +383,9 @@ function Details({ r, onDesignStatus }: { r: PortalRequest; onDesignStatus: (s: 
         ))}
       </dl>
 
-      {r.body && (
+      {r.changes && r.changes.length > 0 && <Changes r={r} />}
+
+      {r.body && !(r.changes && r.changes.length > 0) && (
         <>
           <div className="mb-1.5 mt-3.5 text-xs font-semibold text-ink-3">{bodyLabel}</div>
           <div className="whitespace-pre-wrap rounded border border-line bg-surface-2 px-3 py-2.5 leading-relaxed">{r.body}</div>
@@ -426,6 +438,54 @@ function Details({ r, onDesignStatus }: { r: PortalRequest; onDesignStatus: (s: 
           </ul>
         </>
       )}
+    </>
+  );
+}
+
+/** The individual changes on a website update, each with its own tick. */
+function Changes({ r }: { r: PortalRequest }) {
+  const { patch, refresh } = useRequests();
+  const [busy, setBusy] = useState<string | null>(null);
+  const items = r.changes || [];
+  const done = items.filter((i) => i.done).length;
+  const toggle = async (id: string, value: boolean) => {
+    setBusy(id);
+    patch(r.id, { Changes: items.map((i) => (i.id === id ? { ...i, done: value } : i)) });
+    try {
+      const res = await fetch('/api/admin/website-update-items', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, done: value }),
+      });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      if (data.allDone !== r.completed) patch(r.id, { Completed: data.allDone });
+    } catch {
+      await refresh();
+    } finally {
+      setBusy(null);
+    }
+  };
+  return (
+    <>
+      <div className="mb-1.5 mt-3.5 flex items-center text-xs font-semibold text-ink-3">
+        Changes <span className="ml-auto font-medium">{done} of {items.length} done</span>
+      </div>
+      <ol className="overflow-hidden rounded border border-line">
+        {items.map((i, n) => (
+          <li key={i.id} className={`flex items-start gap-2.5 px-3 py-2 ${n ? 'border-t border-line' : ''}`}>
+            <input
+              type="checkbox"
+              checked={i.done}
+              disabled={busy === i.id}
+              onChange={(e) => toggle(i.id, e.target.checked)}
+              aria-label={`Change ${n + 1} done`}
+              className="mt-[3px] h-[15px] w-[15px] flex-none"
+            />
+            <span className={`leading-relaxed ${i.done ? 'text-ink-3 line-through' : ''}`}>{i.text}</span>
+          </li>
+        ))}
+      </ol>
     </>
   );
 }

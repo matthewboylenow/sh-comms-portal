@@ -83,6 +83,7 @@ export const websiteUpdates = pgTable('website_updates', {
   email: varchar('email', { length: 255 }).notNull(),
   urgent: boolean('urgent').default(false).notNull(),
   pageToUpdate: varchar('page_to_update', { length: 500 }).notNull(),
+  newPage: boolean('new_page').default(false),
   description: text('description').notNull(),
   signUpUrl: varchar('sign_up_url', { length: 500 }),
   // Multiple labeled sign-up links; signUpUrl above holds the first for compatibility
@@ -273,68 +274,6 @@ export type PushSubscription = typeof pushSubscriptions.$inferSelect;
 export type NewPushSubscription = typeof pushSubscriptions.$inferInsert;
 
 // ============================================================================
-// COMMAND CENTER - TASKS TABLE
-// ============================================================================
-export const tasks = pgTable('tasks', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userEmail: varchar('user_email', { length: 255 }).notNull(),
-  title: varchar('title', { length: 500 }).notNull(),
-  description: text('description'),
-  category: varchar('category', { length: 100 }).notNull(), // announcement, website, av, flyer, misc
-  priority: varchar('priority', { length: 20 }).default('normal'), // low, normal, high, urgent
-  status: varchar('status', { length: 20 }).default('pending'), // pending, in_progress, completed
-  dueDate: date('due_date'),
-  dueTime: time('due_time'),
-  completedAt: timestamp('completed_at'),
-  linkedRecordId: uuid('linked_record_id'),
-  linkedRecordType: varchar('linked_record_type', { length: 50 }), // announcement, website_update, etc.
-  recurringReminderId: uuid('recurring_reminder_id'),
-  // ---- Tasks tab (added 0009) ----
-  source: varchar('source', { length: 20 }).default('manual'), // email | portal | manual
-  sourceRef: varchar('source_ref', { length: 500 }), // Outlook internetMessageId, portal request id
-  sourceLink: text('source_link'), // Outlook webLink or portal request URL
-  requesterName: varchar('requester_name', { length: 255 }),
-  requesterEmail: varchar('requester_email', { length: 255 }),
-  importance: varchar('importance', { length: 20 }).default('normal'), // normal | high
-  dueAt: timestamp('due_at', { withTimezone: true }),
-  snoozedUntil: timestamp('snoozed_until', { withTimezone: true }),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
-
-// ============================================================================
-// COMMAND CENTER - NOTES TABLE
-// ============================================================================
-export const notes = pgTable('notes', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userEmail: varchar('user_email', { length: 255 }).notNull(),
-  content: text('content').notNull(),
-  color: varchar('color', { length: 20 }).default('yellow'), // yellow, blue, green, pink, purple
-  isPinned: boolean('is_pinned').default(false),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
-
-// ============================================================================
-// COMMAND CENTER - RECURRING REMINDERS TABLE
-// ============================================================================
-export const recurringReminders = pgTable('recurring_reminders', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userEmail: varchar('user_email', { length: 255 }).notNull(),
-  title: varchar('title', { length: 500 }).notNull(),
-  description: text('description'),
-  category: varchar('category', { length: 100 }).notNull(),
-  frequency: varchar('frequency', { length: 20 }).notNull(), // daily, weekly, monthly
-  dayOfWeek: integer('day_of_week'), // 0=Sunday, 1=Monday, etc.
-  dayOfMonth: integer('day_of_month'), // 1-31
-  timeOfDay: time('time_of_day'),
-  priority: varchar('priority', { length: 20 }).default('normal'),
-  isActive: boolean('is_active').default(true),
-  lastGeneratedAt: timestamp('last_generated_at'),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-});
-
-// ============================================================================
 // COMMAND CENTER - USER PREFERENCES TABLE
 // ============================================================================
 export const userPreferences = pgTable('user_preferences', {
@@ -350,39 +289,11 @@ export const userPreferences = pgTable('user_preferences', {
 });
 
 // ============================================================================
-// COMMAND CENTER - SOCIAL MEDIA CONTENT TABLE
-// ============================================================================
-export const socialMediaContent = pgTable('social_media_content', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userEmail: varchar('user_email', { length: 255 }).notNull(),
-  platform: varchar('platform', { length: 50 }).notNull(), // facebook, instagram, x, linkedin, gmb, threads, tiktok
-  contentType: varchar('content_type', { length: 50 }).notNull(), // event_promo, event_recap, inspirational, sermon_clip, homily_clip, ministry_spotlight
-  content: text('content').notNull(),
-  hashtags: text('hashtags'),
-  suggestedDate: date('suggested_date'),
-  sourceRecordId: uuid('source_record_id'),
-  sourceRecordType: varchar('source_record_type', { length: 50 }), // announcement, etc.
-  status: varchar('status', { length: 20 }).default('draft'), // draft, scheduled, posted, archived
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-});
-
-// ============================================================================
 // COMMAND CENTER TYPE EXPORTS
 // ============================================================================
-export type Task = typeof tasks.$inferSelect;
-export type NewTask = typeof tasks.$inferInsert;
-
-export type Note = typeof notes.$inferSelect;
-export type NewNote = typeof notes.$inferInsert;
-
-export type RecurringReminder = typeof recurringReminders.$inferSelect;
-export type NewRecurringReminder = typeof recurringReminders.$inferInsert;
-
 export type UserPreference = typeof userPreferences.$inferSelect;
 export type NewUserPreference = typeof userPreferences.$inferInsert;
 
-export type SocialMediaContent = typeof socialMediaContent.$inferSelect;
-export type NewSocialMediaContent = typeof socialMediaContent.$inferInsert;
 
 // ============================================================================
 // CALENDAR REVIEWS
@@ -463,3 +374,66 @@ export const requestStages = pgTable('request_stages', {
 });
 
 export type RequestStage = typeof requestStages.$inferSelect;
+
+// ============================================================================
+// TASKS TAB - the Communications Director's to-do list
+// ============================================================================
+
+export const portalTasks = pgTable('portal_tasks', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  ownerEmail: varchar('owner_email', { length: 255 }).notNull(),
+  title: text('title').notNull(),
+  notes: text('notes'),
+  source: varchar('source', { length: 20 }).default('manual').notNull(), // email | teams | portal | manual
+  sourceRef: varchar('source_ref', { length: 500 }), // internetMessageId, Teams message id, portal:<id>
+  sourceLink: text('source_link'),
+  conversationId: varchar('conversation_id', { length: 500 }), // Outlook conversationId or Teams chat id, for follow-ups
+  requesterName: varchar('requester_name', { length: 255 }),
+  requesterEmail: varchar('requester_email', { length: 255 }),
+  category: varchar('category', { length: 20 }).default('other').notNull(),
+  dueAt: timestamp('due_at', { withTimezone: true }),
+  importance: varchar('importance', { length: 20 }).default('normal').notNull(), // normal | high
+  status: varchar('status', { length: 20 }).default('open').notNull(), // open | in_progress | claimed_done | done
+  snoozedUntil: timestamp('snoozed_until', { withTimezone: true }),
+  // follow-up tracking
+  firstRequestedAt: timestamp('first_requested_at', { withTimezone: true }),
+  lastFollowUpAt: timestamp('last_follow_up_at', { withTimezone: true }),
+  followUpCount: integer('follow_up_count').default(0).notNull(),
+  // a commitment the director made ("I'll get to that today")
+  committedFor: timestamp('committed_for', { withTimezone: true }),
+  // website verification
+  pageUrl: varchar('page_url', { length: 1000 }),
+  pageHash: varchar('page_hash', { length: 64 }),
+  completionConfidence: integer('completion_confidence'), // 0..100 from the last signal
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  completedAt: timestamp('completed_at', { withTimezone: true }),
+});
+
+/** Audit trail: every signal that touched a task and what was decided. */
+export const taskEvents = pgTable('task_events', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  taskId: uuid('task_id').notNull(),
+  kind: varchar('kind', { length: 30 }).notNull(), // created | follow_up | commitment | in_progress | claimed_done | verified_done | reopened | edited | done | snoozed
+  detail: text('detail'),
+  confidence: integer('confidence'),
+  sourceRef: varchar('source_ref', { length: 500 }),
+  sourceLink: text('source_link'),
+  actor: varchar('actor', { length: 255 }), // email of a person, or "scan"
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** One website update request can carry several individual changes. */
+export const websiteUpdateItems = pgTable('website_update_items', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  updateId: uuid('update_id').notNull(),
+  position: integer('position').default(0).notNull(),
+  text: text('text').notNull(),
+  done: boolean('done').default(false).notNull(),
+  doneAt: timestamp('done_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+export type PortalTask = typeof portalTasks.$inferSelect;
+export type TaskEvent = typeof taskEvents.$inferSelect;
+export type WebsiteUpdateItem = typeof websiteUpdateItems.$inferSelect;

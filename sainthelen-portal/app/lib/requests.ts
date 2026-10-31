@@ -88,6 +88,8 @@ export type PortalRequest = {
   wordpressEventUrl?: string;
   eventLabel?: string; // "Sat Oct 17, 5:00 PM · Gathering Space"
   page?: string; // website updates
+  newPage?: boolean;
+  changes?: Array<{ id: string; position: number; text: string; done: boolean }>;
   notes?: string; // publication notes / additional info
   urgent?: boolean;
   raw: ApiRecord;
@@ -254,11 +256,19 @@ export function toRequest(table: ApiTable, rec: ApiRecord): PortalRequest {
       notes = str(f['Publication Notes']) || undefined;
       eventLabel = eventLabelFor(f);
       break;
-    case 'websiteUpdates':
+    case 'websiteUpdates': {
       page = str(f['Page to Update']) || undefined;
       body = str(f.Description);
-      title = body.split(/[.!?\n]/)[0].slice(0, 80) || (page ? `Update ${page}` : 'Website update');
+      const n = Array.isArray(f.Changes) ? f.Changes.length : 0;
+      const pageName = page ? page.replace(/^https?:\/\/(www\.)?sainthelen\.org/i, '') || page : '';
+      title =
+        f['New Page'] === 'Yes'
+          ? `New page: ${pageName || 'website'}`
+          : n > 1
+            ? `${pageName}: ${n} changes`
+            : body.replace(/^•\s*/, '').split(/[.!?\n]/)[0].slice(0, 80) || (page ? `Update ${page}` : 'Website update');
       break;
+    }
     case 'smsRequests':
       title = str(f['SMS Message']).slice(0, 80) || 'Text message';
       body = str(f['SMS Message']);
@@ -336,6 +346,8 @@ export function toRequest(table: ApiTable, rec: ApiRecord): PortalRequest {
     wordpressEventUrl: str(f['WordPress Event URL']) || undefined,
     eventLabel,
     page,
+    newPage: f['New Page'] === 'Yes',
+    changes: Array.isArray(f.Changes) ? f.Changes : undefined,
     notes,
     urgent: f.Urgent === 'Yes' || f.Urgent === true || /urgent|rush/i.test(str(f.Urgency) + str(f.Priority)),
     raw: rec,

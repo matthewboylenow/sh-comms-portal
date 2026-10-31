@@ -12,6 +12,7 @@ import { sendEmailViaGraph, getAdminNotificationEmail } from '../../lib/email';
 import { runCopyReview } from '../../lib/copy-review';
 import { waitUntil } from '@vercel/functions';
 import { createPortalTask } from '../../lib/portal-task';
+import { createItems } from '../../lib/db/services/website-update-items';
 
 // Covers the style check that runs after the response
 export const maxDuration = 120;
@@ -22,6 +23,9 @@ type WebsiteUpdatesFormData = {
   urgent: boolean;
   pageToUpdate: string;
   description: string;
+  /** Individual changes for this page; description is derived when present */
+  changes?: string[];
+  newPage?: boolean;
   signUpUrl?: string;
   signUpLinks?: { label?: string; url: string }[];
   fileLinks?: string[];
@@ -134,18 +138,22 @@ export async function POST(request: NextRequest) {
 
     // Fix: Convert the urgent boolean to a proper Yes/No string for Airtable
     const urgentValue = data.urgent ? 'Yes' : 'No';
+    if (!data.description && data.changes?.length) data.description = data.changes.map((c) => `• ${c}`).join('\n');
 
     const useNeon = useNeonDatabase();
     let createdId: string | null = null;
 
     if (useNeon) {
       // ===== NEON DATABASE PATH =====
+      const changes = (data.changes || []).map((c) => String(c || '').trim()).filter(Boolean);
+      const description = changes.length ? changes.map((c) => `• ${c}`).join('\n') : data.description;
       const created = await websiteUpdatesService.createWebsiteUpdate({
         name: data.name,
         email: data.email,
         urgent: data.urgent,
         pageToUpdate: data.pageToUpdate,
-        description: data.description,
+        description,
+        ...(data.newPage ? { newPage: true } : {}),
         signUpUrl: data.signUpUrl || null,
         // Only include when populated, so inserts still work if the 0003
         // migration hasn't been applied yet
@@ -153,14 +161,34 @@ export async function POST(request: NextRequest) {
         fileLinks: wordpressFileLinks.length > 0 ? wordpressFileLinks : null,
       });
       createdId = created.id;
+      const pageUrl = /^https?:\/\//i.test(data.pageToUpdate) ? data.pageToUpdate : null;
       waitUntil(
-        createPortalTask('website', created.id, {
-          title: `Update ${data.pageToUpdate || 'the website'}`,
-          requesterName: data.name,
-          requesterEmail: data.email,
-          notes: data.description?.slice(0, 300) || null,
-          urgent: !!data.urgent,
-        })
+        (async () => {
+          const items = changes.length ? await createItems(created.id, changes).catch(() => []) : [];
+          if (items.length) {
+            // One task per change, so each can be tracked and verified on its own
+            for (const item of items) {
+              await createPortalTask('website', `${created.id}#${item.position}`, {
+                title: `${data.newPage ? 'New page' : data.pageToUpdate}: ${item.text.slice(0, 120)}`,
+                requesterName: data.name,
+                requesterEmail: data.email,
+                notes: items.length > 1 ? `Change ${item.position + 1} of ${items.length} on ${data.pageToUpdate}` : null,
+                urgent: !!data.urgent,
+                pageUrl,
+                openId: created.id,
+              });
+            }
+          } else {
+            await createPortalTask('website', created.id, {
+              title: `${data.newPage ? 'New page: ' : 'Update '}${data.pageToUpdate || 'the website'}`,
+              requesterName: data.name,
+              requesterEmail: data.email,
+              notes: description?.slice(0, 300) || null,
+              urgent: !!data.urgent,
+              pageUrl,
+            });
+          }
+        })()
       );
 
       // Style check for the admin card. Runs after the response; the
