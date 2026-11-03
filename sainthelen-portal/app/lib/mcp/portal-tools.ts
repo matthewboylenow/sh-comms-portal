@@ -375,7 +375,7 @@ Photo submissions: submitter_name, description, photo_date, privacy_concern / pr
       description: `Announcements with the dates they run and the channels they were requested for. Built for assembling the Wednesday email blast and the bulletin.
 window (default "upcoming"):
 - "upcoming": the event happens in the next 30 days (date_of_event, any event_dates entry, or calendar_event_date), or the announcement has no event date but was submitted in the last 30 days.
-- "current": should be running now: promotion_start_date is today or earlier (or unset) and the event has not yet passed (or has no date). This is the set to put in this week's email.
+- "current": should be running now: promotion_start_date is unset, already passed, or falls within the next 7 days (the office enters the first weekend an item runs, so a Wednesday run picks up items that start that Saturday), and the event has not yet passed (or has no date). This is the set to put in this week's email.
 - "all": no date filter.
 channel filters to announcements whose platforms include it (case-insensitive substring), e.g. "Email Blast" (the Wednesday email), "Bulletin", "Church Screens".
 Completed announcements are left out unless include_completed is true. Announcements whose coordinator approval is still pending or was rejected are included but marked by approval_status; do not publish anything with approval_status "rejected", and treat "pending" with requires_approval true as not yet cleared.
@@ -423,7 +423,7 @@ Each row has the full announcement_body (never shortened), ministry, submitter, 
           return days.some((d) => d >= today && d <= horizon);
         }
         if (win === 'current') {
-          const started = !r.promotionStartDate || String(r.promotionStartDate) <= today;
+          const started = !r.promotionStartDate || String(r.promotionStartDate) <= addDays(today, 7);
           const notPast = !last || last >= today;
           return started && notPast;
         }
