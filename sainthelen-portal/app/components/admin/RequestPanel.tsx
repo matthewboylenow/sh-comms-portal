@@ -292,6 +292,24 @@ export default function RequestPanel({
 
 function Details({ r, onDesignStatus }: { r: PortalRequest; onDesignStatus: (s: string) => void }) {
   const f = r.raw.fields;
+  const { patch, refresh } = useRequests();
+  const [clearingNewPage, setClearingNewPage] = useState(false);
+  const clearNewPage = async () => {
+    setClearingNewPage(true);
+    patch(r.id, { 'New Page': 'No' });
+    try {
+      const res = await fetch('/api/admin/website-updates', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: r.id, newPage: false }),
+      });
+      if (!res.ok) throw new Error();
+    } catch {
+      await refresh();
+    } finally {
+      setClearingNewPage(false);
+    }
+  };
   const rows: Array<[string, React.ReactNode]> = [];
   rows.push([
     'From',
@@ -319,6 +337,13 @@ function Details({ r, onDesignStatus }: { r: PortalRequest; onDesignStatus: (s: 
       ) : (
         r.page
       ),
+    ]);
+  if (r.newPage)
+    rows.push([
+      '',
+      <button key="np" type="button" onClick={clearNewPage} disabled={clearingNewPage} className="text-xs text-ink-3 underline-offset-2 hover:underline disabled:opacity-50">
+        {clearingNewPage ? 'Saving…' : 'Not a new page (ticked by mistake)'}
+      </button>,
     ]);
   if (r.calendar !== 'none')
     rows.push([

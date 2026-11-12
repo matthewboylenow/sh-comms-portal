@@ -21,6 +21,7 @@ Streamable HTTP is the transport (MCP 2026-07-28, with the 2025 stateless fallba
 | `list_announcements` | Announcements with run dates and requested channels. `window` upcoming (next 30 days, default) / current (should be running now) / all; `channel` such as `Email Blast`, `Bulletin`, `Church Screens`. The Wednesday email tool. |
 | `list_ministries` | Ministries with id, name, description, aliases, contact (approval coordinator), requires_approval. `search` matches name, aliases, description. |
 | `mark_complete` | Sets `completed` and `completed_date` (clears them with `completed: false`), finishes website-update changes and the linked Tasks-tab item, notifies the submitter in the portal. |
+| `update_website_update` | Clears a mistaken "new page" flag or corrects the page name on a website update. |
 | `add_note` | Appends an internal comment authored as "Claude" so staff see what was done. |
 
 Request `type` values: `announcement`, `website_update`, `graphic_design`, `av_request`, `sms_request`, `flyer_review`, `photo_submission`. Each tool's description explains its columns in plain English, so a client needs nothing beyond `tools/list`.

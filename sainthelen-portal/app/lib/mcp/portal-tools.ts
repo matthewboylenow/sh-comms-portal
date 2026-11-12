@@ -552,6 +552,29 @@ Each row has the full announcement_body (never shortened), ministry, submitter, 
   );
 
   server.registerTool(
+    'update_website_update',
+    {
+      title: 'Correct a website update request',
+      description: `Fix fields on a website update that the submitter got wrong. new_page=false clears the "this page does not exist yet" flag when it was ticked by mistake (the page exists); page_to_update replaces the page name or address. Only the fields given are changed.`,
+      inputSchema: z.object({
+        id: z.string().describe('The website update UUID.'),
+        new_page: z.boolean().optional().describe('Whether the request is for a page that does not exist yet.'),
+        page_to_update: z.string().optional().describe('The page name or sainthelen.org address the request is about.'),
+      }),
+    },
+    async ({ id, new_page, page_to_update }) => {
+      const before = await fetchRow('website_update', id);
+      if (!before) return fail(`No website update with id ${id}`);
+      const patch: Record<string, unknown> = {};
+      if (typeof new_page === 'boolean') patch.newPage = new_page;
+      if (typeof page_to_update === 'string' && page_to_update.trim()) patch.pageToUpdate = page_to_update.trim();
+      if (!Object.keys(patch).length) return fail('Give new_page or page_to_update.');
+      const [after] = await db.update(websiteUpdates).set(patch).where(eq(websiteUpdates.id, id)).returning();
+      return text({ ok: true, id, new_page: !!after.newPage, page_to_update: after.pageToUpdate, admin_url: adminUrl(id) });
+    }
+  );
+
+  server.registerTool(
     'add_note',
     {
       title: 'Add a note to a request',
