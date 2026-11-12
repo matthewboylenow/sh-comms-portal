@@ -32,22 +32,22 @@ export default function WebsiteUpdatesFormPage() {
   const addChange = () => setChanges((cs) => [...cs, { id: String(Number(cs[cs.length - 1]?.id || '0') + 1), text: '' }]);
   const removeChange = (id: string) => setChanges((cs) => (cs.length > 1 ? cs.filter((c) => c.id !== id) : cs));
   const updateChange = (id: string, text: string) => setChanges((cs) => cs.map((c) => (c.id === id ? { ...c, text } : c)));
-  /** A sainthelen.org address, or a page name when a new page is wanted. */
+  /**
+   * A page name ("Youth Ministry page") or a sainthelen.org address both work.
+   * The only thing rejected is a link to some other website.
+   */
   const pageProblem = (v: string): string => {
     const t = v.trim();
-    if (!t) return 'Tell us which page.';
-    if (newPage) return '';
+    if (!t) return 'Tell us which page, by name or by address.';
     if (/^https?:\/\//i.test(t)) {
       try {
         const u = new URL(t);
-        if (!/(^|\.)sainthelen\.org$/i.test(u.hostname)) return 'That link is not on sainthelen.org. If the page does not exist yet, tick "This is a new page".';
-        return '';
+        if (!/(^|\.)sainthelen\.org$/i.test(u.hostname)) return 'That link is on another website. Paste a sainthelen.org address, or just name the page.';
       } catch {
-        return 'That does not look like a web address.';
+        return 'That does not look like a web address. You can just name the page instead.';
       }
     }
-    if (/^(www\.)?sainthelen\.org/i.test(t)) return '';
-    return 'Paste the page\'s address from your browser (it starts with sainthelen.org). If the page does not exist yet, tick "This is a new page".';
+    return '';
   };
   const normalisePage = (v: string) => {
     const t = v.trim();
@@ -222,7 +222,7 @@ export default function WebsiteUpdatesFormPage() {
             label={newPage ? 'What should the new page be called?' : 'Which page?'}
             htmlFor="wu-page"
             required
-            help={newPage ? 'A working title is fine. Say where it should live in the notes if you know.' : 'Paste the page\'s address from your browser. It starts with sainthelen.org.'}
+            help={newPage ? 'A working title is fine. Say where it should live in the notes if you know.' : 'Name the page ("Youth Ministry page") or paste its address from your browser. Either is fine.'}
             error={pageError || undefined}
           >
             <Input
@@ -234,12 +234,11 @@ export default function WebsiteUpdatesFormPage() {
               }}
               onBlur={() => setPageError(pageToUpdate.trim() ? pageProblem(pageToUpdate) : '')}
               required
-              placeholder={newPage ? 'Youth Ministry retreat 2027' : 'https://sainthelen.org/youth-ministry'}
-              inputMode={newPage ? 'text' : 'url'}
+              placeholder={newPage ? 'Youth Ministry retreat 2027' : 'Youth Ministry page, or https://sainthelen.org/youth-ministry'}
             />
             <div className="mt-1.5">
               <Checkbox
-                label="This is a new page that does not exist yet"
+                label="This page does not exist yet. Please create it."
                 checked={newPage}
                 onChange={(e) => {
                   setNewPage(e.target.checked);
