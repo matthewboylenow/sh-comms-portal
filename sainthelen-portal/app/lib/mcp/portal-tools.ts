@@ -317,7 +317,7 @@ export function registerPortalTools(server: McpServer) {
 - sign_up_links: every sign-up / registration link the submitter gave, absolute URLs, with labels when provided.
 - file_links: attached files (fliers, photos, documents) as absolute URLs.
 - notes: staff comments and Claude's notes on this request, oldest first (author, text, created_at; from_submitter marks replies the requester wrote).
-- For website updates: changes[] (the individual edits requested, each with done / done_at) and new_page (the submitter asked for a page that does not exist yet).
+- For website updates: changes[] (the individual edits requested, each with the page it belongs to, done / done_at) and new_page (the submitter asked for a page that does not exist yet).
 - For announcements: calendar_review (the parish-calendar event derived from the request, if one was asked for, including the published WordPress event URL) and the social-media consideration fields.
 Key announcement columns: announcement_body is the copy as submitted; publication_notes are instructions to the office; platforms lists the channels requested; approval_status / approved_by / rejection_reason track coordinator sign-off; wordpress_event_url is the calendar event once published.
 Key website update columns: page_to_update is the sainthelen.org URL to edit; description is the full request; urgent flags same-week changes.
@@ -348,7 +348,7 @@ Photo submissions: submitter_name, description, photo_date, privacy_concern / pr
       };
       if (type === 'website_update') {
         const items = await getItems(id).catch(() => []);
-        out.changes = items.map((i) => ({ position: i.position, text: i.text, done: i.done, done_at: iso(i.doneAt) }));
+        out.changes = items.map((i) => ({ position: i.position, text: i.text, page: i.page || r.pageToUpdate, done: i.done, done_at: iso(i.doneAt) }));
       }
       if (type === 'announcement') {
         const [cr] = await db.select().from(calendarReviews).where(eq(calendarReviews.announcementId, id)).orderBy(desc(calendarReviews.createdAt)).limit(1);

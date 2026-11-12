@@ -429,6 +429,8 @@ export const websiteUpdateItems = pgTable('website_update_items', {
   updateId: uuid('update_id').notNull(),
   position: integer('position').default(0).notNull(),
   text: text('text').notNull(),
+  // Set when this change is on a different page from the request's main page
+  page: varchar('page', { length: 500 }),
   done: boolean('done').default(false).notNull(),
   doneAt: timestamp('done_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),

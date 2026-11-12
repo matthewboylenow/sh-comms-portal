@@ -26,12 +26,16 @@ export default function WebsiteUpdatesFormPage() {
   const [pageToUpdate, setPageToUpdate] = useState('');
   const [newPage, setNewPage] = useState(false);
   const [pageError, setPageError] = useState('');
-  // One row per change on this page
-  const [changes, setChanges] = useState<Array<{ id: string; text: string }>>([{ id: '1', text: '' }]);
-  const description = changes.map((c) => c.text.trim()).filter(Boolean).map((t) => `• ${t}`).join('\n');
-  const addChange = () => setChanges((cs) => [...cs, { id: String(Number(cs[cs.length - 1]?.id || '0') + 1), text: '' }]);
+  // One row per change. A change can name its own page when it is not on the main one.
+  type ChangeRow = { id: string; text: string; page: string; ownPage: boolean };
+  const [changes, setChanges] = useState<ChangeRow[]>([{ id: '1', text: '', page: '', ownPage: false }]);
+  const description = changes
+    .filter((c) => c.text.trim())
+    .map((c) => (c.ownPage && c.page.trim() ? `• ${c.text.trim()} (on ${c.page.trim()})` : `• ${c.text.trim()}`))
+    .join('\n');
+  const addChange = () => setChanges((cs) => [...cs, { id: String(Number(cs[cs.length - 1]?.id || '0') + 1), text: '', page: '', ownPage: false }]);
   const removeChange = (id: string) => setChanges((cs) => (cs.length > 1 ? cs.filter((c) => c.id !== id) : cs));
-  const updateChange = (id: string, text: string) => setChanges((cs) => cs.map((c) => (c.id === id ? { ...c, text } : c)));
+  const updateChange = (id: string, patch: Partial<ChangeRow>) => setChanges((cs) => cs.map((c) => (c.id === id ? { ...c, ...patch } : c)));
   /**
    * A page name ("Youth Ministry page") or a sainthelen.org address both work.
    * The only thing rejected is a link to some other website.
@@ -124,9 +128,17 @@ export default function WebsiteUpdatesFormPage() {
       setSubmittingForm(false);
       return;
     }
-    const cleanChanges = changes.map((c) => c.text.trim()).filter(Boolean);
+    const cleanChanges = changes
+      .filter((c) => c.text.trim())
+      .map((c) => ({ text: c.text.trim(), page: c.ownPage ? normalisePage(c.page) : '' }));
     if (!cleanChanges.length) {
       setErrorMessage('Describe at least one change.');
+      setSubmittingForm(false);
+      return;
+    }
+    const offSite = cleanChanges.find((c) => c.page && pageProblem(c.page));
+    if (offSite) {
+      setErrorMessage(`Change on "${offSite.page}": ${pageProblem(offSite.page)}`);
       setSubmittingForm(false);
       return;
     }
@@ -165,7 +177,7 @@ export default function WebsiteUpdatesFormPage() {
       setEmail('');
       setUrgent(false);
       setPageToUpdate('');
-      setChanges([{ id: '1', text: '' }]);
+      setChanges([{ id: '1', text: '', page: '', ownPage: false }]);
       setNewPage(false);
       setPageError('');
       setSignUpLinks([{ id: '1', label: '', url: '' }]);
@@ -248,19 +260,40 @@ export default function WebsiteUpdatesFormPage() {
             </div>
           </Field>
 
-          <Field label="What should change?" required help="One change per line. Add a row for each separate change so we can tick them off one at a time.">
+          <Field label="What should change?" required help="One change per row, so we can tick them off one at a time. If a change belongs on a different page, say so on that row.">
             <div className="flex flex-col gap-2">
               {changes.map((c, i) => (
                 <div key={c.id} className="flex items-start gap-2">
                   <span className="tnum mt-[11px] w-5 flex-none text-right text-xs text-ink-3">{i + 1}.</span>
-                  <Textarea
-                    rows={2}
-                    value={c.text}
-                    onChange={(e) => updateChange(c.id, e.target.value)}
-                    placeholder={i === 0 ? 'Update the volunteer registration button to point to the new form' : 'Another change on this page'}
-                    aria-label={`Change ${i + 1}`}
-                    required={i === 0}
-                  />
+                  <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                    <Textarea
+                      rows={2}
+                      value={c.text}
+                      onChange={(e) => updateChange(c.id, { text: e.target.value })}
+                      placeholder={i === 0 ? 'Update the volunteer registration button to point to the new form' : 'Another change'}
+                      aria-label={`Change ${i + 1}`}
+                      required={i === 0}
+                    />
+                    {c.ownPage ? (
+                      <div className="flex items-center gap-2">
+                        <span className="flex-none text-xs text-ink-3">On page</span>
+                        <Input
+                          value={c.page}
+                          onChange={(e) => updateChange(c.id, { page: e.target.value })}
+                          placeholder="Middle School page, or its address"
+                          aria-label={`Page for change ${i + 1}`}
+                          className="max-w-[420px]"
+                        />
+                        <button type="button" className="flex-none text-xs text-ink-3 underline-offset-2 hover:underline" onClick={() => updateChange(c.id, { ownPage: false, page: '' })}>
+                          Same page
+                        </button>
+                      </div>
+                    ) : (
+                      <button type="button" className="self-start text-xs text-ink-3 underline-offset-2 hover:underline" onClick={() => updateChange(c.id, { ownPage: true })}>
+                        This change is on a different page
+                      </button>
+                    )}
+                  </div>
                   {changes.length > 1 && <RemoveRow onClick={() => removeChange(c.id)} />}
                 </div>
               ))}
@@ -268,7 +301,7 @@ export default function WebsiteUpdatesFormPage() {
             <AddRow onClick={addChange}>Add another change</AddRow>
             {description && (
               <div className="mt-2">
-                <CopyAssist kind="website_update" value={description} onChange={(v) => setChanges(v.split(/\n/).map((l) => l.replace(/^[•\-*]\s*/, '').trim()).filter(Boolean).map((text, i) => ({ id: String(i + 1), text })))} />
+                <CopyAssist kind="website_update" value={description} onChange={(v) => setChanges(v.split(/\n/).map((l) => l.replace(/^[•\-*]\s*/, '').trim()).filter(Boolean).map((text, i) => ({ id: String(i + 1), text, page: '', ownPage: false })))} />
               </div>
             )}
           </Field>

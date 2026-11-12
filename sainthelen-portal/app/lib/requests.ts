@@ -89,7 +89,7 @@ export type PortalRequest = {
   eventLabel?: string; // "Sat Oct 17, 5:00 PM · Gathering Space"
   page?: string; // website updates
   newPage?: boolean;
-  changes?: Array<{ id: string; position: number; text: string; done: boolean }>;
+  changes?: Array<{ id: string; position: number; text: string; page?: string | null; done: boolean }>;
   notes?: string; // publication notes / additional info
   urgent?: boolean;
   raw: ApiRecord;
@@ -410,7 +410,8 @@ export function summarizeRequest(r: PortalRequest): string {
   } else if (r.type === 'text') {
     add('Send on', r.runsLabel !== '—' ? r.runsLabel : '');
   } else if (r.type === 'website') {
-    add('Page', r.page);
+    const extraPages = Array.from(new Set((r.changes || []).map((c) => c.page).filter((p): p is string => !!p)));
+    add(extraPages.length ? 'Pages' : 'Page', [r.page, ...extraPages].filter(Boolean).join('; '));
     if (r.urgent) add('Urgent', 'Yes');
   } else if (r.type === 'av') {
     add('When', r.eventLabel);
@@ -427,7 +428,19 @@ export function summarizeRequest(r: PortalRequest): string {
   }
   if (r.forMsgr) add('Flagged', 'To review with Msgr. Tom');
 
-  if (r.body) {
+  if (r.changes && r.changes.length) {
+    lines.push('');
+    lines.push('Changes:');
+    let lastPage: string | null | undefined;
+    for (const c of r.changes) {
+      const page = c.page || r.page || '';
+      if (page !== lastPage) {
+        lines.push(`On ${page}:`);
+        lastPage = page;
+      }
+      lines.push(`  ${c.done ? '[x]' : '[ ]'} ${c.text}`);
+    }
+  } else if (r.body) {
     lines.push('');
     lines.push(r.type === 'announcement' ? `Text as submitted (${r.words} words):` : r.type === 'text' ? `Text (${r.chars} characters):` : 'Request:');
     lines.push(r.body.trim());

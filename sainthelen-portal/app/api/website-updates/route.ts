@@ -23,8 +23,8 @@ type WebsiteUpdatesFormData = {
   urgent: boolean;
   pageToUpdate: string;
   description: string;
-  /** Individual changes for this page; description is derived when present */
-  changes?: string[];
+  /** Individual changes; a string, or { text, page } when the change is on another page */
+  changes?: Array<string | { text: string; page?: string }>;
   newPage?: boolean;
   signUpUrl?: string;
   signUpLinks?: { label?: string; url: string }[];
@@ -138,15 +138,20 @@ export async function POST(request: NextRequest) {
 
     // Fix: Convert the urgent boolean to a proper Yes/No string for Airtable
     const urgentValue = data.urgent ? 'Yes' : 'No';
-    if (!data.description && data.changes?.length) data.description = data.changes.map((c) => `• ${c}`).join('\n');
+    const normalisedChanges = (data.changes || [])
+      .map((c) => (typeof c === 'string' ? { text: c, page: '' } : { text: String(c?.text || ''), page: String(c?.page || '') }))
+      .map((c) => ({ text: c.text.trim(), page: c.page.trim() }))
+      .filter((c) => c.text);
+    const bullet = (c: { text: string; page: string }) => (c.page ? `• ${c.text} (on ${c.page})` : `• ${c.text}`);
+    if (!data.description && normalisedChanges.length) data.description = normalisedChanges.map(bullet).join('\n');
 
     const useNeon = useNeonDatabase();
     let createdId: string | null = null;
 
     if (useNeon) {
       // ===== NEON DATABASE PATH =====
-      const changes = (data.changes || []).map((c) => String(c || '').trim()).filter(Boolean);
-      const description = changes.length ? changes.map((c) => `• ${c}`).join('\n') : data.description;
+      const changes = normalisedChanges;
+      const description = changes.length ? changes.map(bullet).join('\n') : data.description;
       const created = await websiteUpdatesService.createWebsiteUpdate({
         name: data.name,
         email: data.email,
@@ -161,20 +166,22 @@ export async function POST(request: NextRequest) {
         fileLinks: wordpressFileLinks.length > 0 ? wordpressFileLinks : null,
       });
       createdId = created.id;
-      const pageUrl = /^https?:\/\//i.test(data.pageToUpdate) ? data.pageToUpdate : null;
+      const asUrl = (p: string) => (/^https?:\/\//i.test(p) ? p : null);
+      const pageUrl = asUrl(data.pageToUpdate);
       waitUntil(
         (async () => {
           const items = changes.length ? await createItems(created.id, changes).catch(() => []) : [];
           if (items.length) {
             // One task per change, so each can be tracked and verified on its own
             for (const item of items) {
+              const page = item.page || data.pageToUpdate;
               await createPortalTask('website', `${created.id}#${item.position}`, {
-                title: `${data.newPage ? 'New page' : data.pageToUpdate}: ${item.text.slice(0, 120)}`,
+                title: `${data.newPage && !item.page ? 'New page' : page}: ${item.text.slice(0, 120)}`,
                 requesterName: data.name,
                 requesterEmail: data.email,
-                notes: items.length > 1 ? `Change ${item.position + 1} of ${items.length} on ${data.pageToUpdate}` : null,
+                notes: items.length > 1 ? `Change ${item.position + 1} of ${items.length} on ${page}` : null,
                 urgent: !!data.urgent,
-                pageUrl,
+                pageUrl: asUrl(page),
                 openId: created.id,
               });
             }

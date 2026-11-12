@@ -118,7 +118,7 @@ export async function GET(request: NextRequest) {
             'Page to Update': r.pageToUpdate,
             'New Page': (r as any).newPage ? 'Yes' : 'No',
             Description: r.description,
-            Changes: (items.get(r.id) || []).map((i: any) => ({ id: i.id, position: i.position, text: i.text, done: i.done })),
+            Changes: (items.get(r.id) || []).map((i: any) => ({ id: i.id, position: i.position, text: i.text, page: i.page || null, done: i.done })),
             'Sign-Up URL': r.signUpUrl,
             'Sign-Up Links': r.signUpLinks,
             'File Links': r.fileLinks?.join('\n') || '',

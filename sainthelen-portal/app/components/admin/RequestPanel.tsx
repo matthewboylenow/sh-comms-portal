@@ -472,8 +472,18 @@ function Changes({ r }: { r: PortalRequest }) {
         Changes <span className="ml-auto font-medium">{done} of {items.length} done</span>
       </div>
       <ol className="overflow-hidden rounded border border-line">
-        {items.map((i, n) => (
-          <li key={i.id} className={`flex items-start gap-2.5 px-3 py-2 ${n ? 'border-t border-line' : ''}`}>
+        {items.map((i, n) => {
+          const page = i.page || r.page || '';
+          const prev = n ? items[n - 1].page || r.page || '' : null;
+          const showPage = items.some((c) => c.page) && page !== prev;
+          return (
+          <li key={i.id} className={`${n ? 'border-t border-line' : ''}`}>
+          {showPage && (
+            <div className="truncate bg-surface-2 px-3 py-1 text-[11px] font-semibold text-ink-3" title={page}>
+              {page.replace(/^https?:\/\/(www\.)?/i, '')}
+            </div>
+          )}
+          <div className="flex items-start gap-2.5 px-3 py-2">
             <input
               type="checkbox"
               checked={i.done}
@@ -483,8 +493,10 @@ function Changes({ r }: { r: PortalRequest }) {
               className="mt-[3px] h-[15px] w-[15px] flex-none"
             />
             <span className={`leading-relaxed ${i.done ? 'text-ink-3 line-through' : ''}`}>{i.text}</span>
+          </div>
           </li>
-        ))}
+          );
+        })}
       </ol>
     </>
   );

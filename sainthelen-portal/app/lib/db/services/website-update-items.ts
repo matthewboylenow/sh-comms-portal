@@ -18,6 +18,7 @@ function ensureTable(): Promise<void> {
         "created_at" timestamptz DEFAULT now() NOT NULL
       )`));
       await db.execute(sql.raw('CREATE INDEX IF NOT EXISTS "website_update_items_update_idx" ON "website_update_items" ("update_id")'));
+      await db.execute(sql.raw('ALTER TABLE "website_update_items" ADD COLUMN IF NOT EXISTS "page" varchar(500)'));
       await db.execute(sql.raw('ALTER TABLE "website_updates" ADD COLUMN IF NOT EXISTS "new_page" boolean DEFAULT false'));
     })().catch((err) => {
       ready = null;
@@ -27,13 +28,18 @@ function ensureTable(): Promise<void> {
   return ready;
 }
 
-export async function createItems(updateId: string, texts: string[]): Promise<WebsiteUpdateItem[]> {
+export type ChangeInput = { text: string; page?: string | null };
+
+/** page is only stored when the change is on a page other than the request's main one. */
+export async function createItems(updateId: string, changes: ChangeInput[]): Promise<WebsiteUpdateItem[]> {
   await ensureTable();
-  const clean = texts.map((t) => t.trim()).filter(Boolean);
+  const clean = changes
+    .map((c) => ({ text: c.text.trim(), page: c.page?.trim() || null }))
+    .filter((c) => c.text);
   if (!clean.length) return [];
   return db
     .insert(websiteUpdateItems)
-    .values(clean.map((text, position) => ({ updateId, position, text })))
+    .values(clean.map((c, position) => ({ updateId, position, text: c.text, page: c.page })))
     .returning();
 }
 
